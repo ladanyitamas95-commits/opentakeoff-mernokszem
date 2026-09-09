@@ -994,7 +994,7 @@ export default function TakeoffCanvas() {
         // and drift the composite extent (see resolveSource's wf/hf note)
         dims[k] = { w: vp.width, h: vp.height };
       }
-    } catch (e) { setCommitMsg(`Couldn't read those sheets to stitch them: ${e.message || e}`); return; }
+    } catch (e) { setCommitMsg(`A tervlapok nem olvashatók be az összeillesztéshez: ${e.message || e}`); return; }
     const st = { id: mintStitchId(), name: ks.map((k) => tabLabel(k)).join(" + "), members: autoButt(ks, dims), created_at: nowIso() };
     setStitches((s) => [...s, st]);
     const upps = ks.map((k) => scales[k]);
@@ -1003,14 +1003,14 @@ export default function TakeoffCanvas() {
     setSheetGroup([st.id]);
     setFocusKey(st.id);
     setView("canvas");
-    setCommitMsg("Stitched — drag to pan, then Align (toolbar) joins the match line: click the same point on both sheets.");
+    setCommitMsg("A tervlapok összeillesztve. Mozgasd a nézetet, majd az Igazítás eszközzel jelöld ki ugyanazt a pontot mindkét tervlapon.");
   }
   // Deleting a stitch is refused while takeoffs live on it — quantities are
   // never silently orphaned (the close-PDF confirm precedent, but stricter:
   // a stitch has no file to re-add, so there is no restore path).
   function deleteStitch(id) {
     const n = shapes.filter((s) => s.sheet_id === id).length + markups.filter((m) => m.sheet_id === id).length;
-    if (n) { setCommitMsg(`This stitch carries ${n} takeoff${n === 1 ? "" : "s"}/markup${n === 1 ? "" : "s"} — delete or move them first.`); return; }
+    if (n) { setCommitMsg(`Az összeillesztésen ${n} tervmérés vagy jelölés található. Előbb töröld vagy helyezd át őket.`); return; }
     setStitches((s) => s.filter((st) => st.id !== id));
     setOpenTabs((t) => t.filter((k) => k !== id));
     if (sheetGroup.includes(id)) { const f = sheetGroup.filter((k) => k !== id); setSheetGroup(f.length >= 2 || (f.length === 1 && isStitchKey(f[0])) ? f : []); }
@@ -1033,7 +1033,7 @@ export default function TakeoffCanvas() {
     if (!sheetGroup.length && key === sheetKey) { const nb = next[Math.min(Math.max(i, 0), next.length - 1)]; if (nb) goToSheet(nb); }
   }
   const tabLabel = (k) => {
-    if (isStitchKey(k)) return stitchById[k]?.name || "Stitched sheets";
+    if (isStitchKey(k)) return stitchById[k]?.name || "Összeillesztett tervlapok";
     const lvl = sheetLevels[k] ? `${sheetLevels[k]} · ` : "";   // assigned floor/level rides every tab label
     if (galleryLabels[k]) return lvl + galleryLabels[k];
     const t = parseSheetKey(k);
@@ -1046,7 +1046,7 @@ export default function TakeoffCanvas() {
   // sheet reads "PLAN-2", not the compound "Level 1 · PLAN · 2" that would nest
   // badly inside an image name like "…-01".
   const sheetBaseLabel = (k) => {
-    if (isStitchKey(k)) return stitchById[k]?.name || "Stitched";
+    if (isStitchKey(k)) return stitchById[k]?.name || "Összeillesztve";
     if (galleryLabels[k]) return galleryLabels[k];
     const t = parseSheetKey(k);
     if (t.file === active && pageLabels[t.page]) return pageLabels[t.page];
@@ -1126,7 +1126,7 @@ export default function TakeoffCanvas() {
   // the FOCUSED panel (the one last clicked); single mode focuses the lone panel.
   const focusPanel = (focusKey && groupKeys.includes(focusKey) && panelByKey(focusKey)) || panels[0];
   const unitsPerPx = scales[focusPanel.key] ?? null;
-  const labelFor = (p) => stitchById[p.key]?.name || (p.file === active && pageLabels[p.page]) || (p.page > 1 ? `Sheet ${p.page}` : p.file);
+  const labelFor = (p) => stitchById[p.key]?.name || (p.file === active && pageLabels[p.page]) || (p.page > 1 ? `Tervlap ${p.page}` : p.file);
   // Scale semantics (why geometry divides by factorFor and calibration
   // multiplies back to baseline) are documented on the pure functions in
   // lib/panelGeometry.js; these wrappers bind the live scales/renderScalesRef.
@@ -1411,7 +1411,7 @@ export default function TakeoffCanvas() {
     forgetPages(names);
     const list = await refreshSheets();
     reconcileAfterRemoval(names.includes(active) ? active : "", list);
-    setCommitMsg(`Removed ${names.length} PDF${names.length === 1 ? "" : "s"} from the plan set — takeoffs on them stay in the project and restore on re-add.`);
+    setCommitMsg(`${names.length} PDF eltávolítva a tervcsomagból. A hozzájuk tartozó tervmérések a projektben maradnak, és újbóli hozzáadáskor visszaállnak.`);
   }, [refreshSheets, reconcileAfterRemoval, evictDoc, forgetPages, active]);
   // Remove-from-project (cloud only): the DESTRUCTIVE variant — delete the Drive
   // file, then drop it from the working set.
@@ -1430,25 +1430,25 @@ export default function TakeoffCanvas() {
     const otk = incoming.find((f) => isProjectArchive(f.name));
     if (otk) {
       await importProjectArchive(otk);
-      if (incoming.length > 1) setCommitMsg((m) => `${m} Other dropped files were ignored — open plans separately from a project archive.`);
+      if (incoming.length > 1) setCommitMsg((m) => `${m} A többi behúzott fájl kimaradt; a terveket a projektarchívumtól külön nyisd meg.`);
       return;
     }
     // a dropped .otprofile is the working ENVIRONMENT (#299) — apply it, never
     // ingest it as a plan
     const prof = incoming.find((f) => isProfileFile(f.name));
     if (prof) { await importProfileFile(prof); return; }
-    setCommitMsg("Reading files…");
+    setCommitMsg("Fájlok beolvasása…");
     let pdfs = [], skipped = [];
     try { ({ pdfs, skipped } = await ingestFiles(incoming, { onProgress: setCommitMsg })); }
-    catch (e) { setCommitMsg(`Couldn't read those files: ${e.message || e}`); return; }
+    catch (e) { setCommitMsg(`A fájlok nem olvashatók be: ${e.message || e}`); return; }
     if (!pdfs.length) {
       setCommitMsg(skipped.length
         ? `Nincs megnyitható terv — ${skipped.length} fájl kimaradt. A MérnökSzem TakeOff PDF-, kép- és ZIP-tervcsomagokat kezel.`
-        : "No supported files found. Drop a PDF, an image, or a .zip plan set.");
+        : "Nem található támogatott fájl. Húzz ide PDF-et, képet vagy ZIP tervcsomagot.");
       return;
     }
     const results = [];
-    for (const f of pdfs) { try { results.push(await store.addPdf(f)); } catch (e) { setCommitMsg(`Couldn't open ${f.name}: ${e.message || e}`); } }
+    for (const f of pdfs) { try { results.push(await store.addPdf(f)); } catch (e) { setCommitMsg(`${f.name} nem nyitható meg: ${e.message || e}`); } }
     await refreshSheets();
     // CO-1: a re-drop whose bytes CHANGED is a plan revision, not a re-open.
     // The store archived the old bytes; here the stale pdf.js docs must go
@@ -1463,7 +1463,7 @@ export default function TakeoffCanvas() {
       setDocEpoch((e) => e + 1);
     }
     const names = pdfs.map((f) => f.name);
-    const tail = skipped.length ? ` · ${skipped.length} skipped` : "";
+    const tail = skipped.length ? ` · ${skipped.length} fájl kihagyva` : "";
     if (names.length === 1) {
       setOpenTabs((t) => (t.includes(names[0]) ? t : [...t, names[0]]));
       goToSheet(names[0]);
@@ -1479,10 +1479,10 @@ export default function TakeoffCanvas() {
       const hot = revised.filter((r) => inked(r.name));
       const label = (r) => `${r.name} → rev ${r.rev}`;
       setCommitMsg(hot.length
-        ? `Sheet changed under your markups: ${hot.map(label).join(", ")} — earlier revision kept; re-check the affected takeoff.`
-        : `Sheet updated: ${revised.map(label).join(", ")} — earlier revision kept.`);
+        ? `A jelölések alatti tervlap megváltozott: ${hot.map(label).join(", ")}. A korábbi revízió megmaradt; ellenőrizd az érintett tervmérést.`
+        : `Tervlap frissítve: ${revised.map(label).join(", ")}. A korábbi revízió megmaradt.`);
     } else {
-      setCommitMsg(`Opened ${names.length} sheet${names.length === 1 ? "" : "s"}${tail}.`);
+      setCommitMsg(`${names.length} tervlap megnyitva${tail}.`);
     }
   }
   // The empty-project landing view (the Drive picker for an empty cloud project,
@@ -1667,12 +1667,12 @@ export default function TakeoffCanvas() {
       // Cloud project whose saved takeoff couldn't be read (Drive error / unreadable
       // annotations): same rule as a stale tab — leave autosave DISARMED so empty
       // defaults can't overwrite the real project in Drive. (cloudStore tags these.)
-      if (e?.name === "CloudLoadError") { setCommitMsg(e.message || "Couldn't load this project from Drive — reload to retry."); return; }
+      if (e?.name === "CloudLoadError") { setCommitMsg(e.message || "A projekt nem tölthető be a Drive-ról. Az újrapróbáláshoz töltsd újra a lapot."); return; }
       // Do NOT arm autosave on any other failed load either: the in-memory
       // state is empty, so the first edit would overwrite the intact saved
       // takeoff with nothing. Leave it disarmed (hydrated stays false) and say
       // so in a banner — a reload retries the read.
-      setLoadError(String((e && e.message) || e || "unknown error"));
+      setLoadError(String((e && e.message) || e || "ismeretlen hiba"));
     });
     return () => { off = true; };
     // run-once mount load — hydrate is intentionally not a dep (re-running would
@@ -2321,16 +2321,16 @@ export default function TakeoffCanvas() {
       const imported = parseTakeoffImport(await file.text());
       const { payload, note } = mergeTakeoffImport(buildPayload(), imported, sheets.map((s) => s.name));
       restoreSavedPayload(payload);
-      const parts = [`Imported ${note.shapes_added} shape${note.shapes_added === 1 ? "" : "s"}`];
-      if (note.shapes_pending) parts.push(`${note.shapes_pending} dashed pending your review — Accept turns pencil to ink`);
-      if (note.conditions_added) parts.push(`${note.conditions_added} new condition${note.conditions_added === 1 ? "" : "s"}`);
-      if (note.conditions_merged) parts.push(`${note.conditions_merged} matched your finish tags`);
-      if (note.unknown_files.length) parts.push(`some shapes reference ${note.unknown_files.join(", ")} — open that file to see them`);
+      const parts = [`${note.shapes_added} alakzat importálva`];
+      if (note.shapes_pending) parts.push(`${note.shapes_pending} szaggatott alakzat ellenőrzésre vár; az Elfogadás véglegesíti`);
+      if (note.conditions_added) parts.push(`${note.conditions_added} új tétel`);
+      if (note.conditions_merged) parts.push(`${note.conditions_merged} tétel a meglévő azonosítóhoz kapcsolva`);
+      if (note.unknown_files.length) parts.push(`néhány alakzat erre hivatkozik: ${note.unknown_files.join(", ")}; a megtekintéshez nyisd meg a fájlt`);
       setCommitMsg(parts.join(" · ") + ".");
     } catch (e) {
       // module copy already speaks "Couldn't…" (the sticky danger convention);
       // anything unexpected gets wrapped into it rather than aging out unread
-      setCommitMsg(String(e?.message || "").startsWith("Couldn't") ? e.message : `Couldn't import takeoff: ${e?.message || e}`);
+      setCommitMsg(`A tervmérés nem importálható: ${e?.message || e}`);
     }
   };
 
@@ -2352,7 +2352,7 @@ export default function TakeoffCanvas() {
     const base = (projectName || "takeoff").trim().replace(/[^\w.\- ]+/g, "").replace(/\s+/g, "-").replace(/^[-.]+|[-.]+$/g, "") || "takeoff";
     downloadText(`${base}.takeoff.json`, JSON.stringify(payload, null, 2), "application/json");
     const n = shapes.length;
-    setCommitMsg(`Exported ${base}.takeoff.json — ${n} takeoff${n === 1 ? "" : "s"}, ${conditions.length} condition${conditions.length === 1 ? "" : "s"}. The plan PDF isn't in it: to restore, open the same PDF, then Import takeoff.`);
+    setCommitMsg(`${base}.takeoff.json exportálva — ${n} tervmérés, ${conditions.length} tétel. A terv PDF-je nincs benne; visszaállításhoz nyisd meg ugyanazt a PDF-et, majd válaszd a Tervmérés importálása lehetőséget.`);
   };
 
   // "Clear workspace" (#301) — the deliberate start-fresh: every stored PDF
@@ -2377,8 +2377,8 @@ export default function TakeoffCanvas() {
     reconcileAfterRemoval("", await refreshSheets());
     restoreSavedPayload(emptyAnnotations());
     setCommitMsg(saved
-      ? `Workspace cleared — ${names.length} PDF${names.length === 1 ? "" : "s"} removed. The takeoff was snapshotted first: Revisions → restore brings it back (re-open the same PDFs to see its shapes).`
-      : `Workspace cleared — ${names.length} PDF${names.length === 1 ? "" : "s"} removed.`);
+      ? `A munkaterület törölve, ${names.length} PDF eltávolítva. A tervmérésről pillanatkép készült; a Revíziók panelen visszaállítható. Az alakzatokhoz nyisd meg újra ugyanazokat a PDF-eket.`
+      : `A munkaterület törölve, ${names.length} PDF eltávolítva.`);
   };
 
   // "Export project archive…" (#300) — the whole job as ONE portable .otk:
@@ -2386,7 +2386,7 @@ export default function TakeoffCanvas() {
   // of the #285 pair: Export takeoff is the annotation record alone (open the
   // same PDF to restore); this is the archive that carries its own paper.
   const exportProjectArchive = async () => {
-    if (!sheets.length) { setCommitMsg("Couldn't export project: no plans are open."); return; }
+    if (!sheets.length) { setCommitMsg("A projekt nem exportálható: nincs megnyitott terv."); return; }
     const base = (projectName || "project").trim().replace(/[^\w.\- ]+/g, "").replace(/\s+/g, "-").replace(/^[-.]+|[-.]+$/g, "") || "project";
     try {
       const data = await buildProjectArchive({
@@ -2397,9 +2397,9 @@ export default function TakeoffCanvas() {
         onProgress: setCommitMsg,
       });
       downloadArchive(`${base}.otk`, data);
-      setCommitMsg(`Exported ${base}.otk — ${sheets.length} PDF${sheets.length === 1 ? "" : "s"} + the full takeoff (${shapes.length} shape${shapes.length === 1 ? "" : "s"}). Self-contained: open it on any machine, or hand it to another estimator.`);
+      setCommitMsg(`${base}.otk exportálva — ${sheets.length} PDF és a teljes tervmérés (${shapes.length} alakzat). Az archívum másik gépen is megnyitható.`);
     } catch (e) {
-      setCommitMsg(`Couldn't export project: ${e?.message || e}`);
+      setCommitMsg(`A projekt nem exportálható: ${e?.message || e}`);
     }
   };
 
@@ -2408,14 +2408,14 @@ export default function TakeoffCanvas() {
   // snapshotted first so opening an archive is never a silent overwrite.
   const importProjectArchive = async (file) => {
     try {
-      setCommitMsg(`Opening ${file.name}…`);
+      setCommitMsg(`${file.name} megnyitása…`);
       const { takeoff, pdfs } = await parseProjectArchive(new Uint8Array(await file.arrayBuffer()));
       if (shapes.length || conditions.length || markups.length) {
         try { await store.saveSnapshot(`Before opening ${file.name} — ${new Date().toLocaleString()}`, buildPayload()); }
         catch { /* best-effort — the open continues; archives are additive to PDFs */ }
       }
       for (const f of pdfs) {
-        setCommitMsg(`Restoring ${f.name}…`);
+        setCommitMsg(`${f.name} visszaállítása…`);
         await store.addPdf(f);        // same-name different-bytes archives a revision (CO-1), never a silent overwrite
         evictDoc(f.name);             // stale docs must re-read the restored bytes
       }
@@ -2424,9 +2424,9 @@ export default function TakeoffCanvas() {
       await refreshSheets();
       restoreSavedPayload(takeoff);
       const n = Array.isArray(takeoff.shapes) ? takeoff.shapes.length : 0;
-      setCommitMsg(`Opened ${file.name} — ${pdfs.length} PDF${pdfs.length === 1 ? "" : "s"}, ${n} takeoff${n === 1 ? "" : "s"}.${shapes.length || conditions.length ? " Your previous takeoff was snapshotted — Revisions restores it." : ""}`);
+      setCommitMsg(`${file.name} megnyitva — ${pdfs.length} PDF, ${n} tervmérés.${shapes.length || conditions.length ? " A korábbi tervmérésről pillanatkép készült; a Revíziók panelen visszaállítható." : ""}`);
     } catch (e) {
-      setCommitMsg(String(e?.message || "").startsWith("Couldn't") ? e.message : `Couldn't open project: ${e?.message || e}`);
+      setCommitMsg(`A projekt nem nyitható meg: ${e?.message || e}`);
     }
   };
 
@@ -2443,13 +2443,13 @@ export default function TakeoffCanvas() {
     stampLibRef.current = lib; setStampLib(lib);
   };
   const profileSummary = (p) =>
-    `${(p.condition_templates || []).length} condition template${(p.condition_templates || []).length === 1 ? "" : "s"}, ${(p.material_library || []).length} material${(p.material_library || []).length === 1 ? "" : "s"}, ${(p.stamp_library?.stamps || []).length} stamp${(p.stamp_library?.stamps || []).length === 1 ? "" : "s"}, ${(p.report_templates || []).length} report template${(p.report_templates || []).length === 1 ? "" : "s"}`;
+    `${(p.condition_templates || []).length} tételsablon, ${(p.material_library || []).length} anyag, ${(p.stamp_library?.stamps || []).length} bélyegző, ${(p.report_templates || []).length} riportsablon`;
   const exportProfileFile = async () => {
     try {
       const p = await buildProfile();
       downloadText("opentakeoff-profile.otprofile", JSON.stringify(p, null, 2), "application/json");
       setCommitMsg(`A profil exportálva: opentakeoff-profile.otprofile — ${profileSummary(p)}. A beállítások másik gépen importálhatók.`);
-    } catch (e) { setCommitMsg(`Couldn't export profile: ${e?.message || e}`); }
+    } catch (e) { setCommitMsg(`A profil nem exportálható: ${e?.message || e}`); }
   };
   const backupProfileFile = async () => {
     const backup = await buildProfile();
@@ -2462,9 +2462,9 @@ export default function TakeoffCanvas() {
       await backupProfileFile();
       const n = await applyProfile(p);
       await refreshLibraries();
-      setCommitMsg(`Applied profile${p.name ? ` "${p.name}"` : ""} — ${n.templates} condition template${n.templates === 1 ? "" : "s"}, ${n.materials} material${n.materials === 1 ? "" : "s"}, ${n.stamps} stamp${n.stamps === 1 ? "" : "s"}, ${n.reportTemplates} report template${n.reportTemplates === 1 ? "" : "s"}. Your previous setup downloaded as opentakeoff-profile-backup.otprofile.`);
+      setCommitMsg(`Profil alkalmazva${p.name ? `: „${p.name}”` : ""} — ${n.templates} tételsablon, ${n.materials} anyag, ${n.stamps} bélyegző, ${n.reportTemplates} riportsablon. A korábbi beállítások az opentakeoff-profile-backup.otprofile fájlba letöltődtek.`);
     } catch (e) {
-      setCommitMsg(String(e?.message || "").startsWith("Couldn't") ? e.message : `Couldn't apply profile: ${e?.message || e}`);
+      setCommitMsg(`A profil nem alkalmazható: ${e?.message || e}`);
     }
   };
   const resetProfile = async () => {
@@ -2473,7 +2473,7 @@ export default function TakeoffCanvas() {
       await resetProfileDefaults();
       await refreshLibraries();
       setCommitMsg("A profil visszaállt a MérnökSzem TakeOff alapbeállításaira. A korábbi beállítások biztonsági mentése letöltődött; a projektek tervmérései nem változtak.");
-    } catch (e) { setCommitMsg(`Couldn't reset profile: ${e?.message || e}`); }
+    } catch (e) { setCommitMsg(`A profil nem állítható vissza: ${e?.message || e}`); }
   };
 
   // markups MUST be in the deps (a cloud/callout/text or an RFI link is real work);
@@ -2831,14 +2831,14 @@ export default function TakeoffCanvas() {
         if (poly.length) return;   // a trace in flight is never abandoned by a shortcut
         const sel = selectedId ? shapes.find((s) => s.id === selectedId) : null;
         const plan = sel ? repeatPlan(sel) : null;
-        if (!plan) { setCommitMsg("Select a shape first — T arms its condition and the tool that drew it."); return; }
+        if (!plan) { setCommitMsg("Előbb jelölj ki egy alakzatot. A T aktiválja a tételét és a létrehozásához használt eszközt."); return; }
         if (plan.conditionId && conditions.some((c) => c.id === plan.conditionId)) activateCondition(plan.conditionId, { reassign: false });
         setCurveMode(plan.curve);
         selectShape(null);
         setTool(plan.tool);
         const label = [...MEASURE_TOOLS, ...CUT_TOOLS].find((x) => x.id === plan.tool)?.label || plan.tool;
         const tag = condById[plan.conditionId]?.finish_tag;
-        setCommitMsg(`${label} armed${tag ? ` under ${tag}` : ""}${plan.curve ? " · Curve" : ""} — trace the next one.`);
+        setCommitMsg(`${label} aktiválva${tag ? ` · ${tag}` : ""}${plan.curve ? " · Ív" : ""}. Rajzold meg a következőt.`);
         return;
       }
       const map = { v: "select", a: "area", r: "rect", l: "linear", s: "surface", c: "count", d: "deduct", o: "oneclick", k: "check", h: "highlighter", n: "dimension", y: "symbol" };
@@ -3003,7 +3003,7 @@ export default function TakeoffCanvas() {
       // updated_at ⇒ ties → remote wins ⇒ the move vanishes).
       updateMarkup(id, { updated_at: nowIso() });
       selectMarkup(id);
-      setCommitMsg("Image placed.");
+      setCommitMsg("A kép elhelyezve.");
       return;
     }
     // snapRef/angleRef are drawing-tool aids maintained by moveCrosshair, which
@@ -3094,10 +3094,10 @@ export default function TakeoffCanvas() {
     const st = stitchById[groupKeys[0]];
     if (!st || panels.length !== 1) { setTool("select"); return; }
     const n = shapes.filter((s) => s.sheet_id === st.id).length;
-    if (n) { setCommitMsg(`Align before tracing — ${n} takeoff${n === 1 ? "" : "s"} already live on this stitch. Delete them (or a fresh stitch) to re-align.`); setTool("select"); return; }
+    if (n) { setCommitMsg(`Az igazítást a rajzolás előtt végezd el. Ezen az összeillesztésen már ${n} tervmérés van; az új igazításhoz töröld őket, vagy készíts új összeillesztést.`); setTool("select"); return; }
     if (!alignPt) {
       setAlignPt(p);
-      setCommitMsg("Match point set — now click the SAME point where the other sheet draws it.");
+      setCommitMsg("Az illesztési pont rögzítve. Kattints ugyanerre a pontra a másik tervlapon.");
       return;
     }
     const dims = panelSourceDimsRef.current.get(st.id) || {};
@@ -3106,7 +3106,7 @@ export default function TakeoffCanvas() {
     if (res.error) { setCommitMsg(res.error); return; }
     setStitches((list) => list.map((s) => (s.id === st.id ? { ...s, members: res.members } : s)));
     setTool("select");
-    setCommitMsg("Match line joined — the sheets now read as one surface. Trace straight across it.");
+    setCommitMsg("Az illesztési vonal elkészült. A tervlapok most egy felületként mérhetők.");
   }
   // Markups carry no verts_norm (cloud rect / callout at+target / text at), so
   // hitShape can't test them — this is a purpose-built bbox/point test in the
@@ -3350,7 +3350,7 @@ export default function TakeoffCanvas() {
     const closed = sel.measure_role !== "linear" && sel.measure_role !== "surface_area";
     const min = closed ? 3 : 2;
     if (sel.verts_norm.length <= min) {
-      setCommitMsg(closed ? "A shape needs at least 3 points — ⌫ again deletes the whole shape." : "A run needs at least 2 points — ⌫ again deletes the whole run.");
+      setCommitMsg(closed ? "Egy alakzathoz legalább 3 pont kell. A ⌫ ismételt megnyomása törli a teljes alakzatot." : "Egy vonalhoz legalább 2 pont kell. A ⌫ ismételt megnyomása törli a teljes vonalat.");
       setSelVert(null); return;
     }
     // dropping a corner is as real an edit as dragging one — the vertexDelete
@@ -3404,22 +3404,22 @@ export default function TakeoffCanvas() {
       vals[key] = val;
     };
     if (chrome === "panelDark") {
-      row("This segment", "seg");
-      row("Total linear", "lin");
-      row("Total area", "area");
+      row("Ez a szakasz", "seg");
+      row("Teljes hossz", "lin");
+      row("Teljes terület", "area");
     } else {
       const head = document.createElement("div");
       head.style.fontWeight = "700"; head.style.marginBottom = "1px";
       chip.appendChild(head);
       vals.head = head;
       const sub = document.createElement("div");
-      sub.textContent = "This section only:";
+      sub.textContent = "Csak ez a szakasz:";
       sub.style.opacity = "0.62"; sub.style.fontSize = "9.5px"; sub.style.marginBottom = "1px";
       chip.appendChild(sub);
-      row("Area", "area", areaUnit(units));
-      row("Linear", "lin", lenUnit(units));
-      row("Segments", "segs");
-      row("Points", "pts");
+      row("Terület", "area", areaUnit(units));
+      row("Hossz", "lin", lenUnit(units));
+      row("Szakaszok", "segs");
+      row("Pontok", "pts");
     }
     chip.__vals = vals;
   }
@@ -3566,7 +3566,7 @@ export default function TakeoffCanvas() {
           v.lin.textContent = fmtCheckLen(totLen, units);
           v.area.textContent = ringDraft ? `${num(areaVal(areaSf, units))} ${areaUnit(units)}` : "—";
         } else {
-          v.head.textContent = aCond?.finish_tag || "No condition";
+          v.head.textContent = aCond?.finish_tag || "Nincs tétel";
           v.area.textContent = ringDraft ? num(areaVal(areaSf, units)) : "—";
           v.lin.textContent = num(lenVal(totLen, units));
           // chain counts INCLUDING the live leg: placed edges + the rubber =
@@ -4109,7 +4109,7 @@ export default function TakeoffCanvas() {
     if (prior === upp) { confirmScale(key); return; } // re-picking the active scale — no reprice churn, no stash (mirrors the MCP guard)
     const sp = panels.find((p) => p.key === key);
     if (!sp?.img?.w && shapes.some((sh) => sh.sheet_id === key && sh.measure_role !== "count")) {
-      setCommitMsg("Open this sheet before recalibrating its measurements.");
+      setCommitMsg("A mérések újrakalibrálásához előbb nyisd meg ezt a tervlapot.");
       return;
     }
     if (prior != null && shapes.some((sh) => sh.sheet_id === key)) {
@@ -4152,7 +4152,7 @@ export default function TakeoffCanvas() {
     if (!(feet > 0) || calib.length !== 2) return;
     const pa = panelAt(calib[0][0]), pb = panelAt(calib[1][0]);
     if (pa.key !== pb.key) {
-      setCommitMsg("Calibrate on one sheet — those two clicks landed on different sheets.");
+      setCommitMsg("Egy tervlapon belül kalibrálj; a két pont különböző tervlapra került.");
       setCalib([]); setPendingLen(""); return;
     }
     const px = Math.hypot(calib[1][0] - calib[0][0], calib[1][1] - calib[0][1]);
@@ -4307,14 +4307,14 @@ export default function TakeoffCanvas() {
     const first = panelAt(points[0][0]);
     return points.some((q) => panelAt(q[0]) !== first);
   }
-  const SPAN_MSG = "That trace crosses onto another sheet — the gap between sheets isn't real distance. To work a floor split at a match line as one surface, stitch the sheets (Sheets → gallery → select both → Stitch).";
+  const SPAN_MSG = "A rajz átnyúlik egy másik tervlapra, a tervlapok közötti rés nem valós távolság. Egybefüggő felület méréséhez illeszd össze a tervlapokat a galériában.";
   function commitPoly(points, asDeduct, opts = {}) {
     if (points.length < 3) return;
     if (spansPanels(points)) { setCommitMsg(SPAN_MSG); return; }
     const tp = panelAt(points[0][0]);
     const upp = uppFor(tp.key);
-    if (!upp) { setCommitMsg(`Set the scale for ${labelFor(tp)} first.`); return; }
-    if (!activeCond) { setCommitMsg("Pick or add a condition first."); return; }
+    if (!upp) { setCommitMsg(`Előbb állítsd be a méretarányt ezen a tervlapon: ${labelFor(tp)}.`); return; }
+    if (!activeCond) { setCommitMsg("Előbb válassz vagy adj hozzá egy tételt."); return; }
     const met = closedMetrics(points);
     // id + created_at are minted by the add command — the ONE creation gate
     const shape = {
@@ -4358,8 +4358,8 @@ export default function TakeoffCanvas() {
     if (spansPanels(points)) { setCommitMsg(SPAN_MSG); return; }
     const tp = panelAt(points[0][0]);
     const upp = uppFor(tp.key);
-    if (!upp) { setCommitMsg(`Set the scale for ${labelFor(tp)} first.`); return; }
-    if (!activeCond) { setCommitMsg("Pick or add a condition first."); return; }
+    if (!upp) { setCommitMsg(`Előbb állítsd be a méretarányt ezen a tervlapon: ${labelFor(tp)}.`); return; }
+    if (!activeCond) { setCommitMsg("Előbb válassz vagy adj hozzá egy tételt."); return; }
     // curved: verts stay the clicked CONTROL points (drag one → re-smooths);
     // length always comes from the flattened spline
     const LF = openLen(curved ? flattenCurve(points) : points) * upp;
@@ -4380,10 +4380,10 @@ export default function TakeoffCanvas() {
     if (spansPanels(points)) { setCommitMsg(SPAN_MSG); return; }
     const tp = panelAt(points[0][0]);
     const upp = uppFor(tp.key);
-    if (!upp) { setCommitMsg(`Set the scale for ${labelFor(tp)} first.`); return; }
-    if (!activeCond) { setCommitMsg("Pick or add a condition first."); return; }
+    if (!upp) { setCommitMsg(`Előbb állítsd be a méretarányt ezen a tervlapon: ${labelFor(tp)}.`); return; }
+    if (!activeCond) { setCommitMsg("Előbb válassz vagy adj hozzá egy tételt."); return; }
     const h = Number(aCond?.height_ft) || 0;
-    if (!(h > 0)) { setCommitMsg(`Set a height for ${aCond?.finish_tag || "this condition"} (H in the condition editor) — Surface Area = traced LF × height.`); return; }
+    if (!(h > 0)) { setCommitMsg(`Adj meg magasságot ehhez: ${aCond?.finish_tag || "a tétel"}. A falfelület a mért hossz és a magasság szorzata.`); return; }
     const LF = openLen(points) * upp;
     dispatchShape({ type: "add", shapes: [{
       sheet_id: tp.key, condition_id: activeCond, measure_role: "surface_area", height_ft: h,
@@ -4429,7 +4429,7 @@ export default function TakeoffCanvas() {
     const key = tp.key;
     const rect = [[a[0] - tp.xOffset, a[1]], [b[0] - tp.xOffset, b[1]]];
     const segs = vectorSegsRef.current.get(key);
-    if (!segs || !segs.length) { setCommitMsg("This sheet has no vector linework (likely a scan) — the Symbol tool reads drawn segments."); return; }
+    if (!segs || !segs.length) { setCommitMsg("A tervlapon nincs vektoros vonalrajz; valószínűleg szkennelt terv. A Szimbólum eszköz csak rajzolt szakaszokat tud felismerni."); return; }
     const lum = segLumRef.current.get(key);
     let res;
     try {
@@ -4487,14 +4487,14 @@ export default function TakeoffCanvas() {
   function commitSweep() {
     const sw = sweep;
     if (!sw) return;
-    if (!activeCond) { setCommitMsg("Pick or add a condition first."); return; }
+    if (!activeCond) { setCommitMsg("Előbb válassz vagy adj hozzá egy tételt."); return; }
     const rows = [];
     const off = new Set(sw.excludedTags);
     const tagKey = (m) => (m.label && m.label.label) || "\u2205";
     if (sw.includeSeed) rows.push({ at: sw.seed.center, score: 1, rotation: 0, mirrored: false, seedRow: true });
     for (const m of sw.matches) if (!off.has(tagKey(m))) rows.push(m);
     for (const q of sw.questions) if (q.state === "accepted") rows.push(q);
-    if (!rows.length) { setCommitMsg("Nothing to commit — no matches and no accepted questions."); return; }
+    if (!rows.length) { setCommitMsg("Nincs menthető találat vagy elfogadott kérdés."); return; }
     // ONE dispatch = one undo step, the whole gesture — same batch discipline
     // as the MCP's set-wide commit
     dispatchShape({ type: "add", shapes: rows.map((m) => ({
@@ -4504,12 +4504,12 @@ export default function TakeoffCanvas() {
       origin: { method: "symbol_sweep", symbol: { score: m.score, rotation: m.rotation, mirrored: m.mirrored, seed: { source: "instance", sheet: sw.key, ...(m.seedRow ? { seed_instance: true } : {}) } } },
     })) });
     const skippedN = sw.matches.length - sw.matches.filter((m) => !off.has(tagKey(m))).length;
-    setCommitMsg(`Committed ${rows.length} EA under ${condById[activeCond]?.finish_tag || "condition"}${sw.includeSeed ? " — seed included" : ""}${skippedN ? ` · ${skippedN} excluded by label` : ""} · one undo step (${keyText("⌘Z")}).`);
+    setCommitMsg(`${rows.length} darab rögzítve ehhez: ${condById[activeCond]?.finish_tag || "tétel"}${sw.includeSeed ? " · a mintapéldány is beleszámít" : ""}${skippedN ? ` · ${skippedN} címke alapján kihagyva` : ""}. Egy lépésben visszavonható (${keyText("⌘Z")}).`);
     setSweep(null);
   }
 
   function commitCount(p) {
-    if (!activeCond) { setCommitMsg("Pick or add a condition first."); return; }
+    if (!activeCond) { setCommitMsg("Előbb válassz vagy adj hozzá egy tételt."); return; }
     const tp = panelAt(p[0]);
     dispatchShape({ type: "add", shapes: [{
       sheet_id: tp.key, condition_id: activeCond, measure_role: "count",
@@ -4680,7 +4680,7 @@ export default function TakeoffCanvas() {
   function proposeRegion(f, tp, local, negative, raster, prebuilt) {
     const region = prebuilt || buildOneClickRegion(f, tp, local, negative, raster);
     if (!region) {
-      if (uppFor(tp.key)) setCommitMsg("Couldn't trace that space — trace it with Area (A).");
+      if (uppFor(tp.key)) setCommitMsg("A helyiség nem ismerhető fel automatikusan. Rajzold körbe a Terület (A) eszközzel.");
       return;
     }
     // Decide accept/dup/carve-reject INSIDE the functional updater, against
@@ -4731,19 +4731,19 @@ export default function TakeoffCanvas() {
         return { key: tp.key, regions: [...rs, region] };
       });
     });
-    if (outcome === "dup") setCommitMsg(negative ? "That cutout is already carved." : keyText("Already selected — ⌥-click carves an enclosed cutout; ⏎ creates."));
-    else if (outcome === "needsPos") setCommitMsg(keyText("⌥-click carves an enclosed area INSIDE the selection (a column or shaft) — click its room first."));
+    if (outcome === "dup") setCommitMsg(negative ? "Ez a kivonás már szerepel." : keyText("Már ki van jelölve. Az ⌥-kattintás kivonást jelöl, az ⏎ létrehozza a tervmérést."));
+    else if (outcome === "needsPos") setCommitMsg(keyText("Az ⌥-kattintás a kijelölésen belüli zárt területet vonja ki, például oszlopot vagy aknát. Előbb jelöld ki a helyiséget."));
     // The measurement-policy receipts: when the engine sealed, wedged, or
     // ruled a passage out, the estimator hears it at stage time — the trace is
     // reviewable while the edge in question is still under the cursor.
     else if (!f) { /* net-engine region: the caller already set the message; there is no flood receipt to narrate */ }
-    else if (f.wedges && f.ringWedges >= f.wedges) setCommitMsg(`Measured to include the floor inside ${f.ringWedges === 1 ? "a closed ring" : `${f.ringWedges} closed rings`} drawn on the plan (a round column or a callout bubble) — no door swing was involved. If that is a column you deduct rather than floor you cover, ${keyText("⌥-click carves it out. ⏎ creates.")}`);
-    else if (f.wedges && f.ringWedges) setCommitMsg(`Measured through the drawn door to the wall opening — the swing area is included. It also includes the floor inside ${f.ringWedges === 1 ? "a closed ring" : `${f.ringWedges} closed rings`} (a round column or callout bubble), which is not a door swing; ${keyText("⌥-click carves one out if it should be deducted. ⏎ creates.")}`);
-    else if (f.wedges) setCommitMsg("Measured through the drawn door to the wall opening — the swing area is included. ⏎ creates.");
+    else if (f.wedges && f.ringWedges >= f.wedges) setCommitMsg(`A mérés tartalmazza a terven rajzolt ${f.ringWedges === 1 ? "zárt gyűrű" : `${f.ringWedges} zárt gyűrű`} belsejét. Ha ez levonandó oszlop, ${keyText("⌥-kattintással vond ki; az ⏎ létrehozza a tervmérést.")}`);
+    else if (f.wedges && f.ringWedges) setCommitMsg(`A mérés az ajtónyílásig tart, és tartalmazza a nyitási területet, valamint ${f.ringWedges === 1 ? "egy zárt gyűrű" : `${f.ringWedges} zárt gyűrű`} belsejét. Levonáshoz használd az ⌥-kattintást, majd az ⏎ billentyűt.`);
+    else if (f.wedges) setCommitMsg("A mérés az ajtónyílásig tart, és tartalmazza az ajtó nyitási területét. Az ⏎ létrehozza a tervmérést.");
     else if (f.sealedPx) setCommitMsg(f.minPassPx
-      ? `That space isn't closed on the drawing — the gap is under ${MIN_PASS_FT} ft, so the minimum-passage rule bridged it rather than measuring through it. That call is at the limit of what this sheet's resolution can decide; review the edge, then ⏎ creates.`
-      : "That space wasn't fully enclosed — a small opening (a doorway or line gap) was sealed to bound it. Review the edge, then ⏎ creates.");
-    else if (f.minPassDelta) setCommitMsg(`A passage under ${MIN_PASS_FT} ft wide was treated as not connecting — measuring through it would have added ${Math.round(f.minPassDelta * 100)}% more area. Review that edge, then ⏎ creates.`);
+      ? `A helyiség nem teljesen zárt a terven. A ${MIN_PASS_FT} lábnál kisebb rést a felismerés áthidalta. Ellenőrizd a szélt, majd az ⏎ létrehozza a tervmérést.`
+      : "A helyiség nem teljesen zárt. A felismerés lezárt egy kis nyílást, például ajtót vagy vonalhézagot. Ellenőrizd a szélt, majd az ⏎ létrehozza a tervmérést.");
+    else if (f.minPassDelta) setCommitMsg(`A ${MIN_PASS_FT} lábnál keskenyebb átjárót a felismerés nem tekintette összeköttetésnek; ellenkező esetben ${Math.round(f.minPassDelta * 100)}%-kal nagyobb terület adódna. Ellenőrizd a szélt, majd az ⏎ létrehozza a tervmérést.`);
     else setCommitMsg("");
   }
   // `direct` (voice deixis, RFC #59): { conditionId, label } — the human aimed
@@ -4759,15 +4759,15 @@ export default function TakeoffCanvas() {
     if (!oneClickEnabled()) return say(ONE_CLICK_GATE_MESSAGE);   // the TEMPORARY gate (lib/gate.js) — every caller funnels here
     const tp = panelAt(p[0]);
     const upp = uppFor(tp.key);
-    if (!upp) return say(`Set the scale for ${labelFor(tp)} first.`);
-    if (!(direct ? direct.conditionId : activeCond)) return say("Pick or add a condition first.");
+    if (!upp) return say(`Előbb állítsd be a méretarányt ezen a tervlapon: ${labelFor(tp)}.`);
+    if (!(direct ? direct.conditionId : activeCond)) return say("Előbb válassz vagy adj hozzá egy tételt.");
     // a click may EXTEND a same-sheet proposal; voice deixis commits whole and
     // must never swallow a selection the human is still reviewing — ANY pending
     // proposal rejects the utterance
     if (proposal && (direct || proposal.key !== tp.key)) {
       return say(direct
-        ? "Finish the pending one-click selection first — ⏎ creates it, Esc discards."
-        : `Finish the selection on ${labelFor(panelByKey(proposal.key))} first — ⏎ creates it, Esc discards.`);
+        ? "Előbb fejezd be a függő automatikus kijelölést. Az ⏎ létrehozza, az Esc elveti."
+        : `Előbb fejezd be a kijelölést ezen a tervlapon: ${labelFor(panelByKey(proposal.key))}. Az ⏎ létrehozza, az Esc elveti.`);
     }
     const local = [p[0] - tp.xOffset, p[1]];
     // Trigger policy: vector is exact and always wins where it works — including
@@ -4783,8 +4783,8 @@ export default function TakeoffCanvas() {
     if (netEngine && !direct && vectorViable) {
       const segs = vectorSegsRef.current.get(tp.key);
       const meta = segMetaRef.current.get(tp.key);
-      if (!segs || !meta) return say("Still reading this sheet's linework — One-Click arms as soon as that finishes (a dense sheet can take a few seconds). Try again in a moment.");
-      if (!netWorker) return say("One-Click needs Web Workers in this browser — trace it with Area (A).");
+      if (!segs || !meta) return say("A tervlap vonalrajzának feldolgozása még tart. Próbáld újra néhány másodperc múlva.");
+      if (!netWorker) return say("Az automatikus területfelismeréshez a böngésző Web Worker támogatása szükséges. Rajzold körbe a Terület (A) eszközzel.");
       // FRAMES: the vector segments live at the BASELINE render scale; a hi-res
       // sheet's click and its upp are in the hi-res frame (uppFor divides by
       // factorFor). Convert into the segments' frame for the engine and back
@@ -4800,8 +4800,8 @@ export default function TakeoffCanvas() {
         // LOUD, TICKING status: a dense sheet reads for tens of seconds and a
         // silent wait reads as failure (his call, Liminal 2026-08-24)
         const t0 = Date.now();
-        setCommitMsg("Reading the walls on this sheet… 0 s — the first click on a sheet builds its wall network; the page stays live.");
-        const tick = setInterval(() => setCommitMsg(`Reading the walls on this sheet… ${Math.round((Date.now() - t0) / 1000)} s — the first click on a sheet builds its wall network; the page stays live.`), 1000);
+        setCommitMsg("A tervlap falhálózatának feldolgozása… 0 mp");
+        const tick = setInterval(() => setCommitMsg(`A tervlap falhálózatának feldolgozása… ${Math.round((Date.now() - t0) / 1000)} mp`), 1000);
         netTickRef.current = tick;
         const subpathsIn = subpathsRef.current.get(tp.key) || null, textsIn = textMarksRef.current.get(tp.key) || [];
         // diagnostic record of EXACTLY what the engine was handed (read from devtools as window.__netLast)
@@ -4812,15 +4812,15 @@ export default function TakeoffCanvas() {
       }
       let info;
       try { info = await built; }
-      catch (err) { console.error("net engine build failed", err); return say("One-Click couldn't read this sheet's linework — trace it with Area (A)."); }
+      catch (err) { console.error("net engine build failed", err); return say("A tervlap vonalrajza nem ismerhető fel automatikusan. Rajzold körbe a Terület (A) eszközzel."); }
       finally { if (netTickRef.current) { clearInterval(netTickRef.current); netTickRef.current = null; } }
       if (toolRef.current !== "oneclick" || (proposalRef.current && proposalRef.current.key !== tp.key)) { setCommitMsg(""); return { ok: false, message: "" }; }
       const field = !!fieldClick;
       const rm = await netCall({ type: "room", key: ck, x: local[0] * kF, y: local[1] * kF, ftPx, mode: field ? "field" : "room" });
       const r = rm.room;
       if (!r) return say(field
-        ? "No finish pattern under that ⇧-click — ⇧-click inside the tile or plank pattern to select the whole field."
-        : "That click isn't inside an enclosed space — click an open spot, ⇧-click an open finish field, or trace it with Area (A).");
+        ? "A ⇧-kattintás alatt nincs felismerhető burkolatminta. Kattints a lap- vagy deszkaminta belsejébe a teljes mező kijelöléséhez."
+        : "A kattintás nem zárt helyiség belsejébe került. Kattints üres pontra, ⇧-kattintással egy burkolati mezőbe, vagy rajzold körbe a Terület (A) eszközzel.");
       const ring = r.ring.map(([x, y]) => [x / kF, y / kF]);      // back to the panel's frame
       try { Object.assign(window.__netLast, { lastClick: [local[0], local[1]], lastRing: ring.map(([x, y]) => [+x.toFixed(1), +y.toFixed(1)]), lastFaces: r.faces }); } catch { /* diagnostics only */ }
       const holes = (r.holes || []).map((h) => h.map(([x, y]) => [x / kF, y / kF]));
@@ -4832,13 +4832,13 @@ export default function TakeoffCanvas() {
         area_sf, perim_lf, hf: false, shs: 0, sl: 0, gap: 0, mp: 0, mpd: 0, wg: 0, rw: 0, rt: false,
         cf: 1, cff: [], net: true, netFaces: r.faces, netStarved: !!r.starved, netMode: field ? "field" : "room",
       };
-      setCommitMsg(`${field ? "Finish field" : "Room"}: ${area_sf.toFixed(0)} SF from ${r.faces} face${r.faces === 1 ? "" : "s"}${r.holes.length ? ` (${r.holes.length} interior void${r.holes.length === 1 ? "" : "s"} subtracted)` : ""}${info && info.ms ? ` · net built in ${(info.ms / 1000).toFixed(1)} s` : ""} — ⏎ creates, Esc discards.`);
+      setCommitMsg(`${field ? "Burkolati mező" : "Helyiség"}: ${area_sf.toFixed(0)} SF, ${r.faces} felület alapján${r.holes.length ? `, ${r.holes.length} belső kivonással` : ""}${info && info.ms ? ` · háló feldolgozva ${(info.ms / 1000).toFixed(1)} mp alatt` : ""}. Az ⏎ létrehozza, az Esc elveti.`);
       proposeRegion(null, tp, local, negative, false, region);
       return { ok: true, message: "" };
     }
     if (!rasterEligible || vectorViable) {
       const mo = ensureMask(tp.key);
-      if (!mo && !rasterEligible) return say("Still reading this sheet's linework — try again in a second.");
+      if (!mo && !rasterEligible) return say("A tervlap vonalrajzának feldolgozása még tart. Próbáld újra egy pillanat múlva.");
       if (mo) {
         // seal radii + wedge cap scale with the sheet: bridge up to a door-width
         // opening (mask px per foot = mask-per-image-px / units-per-image-px)
@@ -4847,12 +4847,12 @@ export default function TakeoffCanvas() {
         if (f.status === "ok") return settleRegion(f, tp, local, negative, false, direct);
         if (!rasterEligible) {
           return say(f.status === "leak"
-            ? "That space isn't enclosed on the plan linework — the fill spilled. Click a more enclosed spot, or trace it with Area (A)."
-            : "Landed in dense linework (hatching/text). Zoom in and click an open spot, or trace it with Area (A).");
+            ? "A helyiség nem zárt a terv vonalrajzán, ezért a kitöltés kifutott. Kattints zártabb részre, vagy rajzold körbe a Terület (A) eszközzel."
+            : "A kattintás sűrű vonalrajzra, sraffozásra vagy szövegre került. Nagyíts rá és kattints üres pontra, vagy használd a Terület (A) eszközt.");
         }
       }
     }
-    setCommitMsg("Reading the scan…");
+    setCommitMsg("A szkennelt terv feldolgozása…");
     const seq = renderSeqRef.current;
     const rmo = await ensureRasterMask(tp.key);
     if (seq !== renderSeqRef.current) {   // sheet group changed mid-render — the new sheet must not be left showing a stale "Reading the scan…" ("…" messages never auto-expire, see commitMsg's 6s-timer effect
@@ -4877,7 +4877,7 @@ export default function TakeoffCanvas() {
         ? say("Couldn't place that — a one-click selection started while reading the scan. Finish it (⏎/Esc), then say it again.")
         : { ok: false, message: "" };
     }
-    if (!rmo) return say("Couldn't read this scan — trace it with Area (A).");
+    if (!rmo) return say("A szkennelt terv nem olvasható. Rajzold körbe a Terület (A) eszközzel.");
     // The raster mask is single-tier (softCount 0), so the flood's hatch
     // escalation — and with it the Fill sensitivity knob — is structurally
     // inert on scans; the default sensitivity rides along. Gap sealing still
@@ -4885,8 +4885,8 @@ export default function TakeoffCanvas() {
     const f = floodRegionSealed(rmo, local[0], local[1], undefined, sealRadiiFor(rmo.ws / upp), doorWedgeCapPx(rmo.ws / upp), minPassRadiusFor(rmo.ws / upp));
     if (f.status !== "ok") {
       return say(f.status === "leak"
-        ? "That space isn't enclosed on the scan — the fill escaped through a gap (faded line or open doorway). Click a more enclosed spot, or trace it with Area (A)."
-        : "Landed on dense scan ink (text or hatching). Zoom in and click an open spot, or trace it with Area (A).");
+        ? "A helyiség nem zárt a szkennelt terven; a kitöltés egy halvány vonalon vagy nyitott ajtón át kifutott. Kattints zártabb részre, vagy használd a Terület (A) eszközt."
+        : "A kattintás sűrű szkennelt rajzra, szövegre vagy sraffozásra került. Nagyíts rá és kattints üres pontra, vagy használd a Terület (A) eszközt.");
     }
     return settleRegion(f, tp, local, negative, true, direct);
   }
@@ -4897,7 +4897,7 @@ export default function TakeoffCanvas() {
   function settleRegion(f, tp, local, negative, raster, direct) {
     if (!direct) { proposeRegion(f, tp, local, negative, raster); return { ok: true, message: "" }; }
     const region = buildOneClickRegion(f, tp, local, negative, raster);
-    if (!region) return { ok: false, message: "Couldn't trace that space — trace it with Area (A)." };
+    if (!region) return { ok: false, message: "A helyiség nem ismerhető fel automatikusan. Rajzold körbe a Terület (A) eszközzel." };
     return commitOneClickRegions({ key: tp.key, regions: [region] }, direct);
   }
   // The ONE commit gate for one-click regions — the ⏎/dblclick Create AND a
@@ -4910,7 +4910,7 @@ export default function TakeoffCanvas() {
     const tp = panels.find((p) => p.key === prop.key && p.img.w);
     const upp = uppFor(prop.key);
     if (!tp || !upp) {
-      const message = "Open the proposal's sheet with its scale set before creating measurements.";
+      const message = "A mérések létrehozása előtt nyisd meg a javaslat tervlapját, és állítsd be a méretarányt.";
       setCommitMsg(message);
       return { ok: false, message };
     }
@@ -5096,7 +5096,7 @@ export default function TakeoffCanvas() {
     // Can't thin a triangle further. Deselect so the NEXT ⌫ falls through to the
     // remove-last-region branch — otherwise the ocSel guard keeps re-firing this
     // message and the space can never be dropped without an Esc first.
-    if (r.poly.length <= 3) { setOcSel(null); setCommitMsg("A space needs at least 3 points — ⌫ again drops the whole space."); return; }
+    if (r.poly.length <= 3) { setOcSel(null); setCommitMsg("Egy területhez legalább 3 pont kell. A ⌫ ismételt megnyomása törli a teljes területet."); return; }
     setProposal((pr) => {
       if (!pr) return pr;
       const regions = pr.regions.map((rr, ri) => {
@@ -5132,15 +5132,15 @@ export default function TakeoffCanvas() {
                                 ...(sel.height_override ? { height_override: true } : {}), ...(sel.label ? { label: sel.label } : {}), ...cloneOrigin(sel.origin) });
   function copySelected() {
     const sel = shapes.find((s) => s.id === selectedId);
-    if (!sel) { setCommitMsg("Select a takeoff to copy."); return; }
+    if (!sel) { setCommitMsg("Másoláshoz jelölj ki egy tervmérést."); return; }
     clipRef.current = [clipEntry(sel)];
-    setCommitMsg("Copied — ⌘V pastes onto the sheet under your cursor.");
+    setCommitMsg("Másolva. A ⌘V a kurzor alatti tervlapra illeszti be.");
   }
   function pasteClipboard(offset = 0.03) {
     if (!clipRef.current.length) return;
     const tp = lastPtrRef.current ? panelAt(toImage(lastPtrRef.current[0], lastPtrRef.current[1])[0]) : focusPanel;
     const needsScale = clipRef.current.some((c) => c.measure_role !== "count");
-    if (needsScale && !uppFor(tp.key)) { setCommitMsg(`Set the scale for ${labelFor(tp)} first — paste recomputes SF/LF there.`); return; }
+    if (needsScale && !uppFor(tp.key)) { setCommitMsg(`Előbb állítsd be a méretarányt ezen a tervlapon: ${labelFor(tp)}. A beillesztés újraszámítja a mennyiségeket.`); return; }
     let cross = false;
     const made = clipRef.current.map((c) => {
       const same = c.from === tp.key;
@@ -5156,11 +5156,11 @@ export default function TakeoffCanvas() {
     const res = dispatchShape({ type: "add", shapes: made });
     selectShape(res.shapes[res.shapes.length - 1].id);
     setTool("select");
-    setCommitMsg(`Pasted ${made.length} takeoff${made.length === 1 ? "" : "s"}${cross ? ` onto ${labelFor(tp)}` : ""} — drag to position.`);
+    setCommitMsg(`${made.length} tervmérés beillesztve${cross ? ` erre: ${labelFor(tp)}` : ""}. Húzással helyezd el.`);
   }
   function duplicateSelected() {
     const sel = shapes.find((s) => s.id === selectedId);
-    if (!sel) { setCommitMsg("Select a takeoff to duplicate."); return; }
+    if (!sel) { setCommitMsg("Duplikáláshoz jelölj ki egy tervmérést."); return; }
     clipRef.current = [clipEntry(sel)];
     pasteClipboard();
   }
@@ -5170,7 +5170,7 @@ export default function TakeoffCanvas() {
   function flipSelected(axis) {
     const sel = shapes.find((s) => s.id === selectedId);
     if (!sel || !Array.isArray(sel.verts_norm) || sel.verts_norm.length < 2) {
-      setCommitMsg("Select an area or linear takeoff to flip."); return;
+      setCommitMsg("Tükrözéshez jelölj ki terület- vagy hosszmérést."); return;
     }
     const vn = reflectVertsNorm(sel.verts_norm, axis);
     dispatchShape({
@@ -5190,7 +5190,7 @@ export default function TakeoffCanvas() {
     const sel = shapes.find((s) => s.id === selectedId);
     if (!sel) return;
     if (sel.measure_role === "count" || sel.measure_role === "linear" || sel.measure_role === "surface_area") {
-      setCommitMsg("Tidy works on area takeoffs — a linear run's vertices are its measurement."); return;
+      setCommitMsg("Az alakzatigazítás csak területmérésnél használható; a vonalmérés pontjai magát a mérést adják."); return;
     }
     const sp = panelByKey(sel.sheet_id);
     if (!sp || !sp.img.w || (sel.verts_norm || []).length < 3) return;
@@ -5198,13 +5198,13 @@ export default function TakeoffCanvas() {
     const rt = !!sel.origin?.raster_traced;   // no true endpoints on a scan — pure simplify+square
     const ringPx = sel.verts_norm.map(([nx, ny]) => [nx * sp.img.w, ny * sp.img.h]);
     const r = tidyRing(ringPx, { nearest: (x, y, dd) => (!rt && grid ? nearestSnap(grid, x, y, dd) : null) });
-    if (!r.changed) { setCommitMsg("Nothing to tidy — this takeoff is already clean."); return; }
+    if (!r.changed) { setCommitMsg("Nincs igazítandó rész; ez a tervmérés már rendezett."); return; }
     const vn = r.ring.map(([x, y]) => [x / sp.img.w, y / sp.img.h]);
     dispatchShape({
       type: "geom", id: sel.id, editKind: "tidy",
       verts_norm: vn, computed: recomputeShape({ ...sel, verts_norm: vn }), prev: geomSnapshot(sel),
     });
-    setCommitMsg(`Tidied — ${ringPx.length} → ${r.ring.length} vertices; corners held to plan lines, near-square walls squared. ⌘Z undoes.`);
+    setCommitMsg(`Alakzat igazítva: ${ringPx.length} → ${r.ring.length} csúcspont. A sarkok a terv vonalaihoz igazodnak; a ⌘Z visszavonja.`);
   }
   // ── markup (cloud / callout / text) — annotations, not measurements ─────────
   // markupDraft holds STAGE px (so the live preview spans panels); a markup
@@ -5233,7 +5233,7 @@ export default function TakeoffCanvas() {
   // PDF. Off → pass []; the RFI-only export still works (empty-guard unaffected).
   async function exportMarkedSet(includeMarkups = true) {
     try {
-      setCommitMsg("Building the marked set…");
+      setCommitMsg("Jelölésekkel ellátott tervcsomag készítése…");
       const exportMarkups = includeMarkups ? markups : [];
       // approval seals are ink, not markups — the include-markups checkbox
       // never drops them, and a sheet carrying only a seal still exports
@@ -5251,7 +5251,7 @@ export default function TakeoffCanvas() {
         const st = stitchById[key];
         if (!st) return null;
         return {
-          key, label: st.name || "Stitched sheets",
+          key, label: st.name || "Összeillesztett tervlapok",
           stitch: { members: st.members.map((m) => ({ key: m.key, ...parseSheetKey(m.key), label: tabLabel(m.key), dx: m.dx, dy: m.dy })) },
         };
       }).filter(Boolean);
@@ -5268,9 +5268,9 @@ export default function TakeoffCanvas() {
         loadPdfData: (file) => store.loadPdfData(file),
       });
       downloadBytes(filename, bytes);
-      setCommitMsg(`Marked set downloaded — ${filename}`);
+      setCommitMsg(`A jelölt tervcsomag letöltve: ${filename}`);
     } catch (e) {
-      setCommitMsg(`Marked set failed: ${e.message || e}`);
+      setCommitMsg(`A jelölt tervcsomag nem készíthető el: ${e.message || e}`);
     }
   }
 
@@ -5312,7 +5312,7 @@ export default function TakeoffCanvas() {
       // not armed yet (or content changed since) — refuse THIS drag honestly
       // rather than shipping a stale sheet, and start the build for the next
       e.preventDefault();
-      if (sheetHasInk(k)) { armSheetDrag(k); setCommitMsg("Preparing the marked sheet — drag again in a moment."); }
+      if (sheetHasInk(k)) { armSheetDrag(k); setCommitMsg("A jelölt tervlap előkészítése folyamatban. Húzd el újra egy pillanat múlva."); }
       return;
     }
     e.dataTransfer.setData("DownloadURL", downloadUrlEntry(hit.filename, hit.url));
@@ -5433,7 +5433,7 @@ export default function TakeoffCanvas() {
       // MCP annotate verb's doctrine). Gate on the FIRST click so the user
       // isn't refused after carefully picking both ends.
       if (!markupDraft) {
-        if (!uppFor(tp.key)) { setCommitMsg(`Set the scale for ${labelFor(tp)} first.`); return; }
+        if (!uppFor(tp.key)) { setCommitMsg(`Előbb állítsd be a méretarányt ezen a tervlapon: ${labelFor(tp)}.`); return; }
         setMarkupDraft(p);
       } else {
         if (spansPanels([markupDraft, p])) { setCommitMsg(SPAN_MSG); return; }
@@ -5455,7 +5455,7 @@ export default function TakeoffCanvas() {
   // save, sanitized at the store boundary.
   const persistStampLib = (next) => {
     stampLibRef.current = next; setStampLib(next);
-    store.saveStampLibrary(next).catch((e) => setCommitMsg(`Couldn't save the stamp library: ${e.message || e}`));
+    store.saveStampLibrary(next).catch((e) => setCommitMsg(`A bélyegzőtár nem menthető: ${e.message || e}`));
   };
   // Arm a stamp for placement: switch to the stamp tool and hold it in
   // armedStamp. Repeated clicks place multiple copies until you pick another
@@ -5469,7 +5469,7 @@ export default function TakeoffCanvas() {
     const tp = panelAt(p[0]);
     const cx = (p[0] - tp.xOffset) / tp.img.w, cy = p[1] / tp.img.h;
     const instances = instantiateStamp(armedStamp, [cx, cy]);
-    if (!instances.length) { setCommitMsg("This stamp has no placeable elements."); return; }
+    if (!instances.length) { setCommitMsg("Ez a bélyegző nem tartalmaz elhelyezhető elemet."); return; }
     let promptId = null;
     for (const inst of instances) {
       const { _prompt, ...m } = inst;
@@ -5477,7 +5477,7 @@ export default function TakeoffCanvas() {
       addMarkup({ ...m, id }, tp.key);
       if (_prompt && !promptId) promptId = id;
     }
-    setCommitMsg(`Placed “${armedStamp.name}”.`);
+    setCommitMsg(`„${armedStamp.name}” elhelyezve.`);
     if (promptId) openTextEditor({ anchorStage: p, commit: (t) => updateMarkup(promptId, { text: (t || "").trim() }) });
   }
   // ── approval seal (ink, human-only) — the estimator's stamp. One click: on
@@ -5495,27 +5495,27 @@ export default function TakeoffCanvas() {
     // normalized to sheet WIDTH, the bubble convention), topmost wins
     const seal = [...approvals].reverse().find((a) => a.sheet_id === tp.key
       && Math.hypot(nx - a.at[0], (ny - a.at[1]) * (tp.img.h / tp.img.w)) <= APPROVAL_R);
-    if (seal) { dispatchApproval({ type: "delete", ids: [seal.id] }); setCommitMsg("Approval seal lifted (⌘Z restores it)."); return; }
+    if (seal) { dispatchApproval({ type: "delete", ids: [seal.id] }); setCommitMsg("A jóváhagyási jelölés eltávolítva; a ⌘Z visszaállítja."); return; }
     // topmost committed shape under the click — the selectAt scan, this panel only
     const thr = 8 / tfRef.current.scale;
     const shape = [...stackedShapes].reverse().find((s) => s.sheet_id === tp.key
       && hitShapeC(s, p[0] - tp.xOffset, p[1], tp.img.w, tp.img.h, thr));
     dispatchApproval({ type: "add", approvals: [{ actor: "estimator", sheet_id: tp.key, at: [nx, ny], ...(shape ? { shape_id: shape.id } : {}) }] });
     setCommitMsg(shape
-      ? `Approved — seal on ${condById[shape.condition_id]?.finish_tag || "shape"} (⌘Z undoes).`
-      : "Sheet point approved — seal placed (⌘Z undoes).");
+      ? `Jóváhagyva — bélyegző ezen: ${condById[shape.condition_id]?.finish_tag || "alakzat"}. A ⌘Z visszavonja.`
+      : "A tervlap pontja jóváhagyva, a bélyegző elhelyezve. A ⌘Z visszavonja.");
   }
   // Save the selected markup as a single-element stamp (the palette's define
   // flow). markupToStampElement re-expresses its coords as anchor-relative
   // offsets so the stamp is position independent.
   function saveMarkupAsStamp(m) {
     const el = markupToStampElement(m);
-    if (!el) { setCommitMsg("This markup can't be saved as a stamp."); return; }
-    const name = (window.prompt("Name this stamp:", (m.text || el.type).trim() || "Stamp") || "").trim();
+    if (!el) { setCommitMsg("Ez a jelölés nem menthető bélyegzőként."); return; }
+    const name = (window.prompt("Bélyegző neve:", (m.text || el.type).trim() || "Bélyegző") || "").trim();
     if (!name) return;
     const stamp = { id: uid("stmp"), name, elements: [el] };
     persistStampLib({ ...stampLibRef.current, stamps: [...stampLibRef.current.stamps, stamp] });
-    setCommitMsg(`Saved stamp “${name}”.`);
+    setCommitMsg(`„${name}” bélyegző mentve.`);
     setLeftTab("stamp");
   }
   const deleteStamp = (id) => {
@@ -5551,10 +5551,10 @@ export default function TakeoffCanvas() {
         sets: [...cur.sets.filter((s) => !inSetIds.has(s.id)), ...inSets],
       };
       persistStampLib(merged);   // persistStampLib → store sanitizes, dropping any malformed items
-      setCommitMsg(`Imported ${inStamps.length} stamp${inStamps.length === 1 ? "" : "s"}.`);
+      setCommitMsg(`${inStamps.length} bélyegző importálva.`);
       setLeftTab("stamp");
     } catch (e) {
-      setCommitMsg(`Couldn't import stamps: ${e.message || e}`);
+      setCommitMsg(`A bélyegzők nem importálhatók: ${e.message || e}`);
     }
   }
   // Import a real .svg FILE as a stamp: the browser's DOMParser extracts the
@@ -5564,15 +5564,15 @@ export default function TakeoffCanvas() {
   async function importSvgStamp(file) {
     try {
       const text = await file.text();
-      const base = (file.name || "Imported SVG").replace(/\.svg$/i, "");
+      const base = (file.name || "Importált SVG").replace(/\.svg$/i, "");
       const extracted = extractSvgPrimitives(text, { name: base });
       const stamp = extracted && svgToStamp(extracted);
-      if (!stamp || !stamp.elements.length) { setCommitMsg("Couldn't read that SVG — no drawable vector shapes found."); return; }
+      if (!stamp || !stamp.elements.length) { setCommitMsg("Az SVG nem olvasható: nem tartalmaz rajzolható vektoros alakzatot."); return; }
       persistStampLib({ ...stampLibRef.current, stamps: [...stampLibRef.current.stamps, { id: uid("stmp"), name: stamp.name, elements: stamp.elements }] });
-      setCommitMsg(`Imported “${stamp.name}” as a stamp.`);
+      setCommitMsg(`„${stamp.name}” bélyegzőként importálva.`);
       setLeftTab("stamp");
     } catch (e) {
-      setCommitMsg(`Couldn't import SVG: ${e.message || e}`);
+      setCommitMsg(`Az SVG nem importálható: ${e.message || e}`);
     }
   }
 
@@ -5593,7 +5593,7 @@ export default function TakeoffCanvas() {
     setRfis((rs) => [...rs, rec]);
     updateMarkup(markup.id, { rfi_id: id });
     setLeftTab("rfi");
-    setCommitMsg(`Raised ${number}.`);
+    setCommitMsg(`${number} RFI létrehozva.`);
   }
   const linkRfi = (markup, rfiId) => { if (markup && rfiId) updateMarkup(markup.id, { rfi_id: rfiId }); };
   const unlinkRfi = (markup) => { if (markup) updateMarkup(markup.id, { rfi_id: "" }); };
@@ -5678,13 +5678,13 @@ export default function TakeoffCanvas() {
     if (panelKeySet.has(m.sheet_id)) {
       flyToMarkup(m);
       setPlacingImageId(m.id);
-      setCommitMsg("Placing image — the view centered on it; move the pointer and click to drop (Esc cancels).");
+      setCommitMsg("Kép áthelyezése: mozgasd a kurzort, majd kattints az elhelyezéshez. Az Esc megszakítja.");
     } else {
       pendingFlyRef.current = null;   // an outstanding fly-to (unrelated markup, sheet still opening) must not complete later and recenter the view mid cross-sheet placement — same race class as flyToMarkup clearing pendingSourceRef
       setShowMarkups(true);           // the cross-sheet branch skips flyToMarkup (which sets this for the same-sheet case) — without it, a hidden markup layer means the drag preview is invisible until commit
       placeCrossSheetRef.current = m.id;
       setPlacingImageId(m.id);
-      setCommitMsg("Placing image on this sheet — move the pointer and click to drop (Esc cancels).");
+      setCommitMsg("Kép elhelyezése ezen a tervlapon: mozgasd a kurzort, majd kattints. Az Esc megszakítja.");
     }
   }
   // Center the view on a normalized [nx,ny] point within panel `sp` —
@@ -5864,14 +5864,14 @@ export default function TakeoffCanvas() {
     return true;
   }
   function locateCondition(id) {
-    if (!frameShapes((s) => s.condition_id === id)) setCommitMsg(`No takeoffs for ${condById[id]?.finish_tag || "this condition"} on the open sheet${groupKeys.length > 1 ? "s" : ""} yet.`);
+    if (!frameShapes((s) => s.condition_id === id)) setCommitMsg(`A megnyitott tervlapokon még nincs tervmérés ehhez: ${condById[id]?.finish_tag || "a tétel"}.`);
   }
   // scope collision (#366): Look frames the PAIR so the estimator sees both
   // rings at once, and selects nothing — deciding which one wins is theirs.
   function lookAtCollision(pair) {
     const ids = new Set([pair.a.shape_id, pair.b.shape_id]);
     if (!panelKeySet.has(pair.sheet_id)) openSheets([pair.sheet_id], false);
-    if (!frameShapes((s) => ids.has(s.id))) setCommitMsg(`Open ${tabLabel(pair.sheet_id)} to look at this pair.`);
+    if (!frameShapes((s) => ids.has(s.id))) setCommitMsg(`A pár megtekintéséhez nyisd meg ezt a tervlapot: ${tabLabel(pair.sheet_id)}.`);
   }
 
   // A withheld transition is a QUESTION, and the answer is at a PLACE on the
@@ -5911,7 +5911,7 @@ export default function TakeoffCanvas() {
     return c;
   }
   function addCondition() {
-    const tag = (window.prompt("Finish tag for this condition (e.g. LVT-1):") || "").trim();
+    const tag = (window.prompt("A tétel azonosítója (például LVT-1):") || "").trim();
     if (!tag) return;
     const c = mintCondition(tag);
     activateCondition(c.id, { reassign: false });   // no reassign affordance on +condition; still dismisses a live bulk selection
@@ -5989,7 +5989,7 @@ export default function TakeoffCanvas() {
   // this probes and returns the ring; committing anything stays behind the gate.
   async function agentOneClickProbe(key, xn, yn) {
     const p = agentPanelFor(key);
-    if (!p) return { error: `Sheet ${key} isn't rendered yet — try again in a moment.` };
+    if (!p) return { error: `A(z) ${key} tervlap még nincs kirajzolva. Próbáld újra egy pillanat múlva.` };
     const upp = agentUpp(key);
     if (upp == null) return { error: agentScaleGate(key, agentStateRef.current.detectedScales[key]?.label || "") };
     const local = [xn * p.img.w, yn * p.img.h];
@@ -6001,8 +6001,8 @@ export default function TakeoffCanvas() {
     if (vectorViable) {
       const segs = vectorSegsRef.current.get(key);
       const meta = segMetaRef.current.get(key);
-      if (!segs || !meta) return { error: "Still reading this sheet's linework — try again in a moment." };
-      if (!netWorker) return { error: "One-Click needs Web Workers in this browser." };
+      if (!segs || !meta) return { error: "A tervlap vonalrajzának feldolgozása még tart. Próbáld újra egy pillanat múlva." };
+      if (!netWorker) return { error: "Az automatikus területfelismeréshez a böngésző Web Worker támogatása szükséges." };
       const kF = RENDER_SCALE / (renderScalesRef.current.get(key) || RENDER_SCALE);
       const ftPx = kF / upp;
       const ck = `${key}:${ftPx.toFixed(4)}`;
@@ -6012,12 +6012,12 @@ export default function TakeoffCanvas() {
           .then((m) => { if (m.error) { netCacheRef.current.delete(ck); throw new Error(m.error); } return m; });
         netCacheRef.current.set(ck, built);
       }
-      try { await built; } catch { return { error: "One-Click couldn't read this sheet's linework — the estimator will have to trace it." }; }
+      try { await built; } catch { return { error: "A tervlap vonalrajza nem ismerhető fel automatikusan; kézzel kell körberajzolni." }; }
       const rm = await netCall({ type: "room", key: ck, x: local[0] * kF, y: local[1] * kF, ftPx, mode: "room" });
       const r = rm.room;
-      if (!r) return { error: "That seed isn't inside an enclosed space on the plan linework. Seed an open spot inside the room." };
+      if (!r) return { error: "A mintapont nem zárt helyiség belsejébe került. Jelölj ki egy üres pontot a helyiségben." };
       const ring = r.ring.map(([x, y]) => [x / kF, y / kF]);
-      if (ring.length < 3) return { error: "Couldn't trace that space into a polygon." };
+      if (ring.length < 3) return { error: "A helyiségből nem hozható létre sokszög." };
       const geometry = {
         measure_role: "floor_area",
         verts_norm: ring.map(([x, y]) => [x / p.img.w, y / p.img.h]),
@@ -6034,12 +6034,12 @@ export default function TakeoffCanvas() {
     }
     if (!f) {
       const rmo = await ensureRasterMask(key);
-      if (!rmo) return { error: "Couldn't read this scan — the estimator will have to trace it by hand." };
+      if (!rmo) return { error: "A szkennelt terv nem olvasható; kézzel kell körberajzolni." };
       const r = floodRegionSealed(rmo, local[0], local[1], undefined, sealRadiiFor(rmo.ws / upp), doorWedgeCapPx(rmo.ws / upp), minPassRadiusFor(rmo.ws / upp));
       if (r.status !== "ok") {
         return { error: r.status === "leak"
-          ? "That space isn't enclosed on the scan — the fill escaped through a gap (faded line or open doorway). Seed a more enclosed spot."
-          : "Landed on dense scan ink (text or hatching). Seed an open spot inside the room." };
+          ? "A helyiség nem zárt a szkennelt terven; a kitöltés egy résen át kifutott. Jelölj ki zártabb pontot."
+          : "A mintapont sűrű szövegre vagy sraffozásra került. Jelölj ki üres pontot a helyiségben." };
       }
       f = r; raster = true;
     }
@@ -6047,7 +6047,7 @@ export default function TakeoffCanvas() {
     const ring = raster
       ? oneClickRing(f, { raster: true, rasterEps: RASTER_RDP_EPS })
       : oneClickRing(f, { nearest: (x, y, d) => (grid ? nearestSnap(grid, x, y, d) : null) });
-    if (ring.length < 3) return { error: "Couldn't trace that space into a polygon." };
+    if (ring.length < 3) return { error: "A helyiségből nem hozható létre sokszög." };
     const area_sf = +(ringArea(ring) * upp * upp).toFixed(2);
     const conf = traceConfidence(floodSignals(f, { raster, mppf: f.ws / upp, areaSF: area_sf }));
     return {
@@ -6145,11 +6145,11 @@ export default function TakeoffCanvas() {
   // stale. Failures wrap into the commitMsg bar's "Couldn't" convention.
   async function voiceTraceAt(seed, conditionId, label) {
     const tp = panelByKey(seed.sheetId);
-    if (!tp || tp.key !== seed.sheetId || !tp.img.w) return { ok: false, message: "Couldn't place that — aim at a sheet." };
+    if (!tp || tp.key !== seed.sheetId || !tp.img.w) return { ok: false, message: "Nem helyezhető el — mutass egy tervlapra." };
     const out = await oneClickAt([seed.x + tp.xOffset, seed.y], false, { conditionId, label });
     if (out.ok) return out;
-    const m = out.message || "Couldn't place that — the view changed mid-trace. Say it again.";
-    return { ok: false, message: /^couldn'?t/i.test(m) ? m : `Couldn't place that — ${m.charAt(0).toLowerCase()}${m.slice(1)}` };
+    const m = out.message || "Nem helyezhető el — a nézet mérés közben megváltozott. Mondd újra.";
+    return { ok: false, message: /^nem helyezhető el/i.test(m) ? m : `Nem helyezhető el — ${m.charAt(0).toLowerCase()}${m.slice(1)}` };
   }
   // Voice-command capabilities (RFC #59 slice 2) — every entry binds an action
   // the UI already exposes; the dispatcher (voiceActions.ts) never touches
@@ -6254,8 +6254,8 @@ export default function TakeoffCanvas() {
         voiceModelRef.current = s;
         if (s.phase === "loading") setVoiceChip({ text: `voice model loading… ${s.pct}%`, tone: "busy" });
         else if (s.phase === "ready") setVoiceChip((c) => (c && c.tone === "busy" ? null : c));
-        else if (s.phase === "uninstalled") { setVoiceChip(null); setCommitMsg("Voice isn't installed on this deployment — see docs/VOICE.md to stage the model."); }
-        else if (s.phase === "error") { setVoiceChip(null); setCommitMsg(`Couldn't load the voice model — ${s.message} Hold M to retry.`); }
+        else if (s.phase === "uninstalled") { setVoiceChip(null); setCommitMsg("A hangbevitel nincs telepítve ebben a rendszerben. A beállítást a docs/VOICE.md ismerteti."); }
+        else if (s.phase === "error") { setVoiceChip(null); setCommitMsg(`A hangmodell nem tölthető be: ${s.message} Az újrapróbáláshoz tartsd lenyomva az M billentyűt.`); }
       });
     }
     return voiceClientRef.current;
@@ -6278,15 +6278,15 @@ export default function TakeoffCanvas() {
         session.cancel();
         voiceCaptureRef.current = null;
         setVoiceChip(null);
-        setCommitMsg("Couldn't finish dictation — the microphone was revoked.");
+        setCommitMsg("A diktálás nem fejezhető be, mert a mikrofonengedély megszűnt.");
       });
       voiceCaptureRef.current = session;
       setVoiceChip({ text: "listening… release M to run · Esc to discard", tone: "live" });
     } catch (err) {
       setCommitMsg(
-        err?.reason === "mic_denied" ? "Couldn't start dictation — microphone permission denied. Allow the mic and try again."
-        : err?.reason === "no_mic_device" ? "Couldn't start dictation — no microphone found."
-        : "Couldn't start dictation — microphone unavailable.",
+        err?.reason === "mic_denied" ? "A diktálás nem indítható: a mikrofonhasználat nincs engedélyezve. Engedélyezd, majd próbáld újra."
+        : err?.reason === "no_mic_device" ? "A diktálás nem indítható: nem található mikrofon."
+        : "A diktálás nem indítható: a mikrofon nem érhető el.",
       );
     }
   }
@@ -6316,7 +6316,7 @@ export default function TakeoffCanvas() {
       clearTimeout(voiceFlashRef.current);
       voiceFlashRef.current = setTimeout(() => setVoiceChip((c) => (c && c.tone === "info" ? null : c)), 2400);
       return Promise.resolve(onVoiceCommandRef.current(t));
-    }).catch(() => { setVoiceChip(null); setCommitMsg("Couldn't decode that — try again."); });
+    }).catch(() => { setVoiceChip(null); setCommitMsg("A diktálás nem értelmezhető. Próbáld újra."); });
   }
   // live refs — the mount-once keyboard effect must never see stale closures
   const onVoiceCommandRef = useRef(null);
@@ -6346,7 +6346,7 @@ export default function TakeoffCanvas() {
       if (document.visibilityState === "hidden" && voiceCaptureRef.current) {
         voiceHoldRef.current = false;
         voiceFnsRef.current.end(false);
-        setCommitMsg("Dictation discarded — the tab went to the background.");
+        setCommitMsg("A diktálás elvetve, mert a böngészőlap háttérbe került.");
       }
     };
     window.addEventListener("keydown", down);
@@ -6400,8 +6400,8 @@ export default function TakeoffCanvas() {
     }
     if (made.length) dispatchShape({ type: "add", shapes: made });   // ONE command — one undo entry for the batch
     setAgentProposals((ps) => ps.filter((p) => !accepted.has(p.id)));
-    if (made.length) setCommitMsg(`Accepted ${made.length} agent proposal${made.length === 1 ? "" : "s"}.${skippedClosed ? ` ${skippedClosed} skipped — open their sheet (with its scale set) to accept.` : ""}`);
-    else if (skippedClosed) setCommitMsg("Open that proposal's sheet (with its scale set) to accept it.");
+    if (made.length) setCommitMsg(`${made.length} AI-javaslat elfogadva.${skippedClosed ? ` ${skippedClosed} kimaradt; az elfogadáshoz nyisd meg a tervlapját és állítsd be a méretarányt.` : ""}`);
+    else if (skippedClosed) setCommitMsg("Az elfogadáshoz nyisd meg a javaslat tervlapját, és állítsd be a méretarányt.");
   }
   const acceptAgentProposal = (id) => acceptAgentProposals([id]);
   const acceptAllVisibleAgentProposals = () => acceptAgentProposals(agentProposals.filter((p) => panelKeySet.has(p.sheet_id)).map((p) => p.id));
@@ -6437,7 +6437,7 @@ export default function TakeoffCanvas() {
     }
     const candidates = applyRuleToProject(rule, shapes, sheetData);
     setRuleOffer(null);
-    if (!candidates.length) { setCommitMsg("No other enclosed regions match this rule on the open sheets."); return; }
+    if (!candidates.length) { setCommitMsg("A megnyitott tervlapokon nincs több, a szabálynak megfelelő zárt terület."); return; }
     setRuleStage({ rule, candidates, proposed_ts: nowIso() });
   }
   function applyStagedRule() {
@@ -6471,7 +6471,7 @@ export default function TakeoffCanvas() {
     const ids = res.shapes.slice(-made.length).map((s) => s.id);
     // the rule persists WITH its audit trail — inspectable in the project file
     setRules((rs) => [...rs.filter((r) => r.id !== rule.id), { ...rule, applied_to: ids }]);
-    setCommitMsg(`Rule applied — ${made.length} deduct${made.length === 1 ? "" : "s"} added (⌘Z undoes all). ${rule.label}.`);
+    setCommitMsg(`Szabály alkalmazva: ${made.length} kivonás hozzáadva. A ⌘Z mindet visszavonja. ${rule.label}.`);
   }
 
   // ── ⟂ Transitions (#202, canvas side) ──────────────────────────────────────
@@ -6501,9 +6501,9 @@ export default function TakeoffCanvas() {
 
   function deriveTransitionsOnto(idA, idB) {
     const target = condById[activeCond];
-    if (!target) return { error: "Pick the condition the transitions land on first." };
+    if (!target) return { error: "Előbb válaszd ki azt a tételt, amelyhez az átmenetek kerülnek." };
     const ca = condById[idA], cb = condById[idB];
-    if (!ca || !cb) return { error: "Pick the two finishes that meet." };
+    if (!ca || !cb) return { error: "Válaszd ki a két csatlakozó felületet." };
     const roomsOf = (id) => visibleShapes
       .filter((s) => s.condition_id === id && s.measure_role === "floor_area" && (s.verts_norm || []).length >= 3)
       .map((s) => ({ id: s.id, sheet_id: s.sheet_id, verts_norm: s.verts_norm }));
@@ -6539,11 +6539,11 @@ export default function TakeoffCanvas() {
     if (made.length) dispatchShape({ type: "add", shapes: made });   // ONE command — one undo entry for the whole sweep
     const total_lf = +made.reduce((n, s) => n + s.computed.perimeter_lf, 0).toFixed(2);
     if (made.length) {
-      setCommitMsg(`${made.length} transition${made.length === 1 ? "" : "s"} derived between ${a.tag} and ${b.tag} — ${total_lf} LF onto ${target.finish_tag}, dashed until you Accept (⌘Z undoes the sweep).`);
+      setCommitMsg(`${made.length} átmenet létrehozva a(z) ${a.tag} és ${b.tag} között: ${total_lf} LF a(z) ${target.finish_tag} tételhez. Elfogadásig szaggatott; a ⌘Z visszavonja.`);
     } else if (withheld.length) {
-      setCommitMsg(`Nothing to commit — every ${a.tag}/${b.tag} run is across a wall. See the Transitions panel.`);
+      setCommitMsg(`Nincs rögzíthető eredmény: minden ${a.tag}/${b.tag} szakaszt fal választ el. Lásd az Átmenetek panelt.`);
     } else {
-      setCommitMsg(`${a.tag} and ${b.tag} never meet on the open sheets.`);
+      setCommitMsg(`A(z) ${a.tag} és ${b.tag} felületek nem találkoznak a megnyitott tervlapokon.`);
     }
     return { committed: made.length, total_lf, withheld, between: [a.tag, b.tag], onto: target.finish_tag };
   }
@@ -6572,12 +6572,12 @@ export default function TakeoffCanvas() {
   function acceptProposalGroup(g) {
     if (!g?.ids.length) return;
     dispatchShape({ type: "review", ids: g.ids });
-    setCommitMsg(`Accepted ${g.proposal ? `“${g.proposal.label}” — ` : ""}${g.ids.length} shape${g.ids.length === 1 ? "" : "s"} — pencil is now ink (⌘Z undoes).`);
+    setCommitMsg(`Elfogadva: ${g.proposal ? `„${g.proposal.label}” · ` : ""}${g.ids.length} alakzat véglegesítve. A ⌘Z visszavonja.`);
   }
   function rejectProposalGroup(g) {
     if (!g?.ids.length) return;
     dispatchShape({ type: "delete", ids: g.ids, reason: "proposal-reject" });
-    setCommitMsg(`Rejected ${g.proposal ? `“${g.proposal.label}” — ` : ""}${g.ids.length} proposed shape${g.ids.length === 1 ? "" : "s"} removed (⌘Z restores).`);
+    setCommitMsg(`Elvetve: ${g.proposal ? `„${g.proposal.label}” · ` : ""}${g.ids.length} javasolt alakzat eltávolítva. A ⌘Z visszaállítja.`);
   }
   // condition-edit proposals (#365): accept applies the diff through the same
   // patch path the panel editor writes (updateCondById), so the condition
@@ -6588,18 +6588,18 @@ export default function TakeoffCanvas() {
     const p = conditionEditProposals.find((x) => x.id === id);
     if (!p) return;
     const r = acceptConditionEditProposal(conditions, p, nowIso);
-    if (r.error) { setCommitMsg(`Couldn't accept the proposed change: ${r.error}`); return; }
+    if (r.error) { setCommitMsg(`A javasolt módosítás nem fogadható el: ${r.error}`); return; }
     setConditions(r.conditions);
     agentStateRef.current = { ...agentStateRef.current, conditions: r.conditions };
     setConditionEditProposals((ps) => ps.filter((x) => x.id !== id));
     const tag = r.conditions.find((c) => c.id === p.condition_id)?.finish_tag || "";
-    setCommitMsg(`Accepted the proposed change on ${tag}.`);
+    setCommitMsg(`A(z) ${tag} tétel javasolt módosítása elfogadva.`);
   }
   function rejectConditionEdit(id) {
     const p = conditionEditProposals.find((x) => x.id === id);
     if (!p) return;
     setConditionEditProposals((ps) => ps.filter((x) => x.id !== id));
-    setCommitMsg(`Rejected the proposed change on ${condById[p.condition_id]?.finish_tag || "that condition"} — nothing changed.`);
+    setCommitMsg(`A(z) ${condById[p.condition_id]?.finish_tag || "érintett tétel"} javasolt módosítása elvetve; nem történt változás.`);
   }
   const rejectAllAgentProposals = () => setAgentProposals([]);
 
@@ -6612,21 +6612,21 @@ export default function TakeoffCanvas() {
       : ev.type === "tool_end" ? (ev.result?.error
           ? { kind: "error", text: `✗ ${ev.name}: ${ev.result.error}` }
           : { kind: "status", text: `✓ ${ev.name} ${trimJson({ ...ev.result, image_data_url: undefined, items: Array.isArray(ev.result?.items) ? `${ev.result.items.length} items` : undefined }, 160)}` })
-      : ev.type === "error" ? { kind: "error", text: `Error: ${ev.message}` }
-      : ev.type === "aborted" ? { kind: "status", text: "Stopped." }
-      : ev.type === "max_iterations" ? { kind: "status", text: `Stopped at the ${ev.limit}-step cap — review what's staged.` }
-      : ev.type === "done" ? { kind: "status", text: "Done — review the dashed proposals." }
+      : ev.type === "error" ? { kind: "error", text: `Hiba: ${ev.message}` }
+      : ev.type === "aborted" ? { kind: "status", text: "Leállítva." }
+      : ev.type === "max_iterations" ? { kind: "status", text: `A folyamat elérte a(z) ${ev.limit} lépéses korlátot. Ellenőrizd az előkészített javaslatokat.` }
+      : ev.type === "done" ? { kind: "status", text: "Kész. Ellenőrizd a szaggatott javaslatokat." }
       : null;
     if (entry) setAgentLog((l) => [...l.slice(-199), entry]);
   }
   async function runAgent(goal) {
     if (agentRunning) return;
     if (!isAiConfigured()) { setShowAiSettings(true); return; }
-    if (agentStateRef.current.status !== "ready") { setCommitMsg("Sheet still loading — try again in a moment."); return; }
+    if (agentStateRef.current.status !== "ready") { setCommitMsg("A tervlap még betöltődik. Próbáld újra egy pillanat múlva."); return; }
     const ctl = new AbortController();
     agentAbortRef.current = ctl;
     setAgentRunning(true);
-    setAgentLog([{ kind: "status", text: `Goal: ${goal}` }]);
+    setAgentLog([{ kind: "status", text: `Feladat: ${goal}` }]);
     const ctx = buildAgentCtx();
     try {
       await runAgentLoop({
@@ -6652,11 +6652,11 @@ export default function TakeoffCanvas() {
   //     login-gated (see importScheduleFromScan).
   // Corners a,b are stage px (raw cursor, snapping exempted at pointer-down).
   async function importScheduleFromRect(a, b) {
-    if (status !== "ready") { setCommitMsg("Sheet still loading — try again in a moment."); return; }
+    if (status !== "ready") { setCommitMsg("A tervlap még betöltődik. Próbáld újra egy pillanat múlva."); return; }
     const panel = panelAt(a[0]);
-    if (panelAt(b[0]).key !== panel.key) { setCommitMsg("Draw the box within a single sheet, around its schedule table."); return; }
+    if (panelAt(b[0]).key !== panel.key) { setCommitMsg("A kimutatás táblázatát egyetlen tervlapon belül keretezd körbe."); return; }
     const pageObj = pageObjsRef.current.get(panel.key);
-    if (!pageObj) { setCommitMsg("Open a sheet first."); return; }
+    if (!pageObj) { setCommitMsg("Előbb nyiss meg egy tervlapot."); return; }
     const rs = renderScalesRef.current.get(panel.key) || RENDER_SCALE;
     const rect = { x0: a[0] - panel.xOffset, y0: a[1], x1: b[0] - panel.xOffset, y1: b[1] };
     const seq = renderSeqRef.current;                 // a sheet switch mid-await must not pop a dialog for a page you left
@@ -6666,7 +6666,7 @@ export default function TakeoffCanvas() {
       const tc = await pageObj.getTextContent();
       if (seq !== renderSeqRef.current) return;
       tokens = extractRegionText(tc, vp, rect);
-    } catch { setCommitMsg("Couldn't read that region."); return; }
+    } catch { setCommitMsg("A kijelölt terület nem olvasható."); return; }
     // Vector-vs-scan decision. Tokens present ⇒ TRY the text layer first (a real
     // vector schedule parses straight from it, no OCR cost). But token presence
     // isn't proof of a vector page: scanned plans often carry a stray text layer
@@ -6682,7 +6682,7 @@ export default function TakeoffCanvas() {
       // advice is to re-drag around the table header. Don't fire a paid OCR call
       // and don't claim the page is scanned.
       if (!isGoogleConfigured() || !isSignedIn() || !isAllowedDomain()) {
-        setCommitMsg("No schedule found in that box — drag around the finish/material schedule (its CODE / MATERIAL / … header).");
+        setCommitMsg("A kijelölésben nem található kimutatás. Keretezd körbe az anyag- vagy felületkimutatás teljes táblázatát.");
         return;
       }
       // else: the reader is available — let it read the pixels below.
@@ -6704,31 +6704,31 @@ export default function TakeoffCanvas() {
   async function importScheduleFromScan(pageObj, rs, rect, seq, tokenCount) {
     const hadTokens = tokenCount > 0;
     if (!isGoogleConfigured()) {
-      setCommitMsg("No schedule found — this looks like a scanned page (no text layer). Importing from scanned plans needs the AI backend.");
+      setCommitMsg("Nem található kimutatás. A tervlap valószínűleg szkennelt, szövegréteg nélkül; feldolgozásához az AI szolgáltatás szükséges.");
       return;
     }
-    if (!isSignedIn()) { setCommitMsg("Sign in to import from scanned plans."); return; }
+    if (!isSignedIn()) { setCommitMsg("A szkennelt tervek importálásához jelentkezz be."); return; }
     // Org-only: a signed-in account outside the configured domain must not reach
     // the paid reader (the server 403s it too — this just avoids the round-trip).
-    if (!isAllowedDomain()) { setCommitMsg("Your sign-in doesn't have access to the scanned-schedule reader."); return; }
+    if (!isAllowedDomain()) { setCommitMsg("A bejelentkezett fiók nem jogosult a szkennelt kimutatások feldolgozására."); return; }
     // A paid read is already in flight — a rapid re-draw of the marquee must not
     // fire a second Gemini call. Surface it (the first call may not have printed
     // "Reading…" yet) so the redraw doesn't look ignored. Clears in finally below.
-    if (scanBusyRef.current) { setCommitMsg("Still reading the last schedule — one moment."); return; }
+    if (scanBusyRef.current) { setCommitMsg("Az előző kimutatás feldolgozása még tart."); return; }
     scanBusyRef.current = true;
     try {
       let png;
       try { png = await rasterizeRegion(pageObj, rs, rect); }
-      catch { setCommitMsg("Couldn't read that region."); return; }
+      catch { setCommitMsg("A kijelölt terület nem olvasható."); return; }
       if (seq !== renderSeqRef.current) return;
       // The token is what actually authorizes the paid read — the server verifies
       // it before spending. A missing/expired token here means re-consent, not a
       // silent public call.
       let token;
       try { token = await getAccessToken(); }
-      catch { setCommitMsg("Sign in again to import from scanned plans."); return; }
+      catch { setCommitMsg("A szkennelt tervek importálásához jelentkezz be újra."); return; }
       if (seq !== renderSeqRef.current) return;
-      setCommitMsg("Reading the scanned schedule…");
+      setCommitMsg("A szkennelt kimutatás feldolgozása…");
       // #104: record WHY the paid reader was reached, right before the call fires
       // (rasterize + token succeeded), so the log correlates 1:1 with paid reads.
       // no-text-layer = truly raster (AI-only); text-present-unparsed = tokens were
@@ -6753,26 +6753,26 @@ export default function TakeoffCanvas() {
             // token + ALLOWED_HD gate ignores it.
             body: JSON.stringify({ image_b64: png.b64, width: png.width, height: png.height, client_hd: orgDomainHint() }),
           }),
-          { onRetry: () => setCommitMsg("The reader was warming up — retrying…") },
+          { onRetry: () => setCommitMsg("A feldolgozó indul; újrapróbálás…") },
         );
         if (seq !== renderSeqRef.current) return;
-        if (res.status === 401 || res.status === 403) { setCommitMsg("Your sign-in doesn't have access to the scanned-schedule reader."); return; }
-        if (res.status === 501) { setCommitMsg("Importing from scanned plans isn't enabled on this deployment."); return; }
+        if (res.status === 401 || res.status === 403) { setCommitMsg("A bejelentkezett fiók nem jogosult a szkennelt kimutatások feldolgozására."); return; }
+        if (res.status === 501) { setCommitMsg("A szkennelt tervek importálása nincs engedélyezve ebben a rendszerben."); return; }
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const rows = normalizeScanRows(await res.json());
         if (!rows.length) {
           setCommitMsg(hadTokens
-            ? "No schedule found in that box — drag around the finish/material schedule (its CODE / MATERIAL / … header)."
-            : "No schedule found in that scanned region — the reader returned nothing.");
+            ? "A kijelölésben nem található kimutatás. Keretezd körbe az anyag- vagy felületkimutatás teljes táblázatát."
+            : "A kijelölt szkennelt területen nem található kimutatás.");
           return;
         }
         // #104: say why the AI reader ran — honest about the token-bearing case (we
         // read the pixels; we do NOT claim the vector parser has a bug).
         setCommitMsg(hadTokens
-          ? `Read ${rows.length} finish${rows.length === 1 ? "" : "es"} from the image — the box had text but we couldn't read it as a table.`
-          : `Read ${rows.length} finish${rows.length === 1 ? "" : "es"} — scanned page (no text layer).`);
+          ? `${rows.length} felület beolvasva a képből. A kijelölés tartalmazott szöveget, de táblázatként nem volt értelmezhető.`
+          : `${rows.length} felület beolvasva a szkennelt, szövegréteg nélküli tervlapról.`);
         setImportRows(rows);
-      } catch { setCommitMsg("Couldn't reach the schedule reader — try again in a moment."); }
+      } catch { setCommitMsg("A kimutatásfeldolgozó nem érhető el. Próbáld újra egy pillanat múlva."); }
     } finally {
       scanBusyRef.current = false;
       bumpIdle();   // scan done → let the idle-drain observe the busy→idle edge (Slice 5b)
@@ -6812,11 +6812,11 @@ export default function TakeoffCanvas() {
   // importScheduleFromRect: sheet ready, both corners in one panel, a real source
   // page (refuse a stitched composite), a non-degenerate box.
   async function captureRegionMarkup(a, b) {
-    if (status !== "ready") { setCommitMsg("Sheet still loading — try again in a moment."); return; }
+    if (status !== "ready") { setCommitMsg("A tervlap még betöltődik. Próbáld újra egy pillanat múlva."); return; }
     const panel = panelAt(a[0]);
-    if (panelAt(b[0]).key !== panel.key) { setCommitMsg("Draw the box within a single sheet."); return; }
+    if (panelAt(b[0]).key !== panel.key) { setCommitMsg("A keretet egyetlen tervlapon belül rajzold meg."); return; }
     const pageObj = pageObjsRef.current.get(panel.key);
-    if (!pageObj) { setCommitMsg("Capture a region on a single sheet (not a stitched view)."); return; }
+    if (!pageObj) { setCommitMsg("Egyetlen tervlap területét jelöld ki, ne összeillesztett nézetet."); return; }
     const rs = renderScalesRef.current.get(panel.key) || RENDER_SCALE;
     // rect in image (rs-viewport) px, clamped to the panel bounds so an over-drag
     // past the sheet edge never parks the geometry off-sheet
@@ -6826,7 +6826,7 @@ export default function TakeoffCanvas() {
     const y0 = cl(Math.min(a[1], b[1]), 0, panel.img.h);
     const y1 = cl(Math.max(a[1], b[1]), 0, panel.img.h);
     const regW = x1 - x0, regH = y1 - y0;
-    if (!(regW >= 4 && regH >= 4)) { setCommitMsg("Drag a larger box to capture."); return; }
+    if (!(regW >= 4 && regH >= 4)) { setCommitMsg("A kivágáshoz rajzolj nagyobb keretet."); return; }
     // own downscale factor: 1600px longest side (never scanRasterScale's 4096)
     const factor = Math.min(1, MARKUP_IMG_MAX / regW, MARKUP_IMG_MAX / regH);
     const bw = Math.max(1, Math.round(regW * factor)), bh = Math.max(1, Math.round(regH * factor));
@@ -6841,7 +6841,7 @@ export default function TakeoffCanvas() {
         transform: [1, 0, 0, 1, -x0 * factor, -y0 * factor],
       }).promise;
       src = canvas.toDataURL("image/png");
-    } catch { setCommitMsg("Couldn't capture that region."); return; }
+    } catch { setCommitMsg("A kijelölt terület nem vágható ki."); return; }
     const { at, w, aspect } = captureRectToImageGeom({ x0, y0, x1, y1 }, panel.img.w, panel.img.h);
     if (!(w > 0)) return;
     // FROZEN origin label. sheetBaseLabel resolves a detected sheet number only for
@@ -6890,7 +6890,7 @@ export default function TakeoffCanvas() {
   // autosave catch is the real backstop.
   function addImageMarkup(m, key) {
     const used = markups.reduce((n, x) => n + (x.type === "image" && typeof x.src === "string" ? x.src.length : 0), 0);
-    if (used + m.src.length > MAX_IMAGE_MARKUP_BYTES) { setCommitMsg("Too many/large images on this project — delete some before adding more."); return; }
+    if (used + m.src.length > MAX_IMAGE_MARKUP_BYTES) { setCommitMsg("A projekt túl sok vagy túl nagy képet tartalmaz. Új kép hozzáadása előtt törölj néhányat."); return; }
     // Auto-name (stored in `text`, which the panel renders and the ✎ edits): the
     // sheet base + a per-sheet sequence ("AF101-01"). Uploads carry the file name.
     // Collisions after a delete are tolerated (a simple count, not a high-water
@@ -6904,7 +6904,7 @@ export default function TakeoffCanvas() {
     const text = (typeof given === "string" && given.trim()) || `${base}-${String(seq).padStart(2, "0")}`;
     const by = authorName();
     addMarkup({ type: "image", ...rest, text, ...(by ? { author: by } : {}) }, key);
-    setCommitMsg("Image placed.");
+    setCommitMsg("A kép elhelyezve.");
   }
 
   // Lazy, memory-only panel thumbnail: decode the src ONCE, downscale to a ~48px
@@ -6930,7 +6930,7 @@ export default function TakeoffCanvas() {
   // Provenance one-liner for the panel row's title tooltip (Kevin: not shown
   // prominently). Degrades: drops the author when none is declared.
   function imageProvenance(m) {
-    const verb = m.source === "upload" ? "Uploaded" : "Captured from";
+    const verb = m.source === "upload" ? "Feltöltve" : "Kivágva innen:";
     // src_sheet_id is the ORIGIN sheet; sheet_id is wherever the image lives NOW
     // and is rewritten on a cross-sheet place, so after a move reading sheet_id
     // here would misreport where it was captured. Fall back to sheet_id for
@@ -6954,11 +6954,11 @@ export default function TakeoffCanvas() {
     const name = file?.name || "";
     const isPngJpeg = !!file && (/^image\/(png|jpeg)$/.test(file.type) || /\.(png|jpe?g)$/i.test(name));
     if (!isPngJpeg) {
-      setCommitMsg("Pick a PNG or JPEG image."); return;
+      setCommitMsg("Válassz PNG- vagy JPEG-képet."); return;
     }
     // cheap pre-decode gate: bail on a huge FILE before createImageBitmap allocates
     // anything (a small-file / huge-dims pixel bomb is caught by the area guard below).
-    if (file.size > MARKUP_UPLOAD_MAX_BYTES) { setCommitMsg(`That image file is too large (max ${Math.round(MARKUP_UPLOAD_MAX_BYTES / (1024 * 1024))} MB).`); return; }
+    if (file.size > MARKUP_UPLOAD_MAX_BYTES) { setCommitMsg(`A képfájl túl nagy. Legfeljebb ${Math.round(MARKUP_UPLOAD_MAX_BYTES / (1024 * 1024))} MB lehet.`); return; }
     try {
       // sniff intrinsic dimensions via an <img> FIRST — reading naturalWidth/Height
       // only needs the header, so a pixel bomb (small file, enormous declared dims)
@@ -6972,12 +6972,12 @@ export default function TakeoffCanvas() {
           im.onerror = () => rej(new Error("decode"));
           im.src = url;
         });
-        if (dims.w * dims.h > MARKUP_DECODE_MAX_AREA) { setCommitMsg("That image is too large (too many pixels)."); return; }
+        if (dims.w * dims.h > MARKUP_DECODE_MAX_AREA) { setCommitMsg("A kép felbontása túl nagy."); return; }
       } finally { URL.revokeObjectURL(url); }
       const bmp = await createImageBitmap(file, { imageOrientation: "from-image" });
       // defense-in-depth: the oriented bitmap's own area, in case the sniff and the
       // decoder disagree (a markup-appropriate cap, NOT the 241M render-canvas cap).
-      if (bmp.width * bmp.height > MARKUP_DECODE_MAX_AREA) { bmp.close?.(); setCommitMsg("That image is too large (too many pixels)."); return; }
+      if (bmp.width * bmp.height > MARKUP_DECODE_MAX_AREA) { bmp.close?.(); setCommitMsg("A kép felbontása túl nagy."); return; }
       const f = Math.min(1, MARKUP_IMG_MAX / Math.max(bmp.width, bmp.height));
       const bw = Math.max(1, Math.round(bmp.width * f)), bh = Math.max(1, Math.round(bmp.height * f));
       const canvas = document.createElement("canvas");
@@ -6997,7 +6997,7 @@ export default function TakeoffCanvas() {
         at = [cl01((c[0] - focusPanel.xOffset) / focusPanel.img.w), cl01(c[1] / focusPanel.img.h)];
       }
       addImageMarkup({ at, w: 0.2, aspect, src, source: "upload", name: (file?.name || "").replace(/\.[^.]+$/, "") }, focusPanel.key);
-    } catch { setCommitMsg("Couldn't read that image."); }
+    } catch { setCommitMsg("A kép nem olvasható."); }
   }
 
   // Approved rows → conditions. Category drives color/hatch/waste (rowToSeed);
@@ -7022,10 +7022,10 @@ export default function TakeoffCanvas() {
       existing.add(tag);
     }
     setImportRows(null);
-    if (!made.length) { setCommitMsg("Those finishes already exist as conditions."); return; }
+    if (!made.length) { setCommitMsg("Ezek a felületek már szerepelnek a tételek között."); return; }
     setConditions((cs) => [...cs, ...made]);
     activateCondition(made[0].id, { reassign: false });
-    setCommitMsg(`Created ${made.length} condition${made.length === 1 ? "" : "s"} from the schedule.`);
+    setCommitMsg(`${made.length} tétel létrehozva a kimutatásból.`);
   }
   // every condition-editor save lands here — a bare updated_at is the whole
   // provenance story for conditions (no origin machinery; they're all manual)
@@ -7040,7 +7040,7 @@ export default function TakeoffCanvas() {
     const c = condById[id];
     if (!c) return;
     const owned = shapes.filter((s) => s.condition_id === id);
-    if (owned.length && !window.confirm(`Delete ${c.finish_tag} and its ${owned.length} takeoff${owned.length === 1 ? "" : "s"}? This can't be undone.`)) return;
+    if (owned.length && !window.confirm(`Törlöd a(z) ${c.finish_tag} tételt és a hozzá tartozó ${owned.length} tervmérést? A művelet nem vonható vissza.`)) return;
     // Lineage first, removal second: deleting a family parent must not orphan its twins. The
     // eldest survivor is promoted to root (its rows are already materialized — propagate-on-write
     // guarantees that) and the rest re-point at it, origin_ids remapped.
@@ -7062,7 +7062,7 @@ export default function TakeoffCanvas() {
     // no bulk-selection pruning needed here: the panel derives liveness from
     // the conditions prop (liveChecked = conditions ∩ checked), so a deleted
     // id left in its checked set is inert by construction
-    setCommitMsg(`Deleted ${c.finish_tag}${owned.length ? ` and ${owned.length} takeoff${owned.length === 1 ? "" : "s"}` : ""}.`);
+    setCommitMsg(`${c.finish_tag} törölve${owned.length ? `, a hozzá tartozó ${owned.length} tervméréssel együtt` : ""}.`);
   }
 
   // custom columns: project-scoped vocabulary editing + per-condition assignment.
@@ -7081,7 +7081,7 @@ export default function TakeoffCanvas() {
   const addColumnValue = (colId, v) => setConditionColumns((cols) => cols.map((cc) => (cc.id === colId && !cc.values.includes(v) ? { ...cc, values: [...cc.values, v] } : cc)));
   const removeColumnValue = (colId, v) => setConditionColumns((cols) => cols.map((cc) => (cc.id === colId ? { ...cc, values: cc.values.filter((x) => x !== v) } : cc)));   // assigned conditions keep the string — selects show "(removed)"
   const renameColumnVal = (colId, oldV) => {
-    const newV = (window.prompt("Rename value:", oldV) || "").trim();
+    const newV = (window.prompt("Érték átnevezése:", oldV) || "").trim();
     if (!newV || newV === oldV) return;
     // rename into an existing value = merge (values are unique — they key the chips and the select options)
     setConditionColumns((cols) => cols.map((cc) => (cc.id === colId ? { ...cc, values: cc.values.includes(newV) ? cc.values.filter((x) => x !== oldV) : cc.values.map((x) => (x === oldV ? newV : x)) } : cc)));
@@ -7089,7 +7089,7 @@ export default function TakeoffCanvas() {
   };
   const deleteColumn = (colId) => {
     const cc = conditionColumns.find((c) => c.id === colId);
-    if (!window.confirm(`Delete column "${columnLabel(cc)}" for the whole project? Conditions keep their values but they're no longer shown or exported.`)) return;
+    if (!window.confirm(`Törlöd a(z) „${columnLabel(cc)}” oszlopot a teljes projektből? A tételek értékei megmaradnak, de nem jelennek meg és nem kerülnek exportálásra.`)) return;
     setConditionColumns((cols) => cols.filter((c) => c.id !== colId));   // orphaned attrs[colId] stay behind — harmless, nothing iterates raw attrs
   };
 
@@ -7098,7 +7098,7 @@ export default function TakeoffCanvas() {
   const addLabel = (v) => setShapeLabels((ls) => (ls.includes(v) ? ls : [...ls, v]));
   const removeLabel = (v) => setShapeLabels((ls) => ls.filter((x) => x !== v));   // labeled shapes keep the string — it falls into an ad-hoc report group, nothing disappears from totals
   const renameLabel = (oldV) => {
-    const newV = (window.prompt("Rename label:", oldV) || "").trim();
+    const newV = (window.prompt("Címke átnevezése:", oldV) || "").trim();
     if (!newV || newV === oldV) return;
     // rename into an existing value = merge (labels are unique — they key the chips and the report's group headers)
     setShapeLabels((ls) => (ls.includes(newV) ? ls.filter((x) => x !== oldV) : ls.map((x) => (x === oldV ? newV : x))));
@@ -7159,7 +7159,7 @@ export default function TakeoffCanvas() {
     if (!src || !lab) return null;
     const tag = variantTag(src.finish_tag, lab);
     if (conditions.some((c) => normalizeTag(c.finish_tag) === normalizeTag(tag))) {
-      setCommitMsg(`A condition is already called ${tag} — pick another label.`);
+      setCommitMsg(`Már létezik ${tag} nevű tétel. Válassz másik azonosítót.`);
       return null;
     }
     const { twin, parentPatch } = mintTwin(src, {
@@ -7171,7 +7171,7 @@ export default function TakeoffCanvas() {
     agentStateRef.current = { ...agentStateRef.current, conditions: [...agentStateRef.current.conditions, twin] };
     setConditions((cs) => [...cs.map((c) => (c.id === src.id && parentPatch ? { ...c, ...parentPatch } : c)), twin]);
     activateCondition(twin.id, { reassign: false });
-    setCommitMsg(`Added ${twin.finish_tag} — its materials follow ${src.finish_tag} until you change them here.`);
+    setCommitMsg(`${twin.finish_tag} hozzáadva. Az anyagai addig követik a(z) ${src.finish_tag} tételt, amíg itt nem módosítod őket.`);
     return twin;
   };
   // Cut a twin loose: every following row freezes where it stands. It KEEPS its family_id, so it
@@ -7181,9 +7181,9 @@ export default function TakeoffCanvas() {
     if (!c?.variant_of) return;
     const par = conditions.find((x) => x.id === c.variant_of);
     const n = (c.materials || []).filter((r) => r.inherited).length;
-    if (!window.confirm(`Split ${c.finish_tag} out of its family?\n\n${n} row${n === 1 ? "" : "s"} freeze at ${n === 1 ? "its" : "their"} current values, and edits to ${par?.finish_tag || "the original"} stop reaching it.\nIt keeps its name and still subtotals with the family.`)) return;
+    if (!window.confirm(`Leválasztod a(z) ${c.finish_tag} tételt a családjáról?\n\n${n} sor megtartja jelenlegi értékeit, és a(z) ${par?.finish_tag || "eredeti tétel"} módosításai többé nem hatnak rá. A neve és a családi részösszesítés megmarad.`)) return;
     setConditions((cs) => splitFromFamily(cs, id));
-    setCommitMsg(`${c.finish_tag} no longer follows ${par?.finish_tag || "its family"}.`);
+    setCommitMsg(`${c.finish_tag} már nem követi ezt a tételcsaládot: ${par?.finish_tag || "korábbi család"}.`);
   };
   // Height/Thickness are LIVE parameters: changing them re-flows
   // every dependent shape on this condition — wall SF tracks the tile height.
@@ -7316,7 +7316,7 @@ export default function TakeoffCanvas() {
         .map((s) => [s.id, computeShapeMetrics(s, dimsBy.get(s.sheet_id), uppFor(s.sheet_id) || 0, condById[s.condition_id])]));
       if (!healed.size) return;
       dispatchShape({ type: "replace", shapes: shapes.map((s) => (healed.has(s.id) ? { ...s, computed: healed.get(s.id) } : s)) }, { reset: true });
-      setCommitMsg(`Repriced ${healed.size} takeoff${healed.size === 1 ? "" : "s"} that loaded without quantities.`);
+      setCommitMsg(`${healed.size} mennyiség nélkül betöltött tervmérés újraszámítva.`);
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- reruns on load/shape/scale change; docFor/uppFor/condById read from the same render
   }, [status, shapes, scales, conditions]);
@@ -7455,7 +7455,7 @@ export default function TakeoffCanvas() {
   // condition — the "don't open the sidebar unless double-clicked" contract.
   const pinToPalette = (id) => {
     if (palette.includes(id)) return;   // already pinned — silent no-op (dropping a chip back on the band)
-    if (palette.length >= PALETTE_MAX) { setCommitMsg(`Palette is full (${PALETTE_MAX}) — unpin one first.`); return; }
+    if (palette.length >= PALETTE_MAX) { setCommitMsg(`A paletta megtelt (${PALETTE_MAX}). Előbb vegyél le róla egy tételt.`); return; }
     setPalette((p) => (p.includes(id) || p.length >= PALETTE_MAX ? p : [...p, id]));
   };
   const unpinFromPalette = (id) => setPalette((p) => p.filter((x) => x !== id));
@@ -7487,7 +7487,7 @@ export default function TakeoffCanvas() {
   // so counts and names here can never claim rows the list already lost.
   const bulkWasteConditions = (ids, v) => {
     setConditions((cs) => cs.map((c) => (ids.has(c.id) ? { ...c, waste_pct: v } : c)));
-    setCommitMsg(`Waste set to ${v}% on ${ids.size} condition${ids.size === 1 ? "" : "s"}.`);
+    setCommitMsg(`${ids.size} tételnél ${v}% ráhagyás beállítva.`);
   };
   const bulkColorConditions = (ids, color) => setConditions((cs) => cs.map((c) => (ids.has(c.id) ? { ...c, color } : c)));
   // returns whether the delete went through — the panel clears its selection only then
@@ -7497,21 +7497,21 @@ export default function TakeoffCanvas() {
     const dead = shapes.filter((s) => ids.has(s.condition_id));
     const owned = dead.length;
     // name what dies while the list still reads at a glance (≤5); count beyond
-    const what = live.length <= 5 ? live.map((c) => c.finish_tag).join(", ") : `${live.length} conditions`;
-    if (!window.confirm(`Delete ${what}${owned ? ` and their ${owned} takeoff${owned === 1 ? "" : "s"}` : ""}? This can't be undone.`)) return false;
+    const what = live.length <= 5 ? live.map((c) => c.finish_tag).join(", ") : `${live.length} tétel`;
+    if (!window.confirm(`Törlöd ezt: ${what}${owned ? `, valamint a hozzájuk tartozó ${owned} tervmérést` : ""}? A művelet nem vonható vissza.`)) return false;
     setConditions((cs) => promoteOnDelete(cs, ids).filter((c) => !ids.has(c.id)));   // lineage repaired first
     // same cascade rule as deleteCondition: counted centrally, off the stack
     if (owned) dispatchShape({ type: "delete", ids: dead.map((s) => s.id), reason: "condition-delete" }, { record: false });
     setPalette((p) => p.filter((id) => !ids.has(id)));   // deleted conditions can't stay pinned
     if (ids.has(activeCond)) setActiveCond(conditions.find((c) => !ids.has(c.id))?.id || "");
-    setCommitMsg(`Deleted ${live.length} condition${live.length === 1 ? "" : "s"}${owned ? ` and ${owned} takeoff${owned === 1 ? "" : "s"}` : ""}.`);
+    setCommitMsg(`${live.length} tétel törölve${owned ? `, a hozzájuk tartozó ${owned} tervméréssel együtt` : ""}.`);
     return true;
   };
 
   // ── condition template library ops (browser-global; store meta key) ───────
   const persistTemplates = (next) => {
     templatesRef.current = next; setTemplates(next);
-    store.saveTemplates(next).catch((e) => setCommitMsg(`Couldn't save the library: ${e.message || e}`));
+    store.saveTemplates(next).catch((e) => setCommitMsg(`A sablontár nem menthető: ${e.message || e}`));
   };
   const condToTemplate = (c) => ({
     finish_tag: c.finish_tag, color: c.color, fill: c.fill, hatch: c.hatch || "solid",
@@ -7527,9 +7527,9 @@ export default function TakeoffCanvas() {
     if (!aCond) return;
     const tpl = condToTemplate(aCond);
     const at = templates.findIndex((t) => t.finish_tag === tpl.finish_tag);
-    if (at >= 0 && !window.confirm(`A “${tpl.finish_tag}” template is already in the library — replace it?`)) return;
+    if (at >= 0 && !window.confirm(`A(z) „${tpl.finish_tag}” sablon már szerepel a tárban. Lecseréled?`)) return;
     persistTemplates(at >= 0 ? templates.map((t, i) => (i === at ? tpl : t)) : [...templates, tpl]);
-    setCommitMsg(`Saved ${tpl.finish_tag} to the library.`);
+    setCommitMsg(`${tpl.finish_tag} mentve a sablontárba.`);
   };
   const applyTemplate = (t) => {
     const c = instantiateTemplate(t);
@@ -7538,7 +7538,7 @@ export default function TakeoffCanvas() {
     // still dismisses a live bulk selection like every other activation surface
     activateCondition(c.id, { reassign: false });
     // the panel switches itself back to the Takeoffs tab (its Apply handler)
-    setCommitMsg(`Added ${c.finish_tag} from the library.`);
+    setCommitMsg(`${c.finish_tag} hozzáadva a sablontárból.`);
   };
   // idx addresses the template BY POSITION (the panel's plain templates.map
   // index — it doesn't filter/sort). The focus-refresh above now skips the
@@ -7550,15 +7550,15 @@ export default function TakeoffCanvas() {
   // reports rather than throwing.
   const renameTemplate = (idx) => {
     const t = templates[idx];
-    if (!t) { setCommitMsg("The library changed in another tab — try again."); return; }
-    const tag = (window.prompt("Template tag:", t.finish_tag) || "").trim();
+    if (!t) { setCommitMsg("A sablontár egy másik böngészőlapon megváltozott. Próbáld újra."); return; }
+    const tag = (window.prompt("Sablon azonosítója:", t.finish_tag) || "").trim();
     if (!tag || tag === t.finish_tag) return;
     persistTemplates(templates.map((x, i) => (i === idx ? { ...x, finish_tag: tag } : x)));
   };
   const deleteTemplate = (idx) => {
     const t = templates[idx];
-    if (!t) { setCommitMsg("The library changed in another tab — try again."); return; }
-    if (!window.confirm(`Remove the ${t.finish_tag} template from the library? Existing conditions are unaffected.`)) return;
+    if (!t) { setCommitMsg("A sablontár egy másik böngészőlapon megváltozott. Próbáld újra."); return; }
+    if (!window.confirm(`Eltávolítod a(z) ${t.finish_tag} sablont a tárból? A meglévő tételek nem változnak.`)) return;
     persistTemplates(templates.filter((_, i) => i !== idx));
   };
 
@@ -7571,7 +7571,7 @@ export default function TakeoffCanvas() {
   const matLibById = useMemo(() => Object.fromEntries(matLib.map((m) => [m.id, m])), [matLib]);
   const persistMatLib = (next) => {
     setMatLib(next);
-    store.saveMaterialLibrary(next).catch((e) => setCommitMsg(`Couldn't save the material library: ${e.message || e}`));
+    store.saveMaterialLibrary(next).catch((e) => setCommitMsg(`Az anyagtár nem menthető: ${e.message || e}`));
   };
   // libFields / matFieldOverridden / the push+revert patch builders live in
   // lib/materials.js (pure, tested): they carry kind and the grout tile
@@ -7582,11 +7582,11 @@ export default function TakeoffCanvas() {
     updateCond({ materials: [...(aCond.materials || []), { id: uid("mat"), ...libFields(lm), lib_id: lm.id }] });
   };
   const promoteMaterial = (m) => {
-    if (!m.name) { setCommitMsg("Name the material before saving it to the library."); return; }
+    if (!m.name) { setCommitMsg("Az anyagtárba mentés előtt adj nevet az anyagnak."); return; }
     const entry = { id: uid("lib"), ...libFields(m) };
     persistMatLib([...matLib, entry]);
     updateMaterial(m.id, { lib_id: entry.id });
-    setCommitMsg(`Saved ${m.name} to the material library.`);
+    setCommitMsg(`${m.name} mentve az anyagtárba.`);
   };
   const revertMatField = (m, f) => {
     const lm = matLibById[m.lib_id];
@@ -7604,15 +7604,15 @@ export default function TakeoffCanvas() {
     const lm = matLibById[libId];
     if (!lm) return;
     const n = linkedCount(libId);
-    if (!n) { setCommitMsg("No condition lines link this material yet."); return; }
-    if (!window.confirm(`Update ${n} linked line${n === 1 ? "" : "s"} across conditions to the library values? Overrides on those lines are replaced.`)) return;
+    if (!n) { setCommitMsg("Ehhez az anyaghoz még nem kapcsolódik tételsor."); return; }
+    if (!window.confirm(`Frissíted a(z) ${n} kapcsolódó tételsort az anyagtár értékeire? A sorok egyedi beállításai felülíródnak.`)) return;
     setConditions((cs) => cs.map((c) => ({ ...c, materials: (c.materials || []).map((m) => (m.lib_id === libId ? libPushPatch(m, lm) : m)) })));
-    setCommitMsg(`Updated ${n} linked line${n === 1 ? "" : "s"} from the library.`);
+    setCommitMsg(`${n} kapcsolódó sor frissítve az anyagtárból.`);
   };
   const deleteLibMaterial = (libId) => {
     const lm = matLibById[libId];
     const n = linkedCount(libId);
-    if (!window.confirm(`Remove ${lm?.name || "this material"} from the library?${n ? (n === 1 ? " 1 linked line keeps its values — only the link is removed." : ` ${n} linked lines keep their values — only the links are removed.`) : ""}`)) return;
+    if (!window.confirm(`Eltávolítod ezt az anyagot a tárból: ${lm?.name || "névtelen anyag"}?${n ? ` A(z) ${n} kapcsolódó sor megtartja az értékeit; csak a kapcsolat szűnik meg.` : ""}`)) return;
     persistMatLib(matLib.filter((x) => x.id !== libId));
     if (n) setConditions((cs) => cs.map((c) => ({ ...c, materials: (c.materials || []).map((m) => { if (m.lib_id !== libId) return m; const { lib_id: _l, ...rest } = m; return rest; }) })));
     // condition templates carry lib_id too (so applying re-links to a live
@@ -7699,53 +7699,53 @@ export default function TakeoffCanvas() {
   const levelOfPage = (n) => sheetLevels[n > 1 ? `${active}#${n}` : active] || "";
   const soloStitch = sheetGroup.length === 1 && isStitchKey(sheetGroup[0]) ? stitchById[sheetGroup[0]] : null;
   const sheetChipLabel = sheetGroup.length
-    ? (soloStitch ? `Stitched — ${soloStitch.name}` : `${sheetGroup.length} sheets side-by-side`)
-    : `${levelOfPage(page) ? `${levelOfPage(page)} · ` : ""}${pageLabels[page] || (pageCount > 1 ? `Sheet ${page}` : active)}${pageCount > 1 ? ` · ${page}/${pageCount}` : ""}`;
+    ? (soloStitch ? `Összeillesztve — ${soloStitch.name}` : `${sheetGroup.length} tervlap egymás mellett`)
+    : `${levelOfPage(page) ? `${levelOfPage(page)} · ` : ""}${pageLabels[page] || (pageCount > 1 ? `Tervlap ${page}` : active)}${pageCount > 1 ? ` · ${page}/${pageCount}` : ""}`;
   const sheetMenuItems = [];
   if (!sheetGroup.length && pageCount > 1) {
-    sheetMenuItems.push({ section: "Sheets in this set" });
-    for (let n = 1; n <= pageCount; n++) sheetMenuItems.push({ id: `pg-${n}`, label: `${levelOfPage(n) ? `${levelOfPage(n)} · ` : ""}${pageLabels[n] || `Sheet ${n}`}`, shortcut: `${n}/${pageCount}`, active: n === page, onSelect: () => setPage(n) });
+    sheetMenuItems.push({ section: "A tervcsomag tervlapjai" });
+    for (let n = 1; n <= pageCount; n++) sheetMenuItems.push({ id: `pg-${n}`, label: `${levelOfPage(n) ? `${levelOfPage(n)} · ` : ""}${pageLabels[n] || `Tervlap ${n}`}`, shortcut: `${n}/${pageCount}`, active: n === page, onSelect: () => setPage(n) });
   }
   if (!sheetGroup.length && sheets.length > 1) {
-    sheetMenuItems.push({ section: "Files" });
+    sheetMenuItems.push({ section: "Fájlok" });
     for (const s of sheets) sheetMenuItems.push({ id: `f-${s.name}`, label: s.name, active: s.name === active, onSelect: () => { setActive(s.name); setPage(1); } });
   }
   if (sheetMenuItems.length && (sheetGroup.length || lastGroup.length >= 2)) sheetMenuItems.push("divider");
   if (sheetGroup.length) sheetMenuItems.push(soloStitch
-    ? { id: "ungroup", label: "Leave stitch — back to one sheet", title: "Back to a single sheet (the stitch's first member) — the stitch keeps its takeoffs and reopens from the gallery or its tab", onSelect: ungroup }
-    : { id: "ungroup", label: "Ungroup — back to one sheet", title: "Back to one sheet — you land on the sheet you were last working; every sheet keeps its takeoffs and markups", onSelect: ungroup });
-  if (!sheetGroup.length && lastGroup.length >= 2) sheetMenuItems.push({ id: "regroup", label: `Regroup (${lastGroup.length})`, title: `Side-by-side again with the same ${lastGroup.length} sheets — each keeps its own scale, takeoffs and markups`, onSelect: regroup });
+    ? { id: "ungroup", label: "Összeillesztés elhagyása", title: "Visszatérés az első tervlapra. Az összeillesztés tervmérései megmaradnak, és a galériából újra megnyitható.", onSelect: ungroup }
+    : { id: "ungroup", label: "Csoport bontása", title: "Visszatérés az utoljára szerkesztett tervlapra. Minden tervlap megtartja a tervméréseit és jelöléseit.", onSelect: ungroup });
+  if (!sheetGroup.length && lastGroup.length >= 2) sheetMenuItems.push({ id: "regroup", label: `Csoport újranyitása (${lastGroup.length})`, title: `Ugyanaz a(z) ${lastGroup.length} tervlap ismét egymás mellett, a saját méretarányaikkal, tervméréseikkel és jelöléseikkel.`, onSelect: regroup });
   if (sheetMenuItems.length) sheetMenuItems.push("divider");
-  sheetMenuItems.push({ id: "gallery", icon: "sheets", label: "Open gallery…", shortcut: "G", onSelect: () => setView("gallery") });
+  sheetMenuItems.push({ id: "gallery", icon: "sheets", label: "Galéria megnyitása…", shortcut: "G", onSelect: () => setView("gallery") });
   sheetMenuItems.push({
-    id: "export-takeoff", icon: "document", label: "Export takeoff…",
-    title: "Save this whole takeoff to a JSON file on your computer — every shape, condition, scale, markup and RFI, in the app's own format. Import takeoff reads it back as an editable takeoff (the plan PDF isn't in the file: open it first, then import).",
+    id: "export-takeoff", icon: "document", label: "Tervmérés exportálása…",
+    title: "A teljes tervmérés mentése JSON-fájlba, az összes alakzattal, tétellel, méretaránnyal, jelöléssel és RFI-vel. A terv PDF-je nincs benne.",
     onSelect: exportTakeoffFile,
   });
   sheetMenuItems.push({
-    id: "import-takeoff", icon: "document", label: "Import takeoff…",
-    title: "Load a takeoff JSON — the app's own export or an agent session's export_takeoff. Machine shapes land dashed in their condition colors for your review; on merge, your calibration, conditions, and workspace win.",
+    id: "import-takeoff", icon: "document", label: "Tervmérés importálása…",
+    title: "Tervmérési JSON betöltése. Az automatikusan létrehozott alakzatok szaggatva jelennek meg ellenőrzésre; a jelenlegi kalibrálás, tételek és munkaterület megmaradnak.",
     onSelect: () => importInputRef.current?.click(),
   });
   sheetMenuItems.push({
-    id: "export-project", icon: "document", label: "Export project archive…",
-    title: "Save the WHOLE job as one portable .otk file — every plan PDF plus the full takeoff. Open it on any machine (drop it like a plan, or Add plans), archive it, or hand it to another estimator; unlike Export takeoff, the plans travel inside.",
+    id: "export-project", icon: "document", label: "Projektarchívum exportálása…",
+    title: "A teljes projekt mentése hordozható .otk fájlba, az összes terv-PDF-fel és tervméréssel. Másik gépen is megnyitható.",
     onSelect: exportProjectArchive,
   });
-  sheetMenuItems.push({ section: "Profile — your templates, stamps & report setup" });
+  sheetMenuItems.push({ section: "Profil — sablonok, bélyegzők és riportbeállítások" });
   sheetMenuItems.push({
-    id: "export-profile", icon: "document", label: "Export profile…",
-    title: "Save your working environment — condition templates, material library, stamps, report templates/theme/columns — as one portable .otprofile. Import it on another machine or hand a company setup to another estimator; project takeoffs are never in it.",
+    id: "export-profile", icon: "document", label: "Profil exportálása…",
+    title: "A munkakörnyezet mentése hordozható .otprofile fájlba: tételsablonok, anyagtár, bélyegzők és riportbeállítások. Projektadatot nem tartalmaz.",
     onSelect: exportProfileFile,
   });
   sheetMenuItems.push({
-    id: "import-profile", icon: "document", label: "Import profile…",
-    title: "Replace your working environment with a .otprofile (you can also drop the file on the canvas). Your current setup downloads as a backup first — importing that backup restores it. Project takeoffs are untouched.",
+    id: "import-profile", icon: "document", label: "Profil importálása…",
+    title: "A munkakörnyezet cseréje .otprofile fájlból. Előtte biztonsági mentés készül; a projekt tervmérései nem változnak.",
     onSelect: () => profileInputRef.current?.click(),
   });
   sheetMenuItems.push({
-    id: "reset-profile", icon: "undo", label: "Reset profile to defaults",
-    title: "Back to a stock OpenTakeoff setup — empty template/material libraries, the default stamps, no report customization. Your current setup downloads as a backup first; project takeoffs are untouched.",
+    id: "reset-profile", icon: "undo", label: "Profil alaphelyzetbe állítása",
+    title: "Visszaállítás a MérnökSzem TakeOff alapbeállításaira. Előtte biztonsági mentés készül; a projekt tervmérései nem változnak.",
     onSelect: resetProfile,
   });
 
@@ -7757,23 +7757,23 @@ export default function TakeoffCanvas() {
   // scale gate: an agent-set scale no human has confirmed wears the warning
   // face until it's confirmed (menu row below) or replaced by a human act
   const scaleNeedsConfirm = !!unitsPerPx && scaleUnconfirmed[focusPanel.key] === false;
-  const scaleFace = !unitsPerPx ? "Set scale…" : scaleNeedsConfirm ? `⚠ ${stdValue || "custom"} — confirm` : `${scaleMismatch ? "≠" : "✓"} ${stdValue || "custom"}`;
+  const scaleFace = !unitsPerPx ? "Méretarány…" : scaleNeedsConfirm ? `⚠ ${stdValue || "egyedi"} — ellenőrzés` : `${scaleMismatch ? "≠" : "✓"} ${stdValue || "egyedi"}`;
   const scaleFaceStyle = !unitsPerPx
     ? { border: "1px dashed var(--c-danger)", color: "var(--c-danger)" }
     : scaleMismatch || scaleNeedsConfirm
       ? { border: "1px solid var(--c-warning)", color: "var(--c-warning)" }
       : { border: "1px solid var(--c-positive)", color: "var(--c-positive)" };
   const scaleTitle = scaleNeedsConfirm
-    ? `An agent set this sheet's scale — no person has confirmed it. Check it against a printed dimension (K), then confirm from this menu; quantities stand on this number.`
+    ? `A tervlap méretarányát az AI állította be, ember még nem ellenőrizte. Vesd össze egy feliratozott mérettel (K), majd erősítsd meg ebben a menüben.`
     : scaleMismatch
-      ? `You set ${stdValue}, but the plan notes ${scaleDet.label} on ${labelFor(focusPanel)} — double-check before tracing.`
-      : `Set the scale for ${labelFor(focusPanel)} — remembered per sheet${groupKeys.length > 1 ? " (targets the sheet you last clicked)" : ""}`;
+      ? `${stdValue} lett beállítva, de a(z) ${labelFor(focusPanel)} tervlapon ${scaleDet.label} szerepel. Mérés előtt ellenőrizd.`
+      : `Méretarány beállítása ezen a tervlapon: ${labelFor(focusPanel)}${groupKeys.length > 1 ? ". Az utoljára kijelölt tervlapra vonatkozik." : ""}`;
   const scaleItems = [];
   if (scaleNeedsConfirm) {
     scaleItems.push({
       id: "confirm-scale", icon: "check", tint: "var(--c-warning)",
-      label: "Confirm agent-set scale",
-      title: `This scale arrived from an agent takeoff and no person has verified it. Best practice: Check a dimension (K) against a printed dimension string first — a wrong scale poisons every quantity on the sheet.`,
+      label: "AI-méretarány jóváhagyása",
+      title: `Ezt a méretarányt az AI adta meg. Jóváhagyás előtt ellenőrizd egy feliratozott mérettel (K), mert a hibás méretarány minden mennyiséget elront.`,
       onSelect: () => confirmScale(focusPanel.key),
     });
     scaleItems.push("divider");
@@ -7782,21 +7782,21 @@ export default function TakeoffCanvas() {
   // sheet — the oops-hatch for a mistyped recalibrate (ephemeral, one slot)
   if (prevScale && prevScale.key === focusPanel.key && scales[focusPanel.key] !== prevScale.upp) {
     const wasLabel = STANDARD_SCALES.find((x) => Math.abs(x.upp - prevScale.upp) < 1e-9)?.label
-      || (prevScale.source === "calibrated" ? "calibrated" : "custom");
+      || (prevScale.source === "calibrated" ? "kalibrált" : "egyedi");
     scaleItems.push({
       id: "revert-scale", icon: "undo",
-      label: `Revert scale (was ${wasLabel})`,
-      title: `Put ${labelFor(focusPanel)} back on the scale the last rescale replaced and re-price its takeoffs. One step, kept only until the sheet view changes — reverting is itself revertible.`,
+      label: `Korábbi méretarány (${wasLabel})`,
+      title: `A(z) ${labelFor(focusPanel)} tervlap előző méretarányának és mennyiségeinek visszaállítása.`,
       onSelect: revertScale,
     });
     scaleItems.push("divider");
   }
   if (scaleDet) {
-    scaleItems.push({ section: "From the plan" });
+    scaleItems.push({ section: "A terv alapján" });
     scaleItems.push({
       id: "use-detected", icon: "target", tint: "var(--c-positive)",
-      label: `Plan says ${scaleDet.label}${scaleDet.multi ? " ±" : ""} — use it`,
-      title: `The plan notes ${scaleDet.label} on ${labelFor(focusPanel)}${scaleDet.multi ? " — this sheet shows several scales (details are often larger); confirm against a known dimension" : ""}. Hover previews a calibrated guide bar on the sheet so you can sanity-check it.`,
+      label: `A terven ${scaleDet.label}${scaleDet.multi ? " ±" : ""} szerepel — alkalmazás`,
+      title: `A(z) ${labelFor(focusPanel)} tervlapon ${scaleDet.label} szerepel${scaleDet.multi ? ", de több méretarány is látható; ellenőrizd ismert mérettel" : ""}. Rámutatáskor ellenőrző mérce jelenik meg.`,
       onSelect: () => { rescaleSheet(focusPanel.key, scaleDet.upp); setScaleSources((s) => ({ ...s, [focusPanel.key]: "detected" })); showScaleGuide(focusPanel.key, scaleDet.upp, scaleDet.label); },
       // hover previews the guide bar behind the open menu — only while the
       // sheet is still UNSCALED (upstream's gate: on a scaled sheet the bar
@@ -7807,12 +7807,12 @@ export default function TakeoffCanvas() {
       onHover: (on) => { if (on) { if (!scales[focusPanel.key]) showScaleGuide(focusPanel.key, scaleDet.upp, scaleDet.label, true); } else clearPreviewGuide(); },
     });
   }
-  scaleItems.push({ section: "Standard" });
+  scaleItems.push({ section: "Szabványos" });
   for (const s of STANDARD_SCALES) scaleItems.push({ id: s.label, label: s.label, active: stdValue === s.label, onSelect: () => { rescaleSheet(focusPanel.key, s.upp); setScaleSources((sc) => ({ ...sc, [focusPanel.key]: "standard" })); showScaleGuide(focusPanel.key, s.upp, s.label); } });
   scaleItems.push("divider");
-  scaleItems.push({ id: "calibrate", icon: "calibrate", label: "Calibrate two points…", title: "Calibrate — click two points of a known dimension", active: tool === "calibrate", onSelect: () => setTool("calibrate") });
-  scaleItems.push({ id: "check", icon: "check", label: "Check a dimension…", shortcut: "K", title: "Check a dimension (K) — click both ends of a printed dimension string; compares the measured length against what the drawing says", active: tool === "check", onSelect: () => setTool("check") });
-  scaleItems.push({ note: "Remembered per sheet." });
+  scaleItems.push({ id: "calibrate", icon: "calibrate", label: "Kalibrálás két ponttal…", title: "Kattints egy ismert méret két végpontjára.", active: tool === "calibrate", onSelect: () => setTool("calibrate") });
+  scaleItems.push({ id: "check", icon: "check", label: "Méret ellenőrzése…", shortcut: "K", title: "Kattints egy feliratozott méret két végpontjára; a program összeveti a mért és a terven megadott hosszt.", active: tool === "check", onSelect: () => setTool("check") });
+  scaleItems.push({ note: "Tervlaponként külön tárolva." });
 
   // One-Click fill sensitivity — lives in the render menu now, so arming
   // One-Click never reshapes the toolbar. Detents at Strict / Balanced /
@@ -7840,11 +7840,11 @@ export default function TakeoffCanvas() {
   // draft-appearance preferences travel together.
   const draftOutlineRow = (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, padding: "8px 12px" }}>
-      <span style={{ fontSize: 11.5, fontWeight: 600, color: "var(--ink-soft)" }}>Outline area while drawing</span>
+      <span style={{ fontSize: 11.5, fontWeight: 600, color: "var(--ink-soft)" }}>Terület körvonala rajzolás közben</span>
       <button type="button" aria-pressed={draftOutline} onClick={() => setDraftOutline(!draftOutline)}
-        title="Draw Area / Deduct / Zone as an open outline (no fill) while tracing — it still commits closed on Enter or double-click."
+        title="A Terület, Kivonás és Zóna rajzolás közben kitöltés nélküli, nyitott körvonalként jelenik meg; Enterre vagy dupla kattintásra bezárul."
         style={{ padding: "4px 12px", cursor: "pointer", fontSize: 11.5, fontWeight: 600, border: `1px solid ${draftOutline ? "var(--cobalt)" : "var(--ink-faint)"}`, background: draftOutline ? "var(--cobalt)" : "transparent", color: draftOutline ? "var(--paper-bright)" : "var(--ink)" }}>
-        {draftOutline ? "On" : "Off"}
+        {draftOutline ? "Be" : "Ki"}
       </button>
     </div>
   );
@@ -7857,7 +7857,7 @@ export default function TakeoffCanvas() {
     const qaColors = [PALETTE[0], PALETTE[2]];
     return (
       <div style={{ padding: 20, background: darkMode ? "#14120e" : "var(--paper-bright)", minHeight: "100vh", overflow: "auto" }}>
-        <button onClick={() => setDarkMode((v) => !v)} style={{ marginBottom: 14, padding: "4px 12px", border: "1px solid var(--ink-faint)", background: "var(--paper-bright)", cursor: "pointer", fontSize: 12 }}>☾ toggle dark</button>
+        <button onClick={() => setDarkMode((v) => !v)} style={{ marginBottom: 14, padding: "4px 12px", border: "1px solid var(--ink-faint)", background: "var(--paper-bright)", cursor: "pointer", fontSize: 12 }}>☾ sötét mód</button>
         {HATCHES.map((h) => (
           <div key={h.id} style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 10 }}>
             <span style={{ width: 120, fontFamily: "var(--f-mono)", fontSize: 10, textTransform: "uppercase", letterSpacing: ".08em", color: darkMode ? "#c9c2b2" : "var(--ink-muted)" }}>{h.label}</span>
@@ -7948,7 +7948,7 @@ export default function TakeoffCanvas() {
           <ToolMenu
             title="Tervmérések szerkesztése"
             onOpenChange={onMenuDepth}
-            face={<span>Edit</span>}
+            face={<span>Szerkesztés</span>}
             items={[
               { id: "copy", icon: "copy", label: "Másolás", shortcut: "⌘C", disabled: !selectedId, onSelect: copySelected },
               { id: "paste", icon: "paste", label: "Beillesztés", shortcut: "⌘V", disabled: !clipRef.current.length, onSelect: () => pasteClipboard() },
@@ -7971,21 +7971,21 @@ export default function TakeoffCanvas() {
         {cluster("Segédek", <>
           {panels.length === 1 && isStitchKey(panels[0].key) && (
             <button onClick={() => setTool((t) => (t === "stitch-align" ? "select" : "stitch-align"))}
-              title="Align the match line — click a point near the joint, then the SAME point where the other sheet draws it; that sheet slides so the two coincide. Do this before tracing (a stitch with takeoffs on it won't re-align)."
+              title="Jelölj ki egy pontot az illesztésnél, majd ugyanazt a pontot a másik tervlapon. Ezt a tervmérések megkezdése előtt végezd el."
               style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 10px", border: `1px solid ${tool === "stitch-align" ? "var(--cobalt)" : "var(--ink-faint)"}`, background: tool === "stitch-align" ? "var(--cobalt)" : "transparent", color: tool === "stitch-align" ? "var(--paper-bright)" : "var(--ink)", cursor: "pointer", fontWeight: 600, fontSize: 12.5, lineHeight: 1 }}>
               <Icon name="calibrate" size={15} />Igazítás
             </button>
           )}
           <button onClick={() => setTool((t) => (t === "zone" ? "select" : "zone"))}
-            title="Zone check — trace a region (an apartment, a wing) to read every condition's quantities inside it, materials included. Nothing is saved; the outline clears when you leave the tool."
+            title="Zónaellenőrzés: rajzolj körbe egy területet, és megkapod a benne lévő tételek és anyagok mennyiségét. Az eredmény nem kerül mentésre."
             style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 10px", border: `1px solid ${tool === "zone" ? "var(--cobalt)" : "var(--ink-faint)"}`, background: tool === "zone" ? "var(--cobalt)" : "transparent", color: tool === "zone" ? "var(--paper-bright)" : "var(--ink)", cursor: "pointer", fontWeight: 600, fontSize: 12.5, lineHeight: 1 }}>
-            <Icon name="zone" size={15} />Zone
+            <Icon name="zone" size={15} />Zóna
           </button>
-          <button onClick={() => setSnapOn((v) => !v)} title="Snap to plan lines/corners (beta)"
+          <button onClick={() => setSnapOn((v) => !v)} title="Illesztés a terv vonalaihoz és sarkaihoz (béta)"
             style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 10px", border: `1px solid ${snapOn ? "var(--c-positive)" : "var(--ink-faint)"}`, background: snapOn ? "var(--c-positive)" : "transparent", color: snapOn ? "var(--paper-bright)" : "var(--ink)", cursor: "pointer", fontWeight: 600, fontSize: 12.5, lineHeight: 1 }}>
-            <Icon name="snap" size={15} />Snap
+            <Icon name="snap" size={15} />Illesztés
           </button>
-          <button onClick={() => setAngleOn((v) => !v)} title="45°/90° angle guides — the next segment locks to the 45° family as you draw (hold ⇧ to force the lock at any angle)"
+          <button onClick={() => setAngleOn((v) => !v)} title="45°/90°-os szögvezetők. A következő szakasz 45°-os irányokhoz illeszkedik; a ⇧ lenyomásával az illesztés kényszeríthető."
             style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 10px", border: `1px solid ${angleOn ? "var(--cobalt)" : "var(--ink-faint)"}`, background: angleOn ? "var(--cobalt)" : "transparent", color: angleOn ? "var(--paper-bright)" : "var(--ink)", cursor: "pointer", fontWeight: 600, fontSize: 12.5, lineHeight: 1 }}>
             <Icon name="angle" size={15} />45°
           </button>
@@ -7996,13 +7996,13 @@ export default function TakeoffCanvas() {
             so changing it reliably re-labels that shape (a value-always-active
             select couldn't reassign to the already-active label — onChange wouldn't fire). */}
         {shapeLabels.length > 0 && cluster(
-          tool === "select" && selectedId ? `Label · ${activeLabel || "none"} → shape` : (activeLabel ? `Label · ${activeLabel}` : "Label"),
+          tool === "select" && selectedId ? `Címke · ${activeLabel || "nincs"} → alakzat` : (activeLabel ? `Címke · ${activeLabel}` : "Címke"),
           <select
             value={tool === "select" && selectedId ? shapeLabelValue(shapes.find((s) => s.id === selectedId)) : (activeLabel || "")}
             onChange={(e) => activateLabel(e.target.value || null)}
-            title="Phase/area label. The caption shows the ACTIVE label (what new takeoffs get). With a shape selected (Select tool), the dropdown shows and re-labels that shape. Manage the list in the Columns tab."
+            title="Ütem- vagy területcímke. Az aktív címkét az új tervmérések kapják; kijelölt alakzat esetén annak címkéjét módosítja. A lista az Oszlopok fülön kezelhető."
             style={{ fontFamily: "var(--f-mono)", fontSize: 11.5, padding: "5px 6px", border: `1px solid ${activeLabel ? "var(--cobalt)" : "var(--ink-faint)"}`, background: activeLabel ? "var(--cobalt)" : "transparent", color: activeLabel ? "var(--paper-bright)" : "var(--ink)", cursor: "pointer", maxWidth: 150 }}>
-            <option value="">No label</option>
+            <option value="">Nincs címke</option>
             {shapeLabels.map((v) => <option key={v} value={v}>{v}</option>)}
           </select>
         )}
@@ -8011,11 +8011,11 @@ export default function TakeoffCanvas() {
             path. Focus suppresses canvas shortcuts via the existing INPUT guards.
             Deixis: focus marks the utterance's start — "this room" then needs an
             aim placed AFTER it (park the pointer on the room, type, Enter). */}
-        {commandBoxEnabled() && cluster("Command",
+        {commandBoxEnabled() && cluster("Parancs",
           <input
             type="text"
-            placeholder="cpt 1 · waste 7 · this room"
-            title={'Command line (RFC #59): a condition tag ("CPT-1", "carpet one", "tile 2 waste 5"), "waste 7", "label Phase 1", "clear label", "author <your name>" (new marks sign it — the report can group by author), or "note …" — Enter runs it through the same actions the buttons use. End with "this room" / "here" while the pointer rests on a room to trace and commit it there ("carpet one, this room"). Push-to-talk dictation will feed this box.'}
+            placeholder="cpt 1 · ráhagyás 7 · ez a helyiség"
+            title={'Parancssor tételek, ráhagyás, címkék, szerző és megjegyzések gyors megadásához. Az Enter végrehajtja a parancsot; a hangbevitel ugyanezt a mezőt használja.'}
             onFocus={() => { voiceAimMarkRef.current = aimSeqRef.current; }}
             onKeyDown={(e) => {
               if (e.key !== "Enter") return;
@@ -8038,21 +8038,21 @@ export default function TakeoffCanvas() {
         {/* Push-to-talk (RFC #59 recognizer): hold the button (or M) to dictate
             into the same grammar the Command box runs. Hidden entirely where
             capture is unsupported — graceful feature-absence, never broken. */}
-        {commandBoxEnabled() && captureSupported() && cluster("Voice",
+        {commandBoxEnabled() && captureSupported() && cluster("Hang",
           <button
-            title={'Hold to talk (or hold M anywhere on the canvas): speak a command — "carpet one, waste seven", "label phase two", "note …", or end with "this room" to trace at the cursor. Release to run; Esc discards. Audio is processed on-device and never leaves the browser.'}
+            title={'Tartsd lenyomva a gombot vagy az M billentyűt a diktáláshoz. Felengedéskor a parancs lefut, az Esc elveti. A hang feldolgozása az eszközön történik.'}
             onPointerDown={(e) => { e.preventDefault(); e.currentTarget.setPointerCapture(e.pointerId); voiceHoldRef.current = true; voiceFnsRef.current.start(); }}
             onPointerUp={() => { if (voiceHoldRef.current) { voiceHoldRef.current = false; voiceFnsRef.current.end(true); } }}
             onPointerCancel={() => { if (voiceHoldRef.current) { voiceHoldRef.current = false; voiceFnsRef.current.end(false); } }}
             style={{ padding: "5px 10px", border: `1px solid ${voiceChip?.tone === "live" ? "var(--cobalt)" : "var(--ink-faint)"}`, background: voiceChip?.tone === "live" ? "var(--cobalt)" : "transparent", color: voiceChip?.tone === "live" ? "var(--paper-bright)" : "var(--ink)", cursor: "pointer", fontFamily: "var(--f-mono)", fontSize: 11, fontWeight: 700, lineHeight: 1 }}>
-            {voiceChip?.tone === "live" ? "● talking" : "talk · M"}
+            {voiceChip?.tone === "live" ? "● beszéd" : "diktálás · M"}
           </button>
         )}
         <div style={{ flex: 1 }} />
         {cluster(`Méretarány — ${labelFor(focusPanel)}`,
           <>
             <button onClick={() => setUnits((u) => (u === "metric" ? "imperial" : "metric"))}
-              title={units === "metric" ? "Metric display (m² / m) — click for imperial. Calibrate in meters; 1:50-style scales in the list. Display only — stored takeoffs never change." : "Imperial display (SF / LF) — click for metric (m² / m, calibrate in meters, 1:50-style scales). Display only — stored takeoffs never change."}
+              title={units === "metric" ? "Metrikus megjelenítés (m² / m). Kattints az angolszász mértékegységekhez. A tárolt tervmérések nem változnak." : "Angolszász megjelenítés (SF / LF). Kattints a metrikus mértékegységekhez. A tárolt tervmérések nem változnak."}
               style={{ padding: "6px 10px", border: `1px solid ${units === "metric" ? "var(--cobalt)" : "var(--ink-faint)"}`, background: units === "metric" ? "var(--cobalt)" : "transparent", color: units === "metric" ? "var(--paper-bright)" : "var(--ink)", cursor: "pointer", fontWeight: 700, fontFamily: "var(--f-mono)", fontSize: 11, lineHeight: 1 }}>
               {units === "metric" ? "m" : "ft"}
             </button>
@@ -8068,7 +8068,7 @@ export default function TakeoffCanvas() {
         )}
         {cluster("Művelet",
           <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "flex-end", gap: 6, minWidth: 150 }}>
-            {markupDraft && (tool === "cloud" || tool === "callout" || tool === "highlight" || tool === "dimension") && <span style={{ fontSize: 11, color: "var(--cobalt)" }}>click the {tool === "callout" ? "label spot" : tool === "dimension" ? "other end" : "opposite corner"}…</span>}
+            {markupDraft && (tool === "cloud" || tool === "callout" || tool === "highlight" || tool === "dimension") && <span style={{ fontSize: 11, color: "var(--cobalt)" }}>kattints ide: {tool === "callout" ? "felirat helye" : tool === "dimension" ? "másik végpont" : "szemközti sarok"}…</span>}
             {finishOk && (
               <button onClick={finishShape} title="Alakzat lezárása (↵ vagy dupla kattintás)" style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 12px", border: "none", background: "var(--c-positive)", color: "var(--paper-bright)", cursor: "pointer", fontWeight: 600, fontSize: 12.5, lineHeight: 1 }}><Icon name="check" size={14} />Lezárás ({poly.length})</button>
             )}
@@ -8132,7 +8132,7 @@ export default function TakeoffCanvas() {
           onDrop={(e) => { if (!e.dataTransfer.types.includes(CONDITION_DND_MIME)) return; e.preventDefault(); e.stopPropagation(); const id = e.dataTransfer.getData(CONDITION_DND_MIME); if (id) pinToPalette(id); }}
           style={{ padding: "5px 14px", borderBottom: "1px solid var(--ink-faint)", background: "var(--paper-bright)" }}>
           <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
-            <span title="Quick-access conditions — drag a condition here (or use a row's pushpin) to pin it, up to 9. Press 1–9 to activate by this order; click a chip to activate; double-click to open the panel."
+            <span title="Gyorselérésű tételek. Legfeljebb 9 tételt rögzíthetsz ide húzással vagy a gombostűvel. Aktiválás: 1–9 vagy kattintás; megnyitás a panelen: dupla kattintás."
               style={{ fontFamily: "var(--f-mono)", fontSize: 9.5, textTransform: "uppercase", letterSpacing: "0.14em", color: "var(--ink-muted)" }}>Tételek</span>
             {paletteConds.length === 0 ? (
               <span style={{ fontSize: 11.5, color: "var(--ink-muted)", fontStyle: "italic", padding: "3px 8px", border: "1px dashed var(--ink-faint)" }}>húzz ide tételeket az 1–9 gyorsbillentyűs eléréshez</span>
@@ -8148,12 +8148,12 @@ export default function TakeoffCanvas() {
                     onDragStart={(e) => { e.dataTransfer.setData(CONDITION_DND_MIME, c.id); e.dataTransfer.effectAllowed = "copyMove"; }}
                     onClick={() => activateCondition(c.id)}
                     onDoubleClick={() => openConditionInPanel(c.id)}
-                    title={reassign ? `Reassign the selected takeoff to ${c.finish_tag} (double-click opens the panel)` : `${c.finish_tag} — press ${idx + 1} or click to activate, double-click to open in the panel, drag onto another chip to reorder`}
+                    title={reassign ? `A kijelölt tervmérés átsorolása ehhez: ${c.finish_tag}. Dupla kattintással megnyílik a panel.` : `${c.finish_tag} — aktiválás: ${idx + 1} vagy kattintás; dupla kattintással megnyílik a panel; húzással átrendezhető.`}
                     style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "3px 8px 3px 5px", border: on ? `2px solid ${c.color}` : (reassign ? "1px dashed var(--cobalt)" : "1px solid var(--ink-faint)"), background: on ? "var(--surface-pop)" : "transparent", cursor: "pointer", fontWeight: on ? 700 : 500, fontSize: 12.5, lineHeight: 1 }}>
                     {idx < 9 && <span style={{ fontSize: 9, fontFamily: "var(--f-mono,monospace)", color: "var(--cobalt)", border: "1px solid var(--cobalt)", borderRadius: 3, padding: "0 3px" }}>{idx + 1}</span>}
                     <span style={{ borderRadius: 4, overflow: "hidden", lineHeight: 0 }}><HatchSwatch type={c.hatch || "solid"} line={c.color} fill={c.fill} /></span>{c.finish_tag}
                   </button>
-                  <button type="button" onClick={() => unpinFromPalette(c.id)} title={`Unpin ${c.finish_tag} from the palette`}
+                  <button type="button" onClick={() => unpinFromPalette(c.id)} title={`${c.finish_tag} levétele a palettáról`}
                     style={{ border: "none", background: "none", cursor: "pointer", color: "var(--cobalt)", padding: "0 3px", lineHeight: 0, display: "inline-flex" }}>
                     <Icon name="pin" size={12} />
                   </button>
@@ -8181,9 +8181,9 @@ export default function TakeoffCanvas() {
           ⊞ to side-by-side, ✕ to close; the dropdown lists every open sheet */}
       {!focusMode && openTabs.length > 0 && (
         <div style={{ display: "flex", gap: 5, alignItems: "center", padding: "5px 14px", flexWrap: openTabs.length > MANY_TABS ? "nowrap" : "wrap", borderBottom: "1px solid var(--ink-faint)", background: "var(--paper-bright)", minWidth: 0 }}>
-          <span style={{ fontFamily: "var(--f-mono)", fontSize: 9.5, textTransform: "uppercase", letterSpacing: "0.14em", color: "var(--ink-muted)", flexShrink: 0 }}>Sheets</span>
+          <span style={{ fontFamily: "var(--f-mono)", fontSize: 9.5, textTransform: "uppercase", letterSpacing: "0.14em", color: "var(--ink-muted)", flexShrink: 0 }}>Tervlapok</span>
           {openTabs.length > MANY_TABS && (
-            <button type="button" onClick={() => scrollTabStrip(-1)} title="Scroll sheets left" aria-label="Scroll sheets left" style={{ flexShrink: 0, padding: "4px 5px", border: "1px solid var(--ink-faint)", background: "transparent", color: "var(--ink)", cursor: "pointer", display: "inline-flex" }}><Icon name="chevronLeft" size={12} /></button>
+            <button type="button" onClick={() => scrollTabStrip(-1)} title="Tervlapok görgetése balra" aria-label="Tervlapok görgetése balra" style={{ flexShrink: 0, padding: "4px 5px", border: "1px solid var(--ink-faint)", background: "transparent", color: "var(--ink)", cursor: "pointer", display: "inline-flex" }}><Icon name="chevronLeft" size={12} /></button>
           )}
           <div ref={tabStripRef} data-sheet-tab-strip style={{ display: "flex", gap: 5, alignItems: "center", flexWrap: openTabs.length > MANY_TABS ? "nowrap" : "wrap", overflowX: openTabs.length > MANY_TABS ? "auto" : "visible", minWidth: 0, flex: openTabs.length > MANY_TABS ? 1 : "0 1 auto", scrollbarWidth: "none", overscrollBehaviorX: "contain" }}>
           {openTabs.map((k) => {
@@ -8195,23 +8195,23 @@ export default function TakeoffCanvas() {
                 draggable={!isStitchKey(k) && sheetHasInk(k)}
                 onMouseEnter={() => armSheetDrag(k)}
                 onDragStart={(e) => onSheetTabDragStart(k, e)}
-                title={!isStitchKey(k) && sheetHasInk(k) ? "Drag this tab out of the app to export the marked sheet" : undefined}
+                title={!isStitchKey(k) && sheetHasInk(k) ? "Húzd ki a fület az alkalmazásból a jelölt tervlap exportálásához" : undefined}
                 style={{ display: "inline-flex", alignItems: "center", gap: 5, flexShrink: 0, border: "1px solid var(--ink-faint)", borderBottom: on ? "2px solid var(--cobalt)" : "1px solid var(--ink-faint)", background: on ? "var(--paper-cream)" : "transparent", padding: "3px 6px 2px 9px", maxWidth: 190 }}>
                 <button onClick={() => goToSheet(k)} title={k} style={{ border: "none", background: "none", cursor: "pointer", fontWeight: on ? 700 : 500, fontSize: 11.5, color: "var(--ink)", fontFamily: "var(--f-mono)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 140, padding: 0 }}>{lbl}</button>
-                <button onClick={() => toggleInGroup(k)} title={inGroup ? "Remove from side-by-side" : "Side-by-side with the current sheet"} style={{ border: "none", background: "none", cursor: "pointer", color: inGroup ? "var(--cobalt)" : "var(--ink-faint)", padding: 0, display: "inline-flex" }}><Icon name="sideBySide" size={11} /></button>
-                <button onClick={() => closeTab(k)} title="Close tab" style={{ border: "none", background: "none", cursor: "pointer", color: "var(--ink-muted)", padding: 0, display: "inline-flex" }}><Icon name="close" size={10} /></button>
+                <button onClick={() => toggleInGroup(k)} title={inGroup ? "Eltávolítás az egymás melletti nézetből" : "Megnyitás az aktuális tervlap mellett"} style={{ border: "none", background: "none", cursor: "pointer", color: inGroup ? "var(--cobalt)" : "var(--ink-faint)", padding: 0, display: "inline-flex" }}><Icon name="sideBySide" size={11} /></button>
+                <button onClick={() => closeTab(k)} title="Fül bezárása" style={{ border: "none", background: "none", cursor: "pointer", color: "var(--ink-muted)", padding: 0, display: "inline-flex" }}><Icon name="close" size={10} /></button>
               </span>
             );
           })}
           </div>
           {openTabs.length > MANY_TABS && (
-            <button type="button" onClick={() => scrollTabStrip(1)} title="Scroll sheets right" aria-label="Scroll sheets right" style={{ flexShrink: 0, padding: "4px 5px", border: "1px solid var(--ink-faint)", background: "transparent", color: "var(--ink)", cursor: "pointer", display: "inline-flex" }}><Icon name="chevronRight" size={12} /></button>
+            <button type="button" onClick={() => scrollTabStrip(1)} title="Tervlapok görgetése jobbra" aria-label="Tervlapok görgetése jobbra" style={{ flexShrink: 0, padding: "4px 5px", border: "1px solid var(--ink-faint)", background: "transparent", color: "var(--ink)", cursor: "pointer", display: "inline-flex" }}><Icon name="chevronRight" size={12} /></button>
           )}
           {openTabs.length > 1 && openTabs.length <= MANY_TABS && (
             <ToolMenu
-              title="Jump to an open sheet"
+              title="Ugrás megnyitott tervlapra"
               onOpenChange={onMenuDepth}
-              face={<span style={{ fontFamily: "var(--f-mono)", fontSize: 11 }}>{openTabs.length} open</span>}
+              face={<span style={{ fontFamily: "var(--f-mono)", fontSize: 11 }}>{openTabs.length} megnyitva</span>}
               items={openTabs.map((k) => ({ id: k, icon: "document", label: tabLabel(k), active: sheetGroup.length ? sheetGroup.includes(k) : k === sheetKey, onSelect: () => goToSheet(k) }))}
             />
           )}
@@ -8225,7 +8225,7 @@ export default function TakeoffCanvas() {
           from the panel header, persisted with the panel prefs. */}
       {!focusMode && panelPrefs.strip && (
         <div style={{ display: "flex", gap: 8, alignItems: "center", padding: "7px 14px", flexWrap: "wrap", borderBottom: "1px solid var(--ink-faint)", background: "var(--paper-bright)" }}>
-          <span style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: 0.4, color: "var(--ink-muted)" }}>Conditions</span>
+          <span style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: 0.4, color: "var(--ink-muted)" }}>Tételek</span>
           {conditions.map((c, i) => {
             const on = c.id === activeCond;
             // the 1–9 badge follows the same rule as the hotkeys: palette order
@@ -8234,24 +8234,24 @@ export default function TakeoffCanvas() {
             const hIdx = pinnedPal ? palette.indexOf(c.id) : i;
             const hot = hIdx >= 0 && hIdx < 9;
             return (
-              <button key={c.id} draggable onDragStart={(e) => { e.dataTransfer.setData(CONDITION_DND_MIME, c.id); e.dataTransfer.effectAllowed = "copy"; }} onClick={() => activateCondition(c.id)} title={tool === "select" && selectedId ? "Reassign selected shape to this condition" : (hot ? `Press ${hIdx + 1} · drag to the palette to pin` : "Drag to the palette to pin")} style={{ display: "flex", alignItems: "center", gap: 6, padding: "3px 10px 3px 4px", borderRadius: 0, border: on ? `2px solid ${c.color}` : (tool === "select" && selectedId ? "1px dashed var(--cobalt)" : "1px solid var(--ink-faint)"), background: on ? "var(--surface-pop)" : "transparent", cursor: "pointer", fontWeight: on ? 700 : 500, fontSize: 12.5 }}>
+              <button key={c.id} draggable onDragStart={(e) => { e.dataTransfer.setData(CONDITION_DND_MIME, c.id); e.dataTransfer.effectAllowed = "copy"; }} onClick={() => activateCondition(c.id)} title={tool === "select" && selectedId ? "A kijelölt alakzat átsorolása ehhez a tételhez" : (hot ? `Aktiválás: ${hIdx + 1}; rögzítéshez húzd a palettára` : "Rögzítéshez húzd a palettára")} style={{ display: "flex", alignItems: "center", gap: 6, padding: "3px 10px 3px 4px", borderRadius: 0, border: on ? `2px solid ${c.color}` : (tool === "select" && selectedId ? "1px dashed var(--cobalt)" : "1px solid var(--ink-faint)"), background: on ? "var(--surface-pop)" : "transparent", cursor: "pointer", fontWeight: on ? 700 : 500, fontSize: 12.5 }}>
                 {hot && <span style={{ fontSize: 9, fontFamily: "var(--f-mono,monospace)", color: pinnedPal ? "var(--cobalt)" : "var(--ink-muted)", border: `1px solid ${pinnedPal ? "var(--cobalt)" : "var(--ink-faint)"}`, borderRadius: 3, padding: "0 3px" }}>{hIdx + 1}</span>}
                 <span style={{ borderRadius: 4, overflow: "hidden", lineHeight: 0 }}><HatchSwatch type={c.hatch || "solid"} line={c.color} fill={c.fill} /></span>{c.finish_tag}
               </button>
             );
           })}
-          <button onClick={addCondition} style={{ padding: "4px 10px", borderRadius: 0, border: "1px dashed var(--ink-faint)", background: "transparent", cursor: "pointer", fontSize: 12.5, color: "var(--ink-muted)" }}>+ condition</button>
+          <button onClick={addCondition} style={{ padding: "4px 10px", borderRadius: 0, border: "1px dashed var(--ink-faint)", background: "transparent", cursor: "pointer", fontSize: 12.5, color: "var(--ink-muted)" }}>+ tétel</button>
         </div>
       )}
 
       {/* calibration prompt */}
       {tool === "calibrate" && (
         <div style={{ padding: "8px 14px", background: "var(--paper-bright)", borderBottom: "1px solid var(--hairline-warm)", fontSize: 14 }}>
-          {calib.length < 2 ? <span>Custom scale: click two points along a known dimension ({calib.length}/2). Tip: use the longest dimension. (Or just pick a standard scale above.)</span> : (
-            <span>Real length:{" "}
-              <input name="calibration-length" type="number" value={pendingLen} onChange={(e) => setPendingLen(e.target.value)} onKeyDown={(e) => e.key === "Enter" && applyCalibration()} placeholder={units === "metric" ? "meters" : "feet"} autoFocus style={{ width: 90, padding: 5, borderRadius: 0, border: "1px solid var(--ink-faint)" }} /> {units === "metric" ? "m" : "ft"}
-              <button onClick={applyCalibration} style={{ marginLeft: 8, padding: "5px 12px", borderRadius: 0, border: "none", background: "var(--ink)", color: "var(--paper-bright)", cursor: "pointer" }}>Apply</button>
-              <button onClick={() => setCalib([])} style={{ marginLeft: 6, padding: "5px 10px", borderRadius: 0, border: "1px solid var(--ink-faint)", background: "transparent", cursor: "pointer" }}>Reset</button>
+          {calib.length < 2 ? <span>Egyedi méretarány: kattints egy ismert méret két végpontjára ({calib.length}/2). Lehetőleg hosszú méretet válassz, vagy használj szabványos méretarányt.</span> : (
+            <span>Valós hossz:{" "}
+              <input name="calibration-length" type="number" value={pendingLen} onChange={(e) => setPendingLen(e.target.value)} onKeyDown={(e) => e.key === "Enter" && applyCalibration()} placeholder={units === "metric" ? "méter" : "láb"} autoFocus style={{ width: 90, padding: 5, borderRadius: 0, border: "1px solid var(--ink-faint)" }} /> {units === "metric" ? "m" : "ft"}
+              <button onClick={applyCalibration} style={{ marginLeft: 8, padding: "5px 12px", borderRadius: 0, border: "none", background: "var(--ink)", color: "var(--paper-bright)", cursor: "pointer" }}>Alkalmazás</button>
+              <button onClick={() => setCalib([])} style={{ marginLeft: 6, padding: "5px 10px", borderRadius: 0, border: "1px solid var(--ink-faint)", background: "transparent", cursor: "pointer" }}>Visszaállítás</button>
             </span>
           )}
         </div>
@@ -8262,17 +8262,17 @@ export default function TakeoffCanvas() {
       {tool === "check" && (
         <div style={{ padding: "8px 14px", background: "var(--paper-bright)", borderBottom: "1px solid var(--hairline-warm)", fontSize: 14 }}>
           {check.length < 2 ? (
-            <span>Check a dimension: click both ends of a printed dimension ({check.length}/2). The measured length shows here — compare it with what the drawing says.</span>
+            <span>Méret ellenőrzése: kattints egy feliratozott méret két végpontjára ({check.length}/2). Itt jelenik meg a mért hossz.</span>
           ) : checkCross ? (
-            <span style={{ color: "var(--c-danger)" }}>Check on one sheet — those two clicks landed on different sheets. <button onClick={() => { setCheck([]); setCheckStated(""); }} style={{ marginLeft: 6, padding: "5px 10px", borderRadius: 0, border: "1px solid var(--ink-faint)", background: "transparent", cursor: "pointer" }}>Reset</button></span>
+            <span style={{ color: "var(--c-danger)" }}>Egy tervlapon belül ellenőrizz; a két pont különböző tervlapra került. <button onClick={() => { setCheck([]); setCheckStated(""); }} style={{ marginLeft: 6, padding: "5px 10px", borderRadius: 0, border: "1px solid var(--ink-faint)", background: "transparent", cursor: "pointer" }}>Visszaállítás</button></span>
           ) : !checkUpp ? (
-            <span style={{ color: "var(--c-danger)" }}>No scale set for {labelFor(checkPanel)} — pick a standard scale or calibrate first, then check it here.</span>
+            <span style={{ color: "var(--c-danger)" }}>Nincs beállított méretarány ezen a tervlapon: {labelFor(checkPanel)}. Előbb válassz szabványos méretarányt vagy kalibrálj.</span>
           ) : checkPx <= 0 ? (
-            <span style={{ color: "var(--c-danger)" }}>Those two clicks landed on the same point — click the two <b>ends</b> of a printed dimension.</span>
+            <span style={{ color: "var(--c-danger)" }}>A két kattintás ugyanarra a pontra került. Kattints a feliratozott méret két <b>végpontjára</b>.</span>
           ) : (
             <span>
-              measures <b style={{ fontFamily: "var(--f-mono)" }}>{fmtCheckLen(checkFeet, units)}</b> at {stdValue || "custom scale"} · drawing says{" "}
-              <input name="check-stated-length" value={checkStated} onChange={(e) => setCheckStated(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }} placeholder={units === "metric" ? "meters" : `feet (12'6, 6" ok)`} autoFocus style={{ width: 100, padding: 5, borderRadius: 0, border: "1px solid var(--ink-faint)" }} /> {units === "metric" ? "m" : "ft"}
+              mért hossz: <b style={{ fontFamily: "var(--f-mono)" }}>{fmtCheckLen(checkFeet, units)}</b> · méretarány: {stdValue || "egyedi"} · terven megadva:{" "}
+              <input name="check-stated-length" value={checkStated} onChange={(e) => setCheckStated(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }} placeholder={units === "metric" ? "méter" : `láb (12'6, 6" is jó)`} autoFocus style={{ width: 100, padding: 5, borderRadius: 0, border: "1px solid var(--ink-faint)" }} /> {units === "metric" ? "m" : "ft"}
               {checkErrPct != null && (() => {
                 // checkVerdict grades the ROUNDED value the chip displays (and
                 // normalizes -0), so color and number can never contradict —
@@ -8281,16 +8281,16 @@ export default function TakeoffCanvas() {
                 const pct = `${v.shown >= 0 ? "+" : ""}${v.shown.toFixed(1)}%`;
                 return (
                   <b style={{ marginLeft: 8, color: v.grade === "match" ? "var(--c-positive)" : v.grade === "close" ? "var(--c-warning)" : "var(--c-danger)" }}>
-                    {v.grade === "match" ? `matches — scale checks out (${pct})`
-                      : v.grade === "close" ? `off by ${pct} — re-check or recalibrate`
-                      : `off by ${pct} — wrong scale; recalibrate`}
+                    {v.grade === "match" ? `egyezik — a méretarány megfelelő (${pct})`
+                      : v.grade === "close" ? `eltérés: ${pct} — ellenőrizd vagy kalibráld újra`
+                      : `eltérés: ${pct} — hibás méretarány, kalibráld újra`}
                   </b>
                 );
               })()}
               {checkStatedFeet > 0 && (
-                <button onClick={recalibrateFromCheck} style={{ marginLeft: 8, padding: "5px 12px", borderRadius: 0, border: "none", background: "var(--ink)", color: "var(--paper-bright)", cursor: "pointer" }}>Recalibrate to this</button>
+                <button onClick={recalibrateFromCheck} style={{ marginLeft: 8, padding: "5px 12px", borderRadius: 0, border: "none", background: "var(--ink)", color: "var(--paper-bright)", cursor: "pointer" }}>Újrakalibrálás erre</button>
               )}
-              <button onClick={() => { setCheck([]); setCheckStated(""); }} style={{ marginLeft: 6, padding: "5px 10px", borderRadius: 0, border: "1px solid var(--ink-faint)", background: "transparent", cursor: "pointer" }}>Reset</button>
+              <button onClick={() => { setCheck([]); setCheckStated(""); }} style={{ marginLeft: 6, padding: "5px 10px", borderRadius: 0, border: "1px solid var(--ink-faint)", background: "transparent", cursor: "pointer" }}>Visszaállítás</button>
             </span>
           )}
         </div>
@@ -8304,23 +8304,23 @@ export default function TakeoffCanvas() {
            faces). Lives in the canvas row so docked panels + canvas reflow
            beside it; survives focus mode — it IS the tool access. */}
        {view === "canvas" && (
-       <nav role="toolbar" aria-label="Tools" style={{ width: "var(--rail-w)", flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "center", gap: "var(--sp-1)", paddingTop: "var(--sp-2)", borderRight: "1px solid var(--ink-faint)", background: "var(--paper-bright)", overflowY: "auto", overflowX: "visible" }}>
-         {railLabel("SEL")}
-         {railTile("select", "select", "Select — pick a takeoff, drag points; drag open canvas to pan", "V")}
-         {railLabel("MEAS")}
+       <nav role="toolbar" aria-label="Eszközök" style={{ width: "var(--rail-w)", flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "center", gap: "var(--sp-1)", paddingTop: "var(--sp-2)", borderRight: "1px solid var(--ink-faint)", background: "var(--paper-bright)", overflowY: "auto", overflowX: "visible" }}>
+         {railLabel("KIJ")}
+         {railTile("select", "select", "Kijelölés — válassz tervmérést, húzd a pontokat; az üres vászon húzásával mozgathatod a nézetet", "V")}
+         {railLabel("MÉR")}
          {MEASURE_TOOLS.filter((t) => t.id !== "oneclick" || oneClickEnabled()).map((t) => railTile(t.id, t.icon, t.label, t.shortcut))}
-         {railLabel("CUT")}
+         {railLabel("KIV")}
          {CUT_TOOLS.map((t) => railTile(t.id, t.icon, t.label, t.shortcut, null, { tint: "var(--c-danger)" }))}
-         {railLabel("MARK")}
+         {railLabel("JEL")}
          <span ref={(el) => { if (el) markTileTopRef.current = el.getBoundingClientRect().top; }} style={{ position: "relative", display: "inline-flex" }}>
            <ToolMenu
-             title="Markup — annotations, not measurements"
+             title="Jelölések — megjegyzések a terven, nem mérések"
              active={MARKUP_IDS.includes(tool)}
              onOpenChange={onMenuDepth}
              flyout="right"
              face={<Icon name="markup" size={17} />}
              items={[
-               { section: "Markup — notes on the plan, never measured" },
+               { section: "Jelölések — megjegyzések a terven, mérés nélkül" },
                ...MARKUP_TOOLS.map((t) => ({ id: t.id, icon: t.icon, label: t.label, shortcut: t.shortcut, active: tool === t.id, onSelect: () => { setTool(t.id); setMarkupDraft(null); } })),
              ]}
            />
@@ -8328,7 +8328,7 @@ export default function TakeoffCanvas() {
                (fixed, not absolute: the rail's scroll box would clip it) */}
            {tool === "highlighter" && (
              <div style={{ position: "fixed", left: "calc(var(--rail-w) + 8px)", top: markTileTopRef.current || 200, zIndex: Z.popover, background: "var(--paper-bright)", border: "1px solid var(--ink-faint)", borderRadius: 0, boxShadow: "var(--shadow-pop)", padding: "8px 10px", display: "flex", flexDirection: "column", gap: 7 }}>
-               <div style={{ display: "flex", gap: 6 }} title="Ink">
+               <div style={{ display: "flex", gap: 6 }} title="Jelölőszín">
                  {HL_INKS.map((c) => (
                    <button key={c} onClick={() => setHlStyle((st) => ({ ...st, color: c }))}
                      style={{ width: 16, height: 16, padding: 0, background: c, border: hlStyle.color === c ? "2px solid var(--ink)" : "1px solid var(--ink-faint)", cursor: "pointer" }} />
@@ -8336,12 +8336,12 @@ export default function TakeoffCanvas() {
                </div>
                <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
                  {HL_SIZES.map(([lbl, px]) => (
-                   <button key={lbl} onClick={() => setHlStyle((st) => ({ ...st, size: px }))} title={`${lbl === "F" ? "Fine" : lbl === "M" ? "Medium" : "Broad"} tip`}
+                   <button key={lbl} onClick={() => setHlStyle((st) => ({ ...st, size: px }))} title={`${lbl === "F" ? "Vékony" : lbl === "M" ? "Közepes" : "Széles"} hegy`}
                      style={{ width: 22, height: 20, padding: 0, fontFamily: "var(--f-mono)", fontSize: 10, cursor: "pointer", border: hlStyle.size === px ? "1px solid var(--ink)" : "1px solid var(--ink-faint)", background: hlStyle.size === px ? "var(--ink)" : "transparent", color: hlStyle.size === px ? "var(--paper-bright)" : "var(--ink)" }}>{lbl}</button>
                  ))}
                  <span style={{ width: 1, alignSelf: "stretch", background: "var(--ink-faint)" }} />
                  {[["chisel", "M4 16 L14 6 L18 10 L8 20 Z"], ["round", "M5 17 Q12 3 19 13"]].map(([tip, d]) => (
-                   <button key={tip} onClick={() => setHlStyle((st) => ({ ...st, tip }))} title={`${tip} tip`}
+                   <button key={tip} onClick={() => setHlStyle((st) => ({ ...st, tip }))} title={`${tip === "chisel" ? "Vágott" : "Kerek"} hegy`}
                      style={{ width: 24, height: 20, padding: 1, cursor: "pointer", border: hlStyle.tip === tip ? "1px solid var(--ink)" : "1px solid var(--ink-faint)", background: "transparent" }}>
                      <svg viewBox="0 0 24 24" width="18" height="14">{tip === "chisel"
                        ? <path d={d} fill="currentColor" stroke="none" />
@@ -8355,10 +8355,10 @@ export default function TakeoffCanvas() {
          {/* Approval stamp — ink over pencil. Human-only by design: this tile
              is the ONLY way an estimator seal is minted (no MCP tool, no agent
              path), so the mark means a person looked. */}
-         {railTile("approve", "approve", "Approval stamp — the estimator's ink. Click a committed takeoff to approve it, or empty plan to approve the sheet; click a seal to lift it. ⌘Z undoes. Human-only.", null,
+         {railTile("approve", "approve", "Jóváhagyási bélyegző. Kattints végleges tervmérésre vagy az üres tervlapra; a bélyegzőre kattintva eltávolítható. A ⌘Z visszavonja. Csak kézi jóváhagyásra.", null,
            () => setTool((t) => (t === "approve" ? "select" : "approve")), { tint: tool === "approve" ? "var(--c-positive)" : undefined, armed: tool === "approve" })}
-         {railLabel("CAL")}
-         {railTile("calibrate", "calibrate", "Calibrate — click two points of a known dimension", null)}
+         {railLabel("KAL")}
+         {railTile("calibrate", "calibrate", "Kalibrálás — kattints egy ismert méret két végpontjára", null)}
        </nav>
        )}
        {/* docked LEFT panel — one of Markups/Stamps/RFIs at a time. Reflows the
@@ -8367,13 +8367,13 @@ export default function TakeoffCanvas() {
          <div style={{ width: 360, flexShrink: 0, display: "flex", flexDirection: "column", borderRight: "1px solid var(--ink-faint)", background: "var(--paper-bright)", overflow: "hidden", minHeight: 0 }}>
            {/* tab strip */}
            <div style={{ display: "flex", alignItems: "stretch", background: "var(--cobalt)", color: "var(--accent-contrast)" }}>
-             {[{ id: "markup", label: "Markups", n: markupCount }, { id: "stamp", label: "Stamps", n: stampLib.stamps.length }, { id: "rfi", label: "RFIs", n: rfis.length }].map((t) => (
+             {[{ id: "markup", label: "Jelölések", n: markupCount }, { id: "stamp", label: "Bélyegzők", n: stampLib.stamps.length }, { id: "rfi", label: "RFI-k", n: rfis.length }].map((t) => (
                <button key={t.id} onClick={() => setLeftTab(t.id)} title={t.label}
                  style={{ flex: 1, padding: "9px 6px", border: "none", borderBottom: leftTab === t.id ? "2px solid var(--accent-contrast)" : "2px solid transparent", background: leftTab === t.id ? "rgba(255,255,255,.18)" : "transparent", color: "var(--accent-contrast)", cursor: "pointer", fontWeight: leftTab === t.id ? 700 : 500, fontSize: 12 }}>
                  {t.label}{t.n ? ` · ${t.n}` : ""}
                </button>
              ))}
-             <button onClick={() => setLeftTab(null)} title="Close panel" style={{ padding: "0 12px", border: "none", background: "transparent", color: "var(--accent-contrast)", fontSize: 16, cursor: "pointer" }}>×</button>
+             <button onClick={() => setLeftTab(null)} title="Panel bezárása" style={{ padding: "0 12px", border: "none", background: "transparent", color: "var(--accent-contrast)", fontSize: 16, cursor: "pointer" }}>×</button>
            </div>
            {/* body of the active tab */}
            <div style={{ flex: 1, overflow: "auto", minHeight: 0 }}>
@@ -8385,18 +8385,18 @@ export default function TakeoffCanvas() {
                  <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", padding: "6px 10px", borderBottom: "1px solid var(--ink-faint)" }}>
                    <button
                      onClick={() => { const nv = !showMarkups; setShowMarkups(nv); if (!nv) setSelectedMarkupId(null); }}
-                     title={showMarkups ? "Hide the markup layer on the canvas" : "Show the markup layer on the canvas"}
+                     title={showMarkups ? "Jelölési réteg elrejtése a vásznon" : "Jelölési réteg megjelenítése a vásznon"}
                      style={{ background: "transparent", border: "1px solid var(--ink-faint)", color: "var(--ink)", fontSize: 11, cursor: "pointer", padding: "2px 7px" }}>
-                     {showMarkups ? "Hide layer" : "Show layer"}
+                     {showMarkups ? "Réteg elrejtése" : "Réteg mutatása"}
                    </button>
                  </div>
                  <div style={{ padding: "8px 10px", color: "var(--ink-muted)" }}>
-                   Pick <b>☁ Cloud</b>, <b>▨ Highlight</b>, <b>💬 Callout</b>, <b>T Text</b>, or <b>⟷ Dimension</b> above, then click the plan to annotate it. <b>🖼 Image</b> marquees a region (two clicks) — or use <b>Upload image…</b> in Captures below.
+                   Válassz fent egy <b>☁ felhő</b>, <b>▨ kiemelés</b>, <b>💬 hivatkozás</b>, <b>T szöveg</b> vagy <b>⟷ méret</b> eszközt, majd kattints a tervre. A <b>🖼 kép</b> két kattintással területet vág ki; saját képet a Kivágások résznél tölthetsz fel.
                  </div>
                  {markups.filter((m) => panelKeySet.has(m.sheet_id) && m.type !== "image").length === 0 && (
                    <div style={{ padding: "4px 12px 14px", color: "var(--ink-muted)" }}>
-                     No markups {groupKeys.length > 1 ? "on these sheets" : "on this sheet"} yet.
-                     <div style={{ marginTop: 4, fontSize: 11 }}>Images now live in <b>Captures</b> below.</div>
+                     Még nincs jelölés {groupKeys.length > 1 ? "ezeken a tervlapokon" : "ezen a tervlapon"}.
+                     <div style={{ marginTop: 4, fontSize: 11 }}>A képek lent, a <b>Kivágások</b> résznél találhatók.</div>
                    </div>
                  )}
                  {markups.filter((m) => panelKeySet.has(m.sheet_id) && m.type !== "image").map((m) => (
@@ -8404,8 +8404,10 @@ export default function TakeoffCanvas() {
                      {/* the header line selects + flies to the markup (parity with the RFI
                          register's onFlyTo) — the inner controls stopPropagation so only the
                          label area triggers it, never edit/delete. */}
-                     <div onClick={() => flyToMarkup(m)} title="Select and center this markup" style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}>
-                       <span style={{ fontSize: 10, fontWeight: 700, color: "var(--cobalt)", textTransform: "uppercase" }}>{m.type}</span>
+                     <div onClick={() => flyToMarkup(m)} title="Jelölés kijelölése és középre igazítása" style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}>
+                       <span style={{ fontSize: 10, fontWeight: 700, color: "var(--cobalt)", textTransform: "uppercase" }}>
+                         {({ cloud: "Felhő", callout: "Hivatkozás", highlighter: "Kiemelés", text: "Szöveg", dimension: "Méret", svg: "Szimbólum" })[m.type] || m.type}
+                       </span>
                        {/* inline edit — the panel's fallback for the canvas overlay, since a
                            markup here may be off-screen or on another sheet (no click point).
                            Enter/blur commit, Esc cancels; INPUT is guarded from the global keys. */}
@@ -8416,34 +8418,34 @@ export default function TakeoffCanvas() {
                            onBlur={(e) => { updateMarkup(m.id, { text: e.currentTarget.value.trim() }); setPanelEditId(null); }}
                            style={{ flex: 1, minWidth: 0, fontSize: 12.5, padding: "1px 4px", border: "1px solid var(--cobalt)", borderRadius: 0, outline: "none" }} />
                        ) : (
-                         <span style={{ flex: 1, color: "var(--ink)" }}>{m.type === "svg" ? <em style={{ color: "var(--ink-muted)" }}>(vector symbol)</em> : ([m.type === "dimension" && Number(m.len_ft) > 0 ? dimLabel(m.len_ft) : "", m.text].filter(Boolean).join(" · ") || <em style={{ color: "var(--ink-muted)" }}>(no text)</em>)}</span>
+                         <span style={{ flex: 1, color: "var(--ink)" }}>{m.type === "svg" ? <em style={{ color: "var(--ink-muted)" }}>(vektoros szimbólum)</em> : ([m.type === "dimension" && Number(m.len_ft) > 0 ? dimLabel(m.len_ft) : "", m.text].filter(Boolean).join(" · ") || <em style={{ color: "var(--ink-muted)" }}>(nincs szöveg)</em>)}</span>
                        )}
-                       {m.type !== "svg" && <button onClick={(e) => { e.stopPropagation(); setPanelEditId((id) => (id === m.id ? null : m.id)); }} title="Edit text" style={{ border: "none", background: "none", cursor: "pointer", color: "var(--ink-muted)" }}>✎</button>}
-                       <button onClick={(e) => { e.stopPropagation(); deleteMarkup(m.id); }} title="Delete markup" style={{ border: "none", background: "none", cursor: "pointer", color: "var(--c-danger)" }}>🗑</button>
+                       {m.type !== "svg" && <button onClick={(e) => { e.stopPropagation(); setPanelEditId((id) => (id === m.id ? null : m.id)); }} title="Szöveg szerkesztése" style={{ border: "none", background: "none", cursor: "pointer", color: "var(--ink-muted)" }}>✎</button>}
+                       <button onClick={(e) => { e.stopPropagation(); deleteMarkup(m.id); }} title="Jelölés törlése" style={{ border: "none", background: "none", cursor: "pointer", color: "var(--c-danger)" }}>🗑</button>
                      </div>
                      {/* appearance — per-markup color (reuse PALETTE) + line style; both
                          additive: unset color falls back to the cobalt(linked)/amber default,
                          unset style to solid. The RFI ⬢/number badge stays cobalt regardless. */}
                      <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 7, flexWrap: "wrap" }}>
-                       <span style={{ fontSize: 10.5, color: "var(--ink-muted)", marginRight: 2 }}>Color</span>
-                       <button title="Auto (linkage color)" onClick={() => updateMarkup(m.id, { color: "" })} style={{ width: 26, height: 15, borderRadius: 4, background: "var(--paper-bright)", border: !m.color ? "2px solid var(--ink)" : "1px solid var(--ink-faint)", cursor: "pointer", fontSize: 8.5, lineHeight: "11px", color: "var(--ink-muted)" }}>auto</button>
+                       <span style={{ fontSize: 10.5, color: "var(--ink-muted)", marginRight: 2 }}>Szín</span>
+                       <button title="Automatikus kapcsolati szín" onClick={() => updateMarkup(m.id, { color: "" })} style={{ width: 26, height: 15, borderRadius: 4, background: "var(--paper-bright)", border: !m.color ? "2px solid var(--ink)" : "1px solid var(--ink-faint)", cursor: "pointer", fontSize: 8.5, lineHeight: "11px", color: "var(--ink-muted)" }}>alap</button>
                        {PALETTE.map((c) => <button key={c} title={c} onClick={() => updateMarkup(m.id, { color: c })} style={{ width: 15, height: 15, borderRadius: 4, background: c, border: m.color === c ? "2px solid var(--ink)" : "1px solid var(--ink-faint)", cursor: "pointer" }} />)}
-                       <select name="markup-line-style" value={m.line_style || "solid"} onChange={(e) => updateMarkup(m.id, { line_style: e.target.value })} title="Line style" style={{ marginLeft: 4, fontSize: 11, border: "1px solid var(--ink-faint)", background: "var(--paper-bright)", padding: "1px 3px" }}>
+                       <select name="markup-line-style" value={m.line_style || "solid"} onChange={(e) => updateMarkup(m.id, { line_style: e.target.value })} title="Vonaltípus" style={{ marginLeft: 4, fontSize: 11, border: "1px solid var(--ink-faint)", background: "var(--paper-bright)", padding: "1px 3px" }}>
                          {LINE_STYLE_IDS.map((id) => <option key={id} value={id}>{LINE_STYLES[id].label}</option>)}
                        </select>
                        {/* line weight — a multiplier over the element's base stroke width (default
                            ×1, clamped 0.5–3); additive, absent = ×1 so legacy markups are unchanged */}
-                       <span style={{ fontSize: 10.5, color: "var(--ink-muted)", marginLeft: 4 }}>Weight</span>
-                       <select name="markup-weight" value={String(snapWeight(m.weight))} onChange={(e) => updateMarkup(m.id, { weight: Number(e.target.value) })} title="Line weight (× base)" style={{ fontSize: 11, border: "1px solid var(--ink-faint)", background: "var(--paper-bright)", padding: "1px 3px" }}>
+                       <span style={{ fontSize: 10.5, color: "var(--ink-muted)", marginLeft: 4 }}>Vastagság</span>
+                       <select name="markup-weight" value={String(snapWeight(m.weight))} onChange={(e) => updateMarkup(m.id, { weight: Number(e.target.value) })} title="Vonalvastagság (alapérték szorzója)" style={{ fontSize: 11, border: "1px solid var(--ink-faint)", background: "var(--paper-bright)", padding: "1px 3px" }}>
                          {WEIGHT_STEPS.map((wv) => <option key={wv} value={wv}>{wv}×</option>)}
                        </select>
                        {/* revision-delta △n — clouds only; blank clears it (no delta drawn) */}
                        {m.type === "cloud" && (
                          <>
-                           <span style={{ fontSize: 10.5, color: "var(--ink-muted)", marginLeft: 4 }} title="Revision-delta number (△) drawn at a cloud corner">Rev △</span>
+                           <span style={{ fontSize: 10.5, color: "var(--ink-muted)", marginLeft: 4 }} title="A felhő sarkán megjelenő revíziószám (△)">Rev. △</span>
                            <input name="markup-rev" type="number" min="0" step="1" value={Number.isFinite(m.rev) ? m.rev : ""} placeholder="—"
                              onChange={(e) => { const raw = e.target.value; updateMarkup(m.id, { rev: raw === "" ? undefined : Math.max(0, Math.floor(Number(raw) || 0)) }); }}
-                             title="Revision number for the △ delta (blank = none)"
+                             title="A △ jel revíziószáma; üresen nincs jel"
                              style={{ width: 40, fontSize: 11, border: "1px solid var(--ink-faint)", background: "var(--paper-bright)", padding: "1px 3px" }} />
                          </>
                        )}
@@ -8457,18 +8459,18 @@ export default function TakeoffCanvas() {
                          <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 7, flexWrap: "wrap" }}>
                            {lc ? (
                              <>
-                               <span title={`Annotation is about ${lc.finish_tag}`}
+                               <span title={`A jelölés ehhez a tételhez tartozik: ${lc.finish_tag}`}
                                  style={{ display: "inline-flex", alignItems: "center", gap: 5, fontFamily: "var(--f-mono)", fontSize: 11, fontWeight: 700 }}>
                                  <span style={{ width: 9, height: 9, background: lc.color, border: "1px solid var(--ink-faint)" }} />
                                  {lc.finish_tag}
                                </span>
-                               <button onClick={() => { setActiveCond(lc.id); }} style={{ ...ctrl, color: "var(--cobalt)" }} title="Make this the active condition">Select</button>
-                               <button onClick={() => unlinkCondition(m)} style={{ ...ctrl, color: "var(--ink-muted)" }} title="Detach this annotation from its condition">Detach</button>
+                               <button onClick={() => { setActiveCond(lc.id); }} style={{ ...ctrl, color: "var(--cobalt)" }} title="Tétel aktiválása">Kijelölés</button>
+                               <button onClick={() => unlinkCondition(m)} style={{ ...ctrl, color: "var(--ink-muted)" }} title="Jelölés leválasztása a tételről">Leválasztás</button>
                              </>
                            ) : conditions.length > 0 && (
                              <select name="link-condition" value="" onChange={(e) => { if (e.target.value) linkCondition(m, e.target.value); }}
-                               title="Attach this annotation to a condition" style={{ ...ctrl, background: "var(--paper-bright)", maxWidth: 170 }}>
-                               <option value="">Attach to condition…</option>
+                               title="Jelölés tételhez kapcsolása" style={{ ...ctrl, background: "var(--paper-bright)", maxWidth: 170 }}>
+                               <option value="">Kapcsolás tételhez…</option>
                                {conditions.map((c) => <option key={c.id} value={c.id}>{c.finish_tag}</option>)}
                              </select>
                            )}
@@ -8484,16 +8486,16 @@ export default function TakeoffCanvas() {
                            {linked ? (
                              <>
                                <span style={{ fontFamily: "var(--f-mono)", fontSize: 11, fontWeight: 700, color: "var(--cobalt)" }}>⬢ {String(linked.number ?? "")}</span>
-                               <button onClick={() => { setLeftTab("rfi"); }} style={{ ...ctrl, color: "var(--cobalt)" }} title="Open the RFI register">Open</button>
-                               <button onClick={() => unlinkRfi(m)} style={{ ...ctrl, color: "var(--ink-muted)" }} title="Unlink this markup from its RFI">Unlink</button>
+                               <button onClick={() => { setLeftTab("rfi"); }} style={{ ...ctrl, color: "var(--cobalt)" }} title="RFI-nyilvántartás megnyitása">Megnyitás</button>
+                               <button onClick={() => unlinkRfi(m)} style={{ ...ctrl, color: "var(--ink-muted)" }} title="Jelölés leválasztása az RFI-ről">Leválasztás</button>
                              </>
                            ) : (
                              <>
-                               <button onClick={() => raiseRfi(m)} style={{ ...ctrl, color: "var(--cobalt)", fontWeight: 600 }} title="Create a new RFI from this markup">Raise RFI</button>
+                               <button onClick={() => raiseRfi(m)} style={{ ...ctrl, color: "var(--cobalt)", fontWeight: 600 }} title="Új RFI létrehozása ebből a jelölésből">RFI létrehozása</button>
                                {rfis.length > 0 && (
                                  <select name="link-rfi" value="" onChange={(e) => { if (e.target.value) linkRfi(m, e.target.value); }}
-                                   title="Link this markup to an existing RFI" style={{ ...ctrl, background: "var(--paper-bright)", maxWidth: 150 }}>
-                                   <option value="">Link existing…</option>
+                                   title="Jelölés kapcsolása meglévő RFI-hez" style={{ ...ctrl, background: "var(--paper-bright)", maxWidth: 150 }}>
+                                   <option value="">Kapcsolás meglévőhöz…</option>
                                    {rfis.map((r) => <option key={r.id} value={r.id}>{r.number}{r.subject ? ` · ${r.subject}` : ""}</option>)}
                                  </select>
                                )}
@@ -8513,23 +8515,23 @@ export default function TakeoffCanvas() {
                      — see isTraceable). */}
                  <div style={{ borderTop: "2px solid var(--ink-faint)" }}>
                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 10px", borderBottom: "1px solid var(--ink-faint)", gap: 8 }}>
-                     <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--ink-muted)", textTransform: "uppercase", letterSpacing: "0.06em" }}>Captures</span>
+                     <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--ink-muted)", textTransform: "uppercase", letterSpacing: "0.06em" }}>Kivágások</span>
                      {/* hidden input reused by the Upload button — re-encoded through addImageFromFile */}
                      <input name="markup-image-file" ref={imageInputRef} type="file" accept="image/*" style={{ display: "none" }}
                        onChange={(e) => { const f = e.target.files?.[0]; if (f) addImageFromFile(f); e.target.value = ""; }} />
                      <button
                        onClick={() => imageInputRef.current?.click()}
-                       title="Upload a raster image (PNG or JPEG) as a floating annotation on the current sheet"
+                       title="PNG- vagy JPEG-kép feltöltése mozgatható jelölésként az aktuális tervlapra"
                        style={{ background: "transparent", border: "1px solid var(--ink-faint)", color: "var(--ink)", fontSize: 11, cursor: "pointer", padding: "2px 7px" }}>
-                       Upload image…
+                       Kép feltöltése…
                      </button>
                    </div>
                    {/* always-on name search — mirrors the condQuery idiom
                        (TakeoffsPanel ~:718/763/1054-1056) */}
                    <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 10px", borderBottom: "1px solid var(--ink-faint)" }}>
-                     <input name="capture-filter" value={captureQuery} onChange={(e) => setCaptureQuery(e.target.value)} placeholder="filter captures…"
+                     <input name="capture-filter" value={captureQuery} onChange={(e) => setCaptureQuery(e.target.value)} placeholder="kivágások szűrése…"
                        style={{ flex: 1, minWidth: 0, padding: "4px 8px", borderRadius: 0, border: "1px solid var(--ink-faint)", fontSize: 12 }} />
-                     {captureQuery && <button onClick={() => setCaptureQuery("")} title="Clear the filter" style={{ border: "none", background: "none", color: "var(--ink-muted)", cursor: "pointer", fontSize: 13, padding: 0 }}>×</button>}
+                     {captureQuery && <button onClick={() => setCaptureQuery("")} title="Szűrő törlése" style={{ border: "none", background: "none", color: "var(--ink-muted)", cursor: "pointer", fontSize: 13, padding: 0 }}>×</button>}
                    </div>
                    {(() => {
                      // one pass over `markups` for the image subset; the query
@@ -8539,10 +8541,10 @@ export default function TakeoffCanvas() {
                      const allCaptures = filterCaptures(markups, "");
                      const captures = filterCaptures(allCaptures, captureQuery);
                      if (allCaptures.length === 0) {
-                       return <div style={{ padding: "4px 12px 14px", color: "var(--ink-muted)" }}>No captures yet. Marquee a region with 🖼 or use Upload image… above.</div>;
+                       return <div style={{ padding: "4px 12px 14px", color: "var(--ink-muted)" }}>Még nincs kivágás. Jelölj ki területet a 🖼 eszközzel, vagy tölts fel képet.</div>;
                      }
                      if (captures.length === 0) {
-                       return <div style={{ padding: "4px 12px 14px", color: "var(--ink-muted)" }}>No captures match “{captureQuery}”.</div>;
+                       return <div style={{ padding: "4px 12px 14px", color: "var(--ink-muted)" }}>Nincs találat erre: „{captureQuery}”.</div>;
                      }
                      return captures.map((m) => {
                        // Captures-only gate for ◎ + the caption toggle — legacy
@@ -8568,11 +8570,11 @@ export default function TakeoffCanvas() {
                                  onBlur={(e) => { updateMarkup(m.id, { text: e.currentTarget.value.trim() }); setPanelEditId(null); }}
                                  style={{ flex: 1, minWidth: 0, fontSize: 12.5, padding: "1px 4px", border: "1px solid var(--cobalt)", borderRadius: 0, outline: "none" }} />
                              ) : (
-                               <span style={{ flex: "0 1 auto", minWidth: 0, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.text || <em style={{ color: "var(--ink-muted)" }}>(no name)</em>}</span>
+                               <span style={{ flex: "0 1 auto", minWidth: 0, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.text || <em style={{ color: "var(--ink-muted)" }}>(névtelen)</em>}</span>
                              )}
-                             <button onClick={(e) => { e.stopPropagation(); setPanelEditId((id) => (id === m.id ? null : m.id)); }} title="Edit name" style={{ border: "none", background: "none", cursor: "pointer", color: "var(--ink-muted)" }}>✎</button>
+                             <button onClick={(e) => { e.stopPropagation(); setPanelEditId((id) => (id === m.id ? null : m.id)); }} title="Név szerkesztése" style={{ border: "none", background: "none", cursor: "pointer", color: "var(--ink-muted)" }}>✎</button>
                              <span style={{ color: "var(--ink-faint)" }}>·</span>
-                             <span title={`Currently on ${sheetBaseLabel(m.sheet_id)}`} style={{ fontSize: 10.5, color: "var(--ink-muted)", padding: "1px 6px", border: "1px solid var(--ink-faint)", borderRadius: 4, background: "var(--paper-cream)", whiteSpace: "nowrap" }}>{sheetBaseLabel(m.sheet_id)}</span>
+                             <span title={`Jelenlegi tervlap: ${sheetBaseLabel(m.sheet_id)}`} style={{ fontSize: 10.5, color: "var(--ink-muted)", padding: "1px 6px", border: "1px solid var(--ink-faint)", borderRadius: 4, background: "var(--paper-cream)", whiteSpace: "nowrap" }}>{sheetBaseLabel(m.sheet_id)}</span>
                              {/* legacy/imported captures can predate created_at (see
                                  imageProvenance's own guard on the same field) — a
                                  blank relativeAge must not leave a dangling "·" */}
@@ -8585,20 +8587,20 @@ export default function TakeoffCanvas() {
                                  </>
                                ) : null;
                              })()}
-                             <button onClick={(e) => { e.stopPropagation(); beginPlace(m); }} title={panelKeySet.has(m.sheet_id) ? "Reposition: centers the view on the image, then it follows the cursor — click the sheet to drop it" : "Place this image on the current sheet — it follows the cursor until you click to drop it"} style={{ border: "1px solid var(--ink-faint)", background: placingImageId === m.id ? "var(--cobalt)" : "transparent", color: placingImageId === m.id ? "#fff" : "var(--cobalt)", cursor: "pointer", fontSize: 11, padding: "1px 7px" }}>Place</button>
+                             <button onClick={(e) => { e.stopPropagation(); beginPlace(m); }} title={panelKeySet.has(m.sheet_id) ? "Áthelyezés: a nézet a képre ugrik, majd a kép a kurzort követi; kattints a tervlapra" : "Kép elhelyezése az aktuális tervlapon; a kép a kurzort követi a kattintásig"} style={{ border: "1px solid var(--ink-faint)", background: placingImageId === m.id ? "var(--cobalt)" : "transparent", color: placingImageId === m.id ? "#fff" : "var(--cobalt)", cursor: "pointer", fontSize: 11, padding: "1px 7px" }}>Elhelyezés</button>
                              {traceable && (
-                               <button onClick={(e) => { e.stopPropagation(); traceSource(m); }} title="Jump to the source sheet and flash the captured region" style={{ border: "1px solid var(--ink-faint)", background: "transparent", color: "var(--cobalt)", cursor: "pointer", fontSize: 11, padding: "1px 7px", whiteSpace: "nowrap" }}>
+                               <button onClick={(e) => { e.stopPropagation(); traceSource(m); }} title="Ugrás a forrástervlapra és a kivágott terület kiemelése" style={{ border: "1px solid var(--ink-faint)", background: "transparent", color: "var(--cobalt)", cursor: "pointer", fontSize: 11, padding: "1px 7px", whiteSpace: "nowrap" }}>
                                  {traceLabel(m.src_sheet_id, m.sheet_id, sheetBaseLabel(m.src_sheet_id))}
                                </button>
                              )}
                              {traceable && (
                                <button onClick={(e) => { e.stopPropagation(); updateMarkup(m.id, { source_label: !m.source_label }); }}
-                                 title="Show/Hide the source caption on the image"
+                                 title="Forrásfelirat megjelenítése vagy elrejtése a képen"
                                  style={{ padding: "2px 7px", border: `1px solid ${m.source_label ? "var(--cobalt)" : "var(--ink-faint)"}`, background: m.source_label ? "var(--cobalt)" : "transparent", color: m.source_label ? "var(--paper-bright)" : "var(--ink-muted)", cursor: "pointer", fontSize: 10.5, fontFamily: "var(--f-mono)", lineHeight: 1.4 }}>
-                                 caption
+                                 felirat
                                </button>
                              )}
-                             <button onClick={(e) => { e.stopPropagation(); deleteMarkup(m.id); }} title="Delete capture" style={{ border: "none", background: "none", cursor: "pointer", color: "var(--c-danger)" }}>🗑</button>
+                             <button onClick={(e) => { e.stopPropagation(); deleteMarkup(m.id); }} title="Kivágás törlése" style={{ border: "none", background: "none", cursor: "pointer", color: "var(--c-danger)" }}>🗑</button>
                            </div>
                            {/* Condition link — identical block to the per-sheet row's
                                (8211–8235 pre-slice-4); keys off `m` and works for any
@@ -8610,18 +8612,18 @@ export default function TakeoffCanvas() {
                                <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 7, flexWrap: "wrap" }}>
                                  {lc ? (
                                    <>
-                                     <span title={`Annotation is about ${lc.finish_tag}`}
+                                     <span title={`A jelölés ehhez a tételhez tartozik: ${lc.finish_tag}`}
                                        style={{ display: "inline-flex", alignItems: "center", gap: 5, fontFamily: "var(--f-mono)", fontSize: 11, fontWeight: 700 }}>
                                        <span style={{ width: 9, height: 9, background: lc.color, border: "1px solid var(--ink-faint)" }} />
                                        {lc.finish_tag}
                                      </span>
-                                     <button onClick={() => { setActiveCond(lc.id); }} style={{ ...ctrl, color: "var(--cobalt)" }} title="Make this the active condition">Select</button>
-                                     <button onClick={() => unlinkCondition(m)} style={{ ...ctrl, color: "var(--ink-muted)" }} title="Detach this annotation from its condition">Detach</button>
+                                     <button onClick={() => { setActiveCond(lc.id); }} style={{ ...ctrl, color: "var(--cobalt)" }} title="Tétel aktiválása">Kijelölés</button>
+                                     <button onClick={() => unlinkCondition(m)} style={{ ...ctrl, color: "var(--ink-muted)" }} title="Jelölés leválasztása a tételről">Leválasztás</button>
                                    </>
                                  ) : conditions.length > 0 && (
                                    <select name="link-condition" value="" onChange={(e) => { if (e.target.value) linkCondition(m, e.target.value); }}
-                                     title="Attach this annotation to a condition" style={{ ...ctrl, background: "var(--paper-bright)", maxWidth: 170 }}>
-                                     <option value="">Attach to condition…</option>
+                                     title="Jelölés tételhez kapcsolása" style={{ ...ctrl, background: "var(--paper-bright)", maxWidth: 170 }}>
+                                     <option value="">Kapcsolás tételhez…</option>
                                      {conditions.map((c) => <option key={c.id} value={c.id}>{c.finish_tag}</option>)}
                                    </select>
                                  )}
@@ -8638,16 +8640,16 @@ export default function TakeoffCanvas() {
                                  {linked ? (
                                    <>
                                      <span style={{ fontFamily: "var(--f-mono)", fontSize: 11, fontWeight: 700, color: "var(--cobalt)" }}>⬢ {String(linked.number ?? "")}</span>
-                                     <button onClick={() => { setLeftTab("rfi"); }} style={{ ...ctrl, color: "var(--cobalt)" }} title="Open the RFI register">Open</button>
-                                     <button onClick={() => unlinkRfi(m)} style={{ ...ctrl, color: "var(--ink-muted)" }} title="Unlink this markup from its RFI">Unlink</button>
+                                     <button onClick={() => { setLeftTab("rfi"); }} style={{ ...ctrl, color: "var(--cobalt)" }} title="RFI-nyilvántartás megnyitása">Megnyitás</button>
+                                     <button onClick={() => unlinkRfi(m)} style={{ ...ctrl, color: "var(--ink-muted)" }} title="Jelölés leválasztása az RFI-ről">Leválasztás</button>
                                    </>
                                  ) : (
                                    <>
-                                     <button onClick={() => raiseRfi(m)} style={{ ...ctrl, color: "var(--cobalt)", fontWeight: 600 }} title="Create a new RFI from this markup">Raise RFI</button>
+                                     <button onClick={() => raiseRfi(m)} style={{ ...ctrl, color: "var(--cobalt)", fontWeight: 600 }} title="Új RFI létrehozása ebből a jelölésből">RFI létrehozása</button>
                                      {rfis.length > 0 && (
                                        <select name="link-rfi" value="" onChange={(e) => { if (e.target.value) linkRfi(m, e.target.value); }}
-                                         title="Link this markup to an existing RFI" style={{ ...ctrl, background: "var(--paper-bright)", maxWidth: 150 }}>
-                                         <option value="">Link existing…</option>
+                                         title="Jelölés kapcsolása meglévő RFI-hez" style={{ ...ctrl, background: "var(--paper-bright)", maxWidth: 150 }}>
+                                         <option value="">Kapcsolás meglévőhöz…</option>
                                          {rfis.map((r) => <option key={r.id} value={r.id}>{r.number}{r.subject ? ` · ${r.subject}` : ""}</option>)}
                                        </select>
                                      )}
@@ -8722,7 +8724,7 @@ export default function TakeoffCanvas() {
             <input name="inline-editor" autoComplete="off" ref={editorInputRef} autoFocus defaultValue={editor.value}
               onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); finishEditor(true); } else if (e.key === "Escape") { e.preventDefault(); finishEditor(false); } }}
               onBlur={() => finishEditor(true)}
-              placeholder="Type, Enter to place · Esc cancels"
+              placeholder="Írj szöveget · Enter: elhelyezés · Esc: mégse"
               style={{ position: "absolute", left: editor.left, top: editor.top, zIndex: 9, minWidth: 160, padding: "3px 6px", font: "13px var(--f-body, sans-serif)", color: "var(--ink)", background: "var(--paper-bright)", border: "1px solid var(--cobalt)", boxShadow: "0 2px 10px rgba(0,0,0,.18)", borderRadius: 0, cursor: "text", outline: "none" }} />
           )}
           {/* No permanent will-change here: the stage is compositor-promoted only
@@ -9139,7 +9141,7 @@ export default function TakeoffCanvas() {
                           <g key={a.id} style={{ pointerEvents: "none" }}>
                             <path d={dia(1)} fill={backing} stroke={ink} strokeWidth={rad * 0.07} strokeLinejoin="round" />
                             <path d={dia(0.72)} fill="none" stroke={ink} strokeWidth={rad * 0.035} strokeLinejoin="round" />
-                            <text x={cx} y={cy} fill={ink} fontSize={rad * 0.3} fontWeight="700" letterSpacing={rad * 0.02} textAnchor="middle" dominantBaseline="central">AGENT</text>
+                            <text x={cx} y={cy} fill={ink} fontSize={rad * 0.3} fontWeight="700" letterSpacing={rad * 0.02} textAnchor="middle" dominantBaseline="central">AI</text>
                           </g>
                         );
                       }
@@ -9147,7 +9149,7 @@ export default function TakeoffCanvas() {
                         <g key={a.id} style={{ pointerEvents: "none" }}>
                           <circle cx={cx} cy={cy} r={rad} fill={backing} stroke={ink} strokeWidth={rad * 0.07} />
                           <circle cx={cx} cy={cy} r={rad * 0.78} fill="none" stroke={ink} strokeWidth={rad * 0.035} />
-                          <text x={cx} y={cy} fill={ink} fontSize={rad * 0.26} fontWeight="700" letterSpacing={rad * 0.03} textAnchor="middle" dominantBaseline="central">APPROVED</text>
+                          <text x={cx} y={cy} fill={ink} fontSize={rad * 0.26} fontWeight="700" letterSpacing={rad * 0.03} textAnchor="middle" dominantBaseline="central">JÓVÁHAGYVA</text>
                         </g>
                       );
                     })}
@@ -9227,15 +9229,15 @@ export default function TakeoffCanvas() {
                       const clickable = tool === "select";
                       const ev = ap.evidence || {};
                       const evBits = [
-                        ev.schedule_row_tag ? `schedule ${ev.schedule_row_tag}` : "",
-                        ev.matched_text && ev.matched_text !== ev.schedule_row_tag ? `matched "${ev.matched_text}"` : "",
-                        Array.isArray(ev.seed_norm) ? "seeded by one-click" : "",
+                        ev.schedule_row_tag ? `kimutatási sor: ${ev.schedule_row_tag}` : "",
+                        ev.matched_text && ev.matched_text !== ev.schedule_row_tag ? `egyező szöveg: „${ev.matched_text}”` : "",
+                        Array.isArray(ev.seed_norm) ? "egykattintásos kijelölésből" : "",
                       ].filter(Boolean).join(", ");
                       return (
                         <g key={ap.id} style={{ pointerEvents: clickable ? "auto" : "none", cursor: clickable ? "pointer" : undefined }}
                           onPointerDown={(e) => { if (clickable) e.stopPropagation(); }}
                           onClick={(e) => { if (clickable) { e.stopPropagation(); acceptAgentProposal(ap.id); } }}>
-                          <title>{`Agent proposal — ${condById[ap.condition_id]?.finish_tag || "?"}${ded ? " (deduct)" : ""}, ${fa(ap.area_sf)}. ${evBits ? `Evidence: ${evBits}. ` : ""}Click to accept (⏎ accepts all visible); reject from the Agent panel.`}</title>
+                          <title>{`AI-javaslat — ${condById[ap.condition_id]?.finish_tag || "?"}${ded ? " (kivonás)" : ""}, ${fa(ap.area_sf)}. ${evBits ? `Bizonyíték: ${evBits}. ` : ""}Kattintással elfogadható (az ⏎ minden látható javaslatot elfogad); elutasítás az AI panelen.`}</title>
                           <path d={[pts, ...(ap.verts_norm_holes || []).map((h) => h.map(([x, y]) => [x * p.img.w, y * p.img.h]))].map((ring) => `M${ring.map((q) => q.join(",")).join("L")}Z`).join(" ")} fillRule="evenodd"
                             fill={ded ? "rgba(176,58,38,.10)" : "rgba(31,63,199,.07)"}
                             stroke={col} strokeOpacity={0.9} strokeWidth={2 / s}
@@ -9257,7 +9259,7 @@ export default function TakeoffCanvas() {
                       const pts = c.verts_norm.map(([x, y]) => [x * p.img.w, y * p.img.h]);
                       return (
                         <g key={`rulecand-${i}`} style={{ pointerEvents: "none" }}>
-                          <title>{`Rule candidate — −${fa(c.area_sf)} deduct. ${ruleStage.rule.label}.`}</title>
+                          <title>{`Szabályjavaslat — −${fa(c.area_sf)} kivonás. ${ruleStage.rule.label}.`}</title>
                           <polygon points={pts.map((q) => q.join(",")).join(" ")}
                             fill="rgba(176,58,38,.10)" stroke="#b03a26" strokeOpacity={0.9}
                             strokeWidth={2 / s} strokeDasharray={`${3.5 / s} ${3.5 / s}`} strokeLinejoin="round" />
@@ -9287,7 +9289,7 @@ export default function TakeoffCanvas() {
                           onPointerDown={(e) => beginRollCut(e, ct, "body")}
                           onPointerMove={moveRollCut} onPointerUp={endRollCut} onPointerCancel={endRollCut}
                           onDoubleClick={() => rollEdit && resetRollCut(ct)}>
-                          <title>{`Cut ${ct.num} — ${condById[ct.condId]?.finish_tag || "?"}: ${fmtCheckLen(ct.lenFt, units)} × ${fmtCheckLen(ct.widthFt, units)}${ct.multi ? ` · lane ${ct.laneIndex + 1}/${ct.laneCount}` : ""}${ct.overRoll ? " · LONGER THAN ONE ROLL — needs a cross-seam" : ""}${rollEdit ? " · drag to slide, pull the square handles to resize, double-click to reset" : ""}`}</title>
+                          <title>{`Vágás ${ct.num} — ${condById[ct.condId]?.finish_tag || "?"}: ${fmtCheckLen(ct.lenFt, units)} × ${fmtCheckLen(ct.widthFt, units)}${ct.multi ? ` · sáv ${ct.laneIndex + 1}/${ct.laneCount}` : ""}${ct.overRoll ? " · EGY TEKERCSNÉL HOSSZABB — keresztirányú toldás szükséges" : ""}${rollEdit ? " · húzással mozgatható, a négyzetes fogantyúkkal méretezhető, dupla kattintással visszaállítható" : ""}`}</title>
                           <rect x={ct.x} y={ct.y} width={ct.w} height={ct.h}
                             fill={col + "38"} stroke={strokeCol}
                             strokeWidth={(ct.overRoll ? 2.6 : 1.8) / s}
@@ -9554,10 +9556,10 @@ export default function TakeoffCanvas() {
 
           {status !== "ready" && (
             <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--ink-muted)", fontSize: 15 }}>
-              {status === "loading" && "Loading sheets…"}
-              {status === "rendering" && "Rendering sheet…"}
-              {status === "empty" && "No PDFs yet — click “Open PDF” or drag a plan onto the canvas."}
-              {status === "error" && <span style={{ color: "var(--c-danger)" }}>Error: {err}</span>}
+              {status === "loading" && "Tervlapok betöltése…"}
+              {status === "rendering" && "Tervlap kirajzolása…"}
+              {status === "empty" && "Még nincs PDF. Kattints a Terv feltöltése gombra, vagy húzz egy tervet a vászonra."}
+              {status === "error" && <span style={{ color: "var(--c-danger)" }}>Hiba: {err}</span>}
             </div>
           )}
 
@@ -9571,11 +9573,11 @@ export default function TakeoffCanvas() {
               is stopped so rapid clicks can't finishShape() */}
           <div onPointerDown={(e) => { if (e.button === 0 && !spaceRef.current) e.stopPropagation(); }} onDoubleClick={(e) => e.stopPropagation()}
             style={{ position: "absolute", left: 14, bottom: 14, display: "flex", flexDirection: "column", gap: 6 }}>
-            <button onClick={() => stage.w && fitToView(stage.w, stage.h)} title="Fit sheet to view" style={{ width: 34, height: 34, borderRadius: 0, border: "1px solid var(--ink-faint)", background: "var(--paper-bright)", cursor: "pointer", fontSize: 12 }}>fit</button>
-            <button onClick={() => setDarkMode((d) => !d)} title={darkMode ? "Sheet back to positive print" : "Invert sheet — negative print (affects marked-set export)"}
+            <button onClick={() => stage.w && fitToView(stage.w, stage.h)} title="Tervlap illesztése a nézethez" style={{ width: 34, height: 34, borderRadius: 0, border: "1px solid var(--ink-faint)", background: "var(--paper-bright)", cursor: "pointer", fontSize: 12 }}>illeszt</button>
+            <button onClick={() => setDarkMode((d) => !d)} title={darkMode ? "Tervlap visszaállítása pozitív nézetre" : "Tervlap invertálása negatív nézetre; a jelölt tervcsomag exportját is érinti"}
               style={{ width: 34, height: 34, borderRadius: 0, border: `1px solid ${darkMode ? "var(--cobalt)" : "var(--ink-faint)"}`, background: darkMode ? "var(--cobalt)" : "var(--paper-bright)", color: darkMode ? "var(--paper-bright)" : "var(--ink)", cursor: "pointer", fontSize: 13 }}>
               {darkMode ? "☀" : "☾"}</button>
-            <button onClick={() => toggleFocusMode()} title={focusMode ? "Focus off — show all chrome (F)" : "Focus — trade chrome for canvas height (F)"}
+            <button onClick={() => toggleFocusMode()} title={focusMode ? "Fókuszmód kikapcsolása, minden kezelőelem megjelenítése (F)" : "Fókuszmód: több hely a vászonnak (F)"}
               style={{ width: 34, height: 34, borderRadius: 0, border: `1px solid ${focusMode ? "var(--cobalt)" : "var(--ink-faint)"}`, background: focusMode ? "var(--cobalt)" : "var(--paper-bright)", color: focusMode ? "var(--accent-contrast)" : "var(--ink)", cursor: "pointer", fontSize: 13 }}>⛶</button>
           </div>
         </div>
@@ -9589,21 +9591,21 @@ export default function TakeoffCanvas() {
         {(ruleOffer || ruleStage) && (
           <div style={{ pointerEvents: "auto", display: "flex", alignItems: "center", gap: 10, padding: "8px 14px", background: "var(--paper-bright)", border: "1.5px dashed var(--c-danger)", boxShadow: "var(--shadow-1)", fontSize: 12.5, color: "var(--ink)", maxWidth: "100%" }}>
             {ruleOffer ? (<>
-              <span>Make this a rule for all <b>{ruleOffer.tag}</b> rooms? Excludes enclosed regions under <b>{ruleOffer.seed.max_area_sf} SF</b>.</span>
+              <span>Legyen ez szabály minden <b>{ruleOffer.tag}</b> helyiségre? A <b>{ruleOffer.seed.max_area_sf} SF</b> alatti zárt területek kimaradnak.</span>
               <button onClick={previewRule}
                 style={{ padding: "4px 12px", background: "var(--paper-bright)", border: "1.5px solid var(--cobalt)", color: "var(--cobalt)", fontSize: 12, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}>
-                Preview</button>
+                Előnézet</button>
               <button onClick={() => setRuleOffer(null)}
                 style={{ padding: "4px 12px", background: "var(--paper-bright)", border: "1px solid var(--ink-faint)", color: "var(--ink-muted)", fontSize: 12, cursor: "pointer" }}>
-                Dismiss</button>
+                Elvetés</button>
             </>) : (<>
-              <span><b>{ruleStage.candidates.length}</b> matching region{ruleStage.candidates.length === 1 ? "" : "s"} staged as dashed deducts — {ruleStage.rule.label}.</span>
+              <span><b>{ruleStage.candidates.length}</b> egyező terület előkészítve szaggatott kivonásként — {ruleStage.rule.label}.</span>
               <button onClick={applyStagedRule}
                 style={{ padding: "4px 12px", background: "var(--paper-bright)", border: "1.5px solid var(--cobalt)", color: "var(--cobalt)", fontSize: 12, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}>
-                Apply {ruleStage.candidates.length}</button>
+                Alkalmazás ({ruleStage.candidates.length})</button>
               <button onClick={() => setRuleStage(null)}
                 style={{ padding: "4px 12px", background: "var(--paper-bright)", border: "1px solid var(--ink-faint)", color: "var(--ink-muted)", fontSize: 12, cursor: "pointer" }}>
-                Cancel</button>
+                Mégse</button>
             </>)}
           </div>
         )}
@@ -9621,20 +9623,20 @@ export default function TakeoffCanvas() {
             forty; un-batched pending shapes keep the original pill. */}
         {pendingGroups.map((g) => {
           const n = g.ids.length;
-          const label = g.proposal ? g.proposal.label : `${n} proposed shape${n === 1 ? "" : "s"}`;
+          const label = g.proposal ? g.proposal.label : `${n} javasolt alakzat`;
           const key = g.proposal ? g.proposal.id : "_loose";
           return (
             <div key={key} data-proposal-pill={key} style={{ pointerEvents: "auto", display: "flex", alignItems: "stretch", background: "var(--paper-bright)", border: "1.5px dashed var(--cobalt)", boxShadow: "var(--shadow-1)", fontSize: 12.5, fontWeight: 600, color: "var(--cobalt)" }}>
               <button onClick={() => acceptProposalGroup(g)}
                 title={g.proposal
-                  ? `Proposal “${g.proposal.label}”${g.proposal.rationale ? ` — ${g.proposal.rationale}` : ""}. ${n} shape${n === 1 ? "" : "s"} render${n === 1 ? "s" : ""} dashed pending your review. Accept makes the whole batch ink in one step (⌘Z undoes).`
-                  : `${n} machine-proposed shape${n === 1 ? "" : "s"} render${n === 1 ? "s" : ""} dashed pending your review. Accept makes them ink (⌘Z undoes); to reject one, select it and press Delete.`}
+                  ? `„${g.proposal.label}” javaslat${g.proposal.rationale ? ` — ${g.proposal.rationale}` : ""}. ${n} alakzat szaggatva vár ellenőrzésre. Az Elfogadás egy lépésben véglegesíti; a ⌘Z visszavonja.`
+                  : `${n} gépi javaslat szaggatva vár ellenőrzésre. Az Elfogadás véglegesíti; a ⌘Z visszavonja. Egyetlen alakzat elvetéséhez jelöld ki, majd töröld.`}
                 style={{ padding: "6px 12px", border: "none", background: "transparent", color: "inherit", font: "inherit", cursor: "pointer" }}>
-                Accept {g.proposal ? <>“{label}” <span style={{ fontWeight: 500, color: "var(--ink-muted)" }}>· {n}</span></> : label}
+                Elfogadás {g.proposal ? <>„{label}” <span style={{ fontWeight: 500, color: "var(--ink-muted)" }}>· {n}</span></> : label}
               </button>
               <button onClick={() => rejectProposalGroup(g)}
-                title={`Reject ${g.proposal ? `“${g.proposal.label}”` : "these shapes"} — removes ${n === 1 ? "the pending shape" : `all ${n} pending shapes`} (⌘Z restores).`}
-                aria-label="Reject proposal"
+                title={`Elvetés: ${g.proposal ? `„${g.proposal.label}”` : "ezek az alakzatok"}. ${n} függőben lévő alakzat eltávolítása; a ⌘Z visszaállítja.`}
+                aria-label="Javaslat elvetése"
                 style={{ padding: "6px 9px", border: "none", borderLeft: "1px dashed var(--cobalt)", background: "transparent", color: "var(--c-danger)", font: "inherit", cursor: "pointer" }}>✕</button>
             </div>
           );
@@ -9661,15 +9663,15 @@ export default function TakeoffCanvas() {
           ? { left: 10, right: 10, bottom: 64, maxHeight: "36%", padding: "8px 12px" }
           : { right: 56, top: 14, minWidth: 200, maxWidth: 260, maxHeight: "calc(100% - 28px)", padding: "12px 16px" }),
           background: "var(--paper-bright)", border: "1px solid var(--ink-faint)", borderRadius: 0, overflowY: "auto", boxShadow: "var(--shadow-pop)", fontVariantNumeric: "tabular-nums", zIndex: Z.canvasUi }}>
-          <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: 0.5, opacity: 0.55, marginBottom: 6, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{tool === "zone" ? "Zone check" : (aCond?.finish_tag || "No condition")}</div>
+          <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: 0.5, opacity: 0.55, marginBottom: 6, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{tool === "zone" ? "Zónaellenőrzés" : (aCond?.finish_tag || "Nincs tétel")}</div>
           {/* The straight/curve switch (#284) — a mode you flip mid
               measurement, not a modifier you hold, so an arc is a run of
               ordinary clicks. Lives in the readout because that is where the
               eye already is while tracing; the canvas stays chrome-free. */}
           {CURVABLE.has(tool) && (
             <div style={{ display: "flex", gap: 0, marginBottom: 8, border: "1px solid var(--ink-faint)" }}
-              title="Straight places corners. Curve takes two clicks — one anywhere ON the bow, then its far end — and lays the unique circle through those and the vertex you were on, so it sits on a radius wall instead of near it. Switch as often as you like inside one measurement: Q flips it once a trace is going, and ⌥-click always places the OTHER kind for one point.">
-              {[["straight", "Straight", "╱"], ["curve", "Curve", "⌒"]].map(([k, label, glyph]) => {
+              title="Az Egyenes sarkokat helyez el. Az Ívhez kattints egy pontra az íven, majd a távolabbi végpontjára. A Q vált a két mód között; az ⌥-kattintás egyetlen pontra megfordítja a módot.">
+              {[["straight", "Egyenes", "╱"], ["curve", "Ív", "⌒"]].map(([k, label, glyph]) => {
                 const on = (k === "curve") === curveMode;
                 return (
                   <button key={k} onClick={() => setCurveMode(k === "curve")}
@@ -9687,12 +9689,12 @@ export default function TakeoffCanvas() {
             const sf = pos.reduce((n, r) => n + r.area_sf, 0) - neg.reduce((n, r) => n + r.area_sf, 0);
             return (
               <>
-                <div style={{ fontSize: 22, fontWeight: 700, color: "var(--cobalt)" }}>{num(areaVal(sf, units))} <span style={{ fontSize: 13, fontWeight: 600 }}>{areaUnit(units)} selected</span></div>
-                <div style={{ fontSize: 12.5, color: "var(--ink-secondary)", marginTop: 2 }}>{pos.length} space{pos.length === 1 ? "" : "s"}{neg.length ? ` − ${neg.length} cutout${neg.length === 1 ? "" : "s"}` : ""}{units === "metric" ? "" : ` · ${num(sf / 9)} SY`}</div>
-                <div style={{ fontSize: 11.5, color: "var(--ink-muted)", marginTop: 4 }}>{ocSel ? "drag to move · Delete drops this point · Esc deselects" : "hover a fill to edit: drag a corner or edge · shift-click an edge adds a point"}</div>
-                <div style={{ fontSize: 11.5, color: "var(--ink-muted)", marginTop: 2 }}>click adds a space · ⌥-click carves a cutout · ⏎ Create · ⌫ undo · Esc cancel</div>
+                <div style={{ fontSize: 22, fontWeight: 700, color: "var(--cobalt)" }}>{num(areaVal(sf, units))} <span style={{ fontSize: 13, fontWeight: 600 }}>{areaUnit(units)} kijelölve</span></div>
+                <div style={{ fontSize: 12.5, color: "var(--ink-secondary)", marginTop: 2 }}>{pos.length} terület{neg.length ? ` − ${neg.length} kivonás` : ""}{units === "metric" ? "" : ` · ${num(sf / 9)} SY`}</div>
+                <div style={{ fontSize: 11.5, color: "var(--ink-muted)", marginTop: 4 }}>{ocSel ? "húzás: mozgatás · Delete: pont törlése · Esc: kijelölés megszüntetése" : "szerkesztéshez mutass a kitöltésre; húzd a sarkot vagy élet; ⇧-kattintással pontot adhatsz az élhez"}</div>
+                <div style={{ fontSize: 11.5, color: "var(--ink-muted)", marginTop: 2 }}>kattintás: terület hozzáadása · ⌥-kattintás: kivonás · ⏎: létrehozás · ⌫: visszavonás · Esc: mégse</div>
                 {proposal.regions.some((r) => r.rt) && (
-                  <div style={{ fontSize: 11.5, color: "var(--c-warning)", marginTop: 4 }}>Traced from scan pixels — verify edges before Create.</div>
+                  <div style={{ fontSize: 11.5, color: "var(--c-warning)", marginTop: 4 }}>Szkennelt képből felismerve; létrehozás előtt ellenőrizd a széleket.</div>
                 )}
               </>
             );
@@ -9701,26 +9703,26 @@ export default function TakeoffCanvas() {
               const liveLF = openLen(curveIdx.length ? flattenArcRing(poly, curveIdx, false) : poly) * liveUpp;
               return condH > 0 ? (
                 <>
-                  <div style={{ fontSize: 22, fontWeight: 700, color: "var(--ink)" }}>{num(areaVal(liveLF * condH, units))} <span style={{ fontSize: 13, fontWeight: 600 }}>{areaUnit(units)} wall</span></div>
+                  <div style={{ fontSize: 22, fontWeight: 700, color: "var(--ink)" }}>{num(areaVal(liveLF * condH, units))} <span style={{ fontSize: 13, fontWeight: 600 }}>{areaUnit(units)} fal</span></div>
                   <div style={{ fontSize: 12.5, color: "var(--ink-secondary)", marginTop: 2 }}>{fl(liveLF)} × {num(condH, 2)} ft</div>
                 </>
-              ) : <div style={{ fontSize: 12.5, color: "var(--c-danger)" }}>Set a height for {aCond?.finish_tag || "this condition"} — H in the condition editor</div>;
+              ) : <div style={{ fontSize: 12.5, color: "var(--c-danger)" }}>Adj meg magasságot ehhez: {aCond?.finish_tag || "a tétel"}. A tételszerkesztőben a H mezőt használd.</div>;
             })()
           ) : tool === "zone" && poly.length >= 1 ? (
             zoneTraceCross ? (
-              <span style={{ color: "var(--c-danger)", fontSize: 12.5 }}>Zone on one sheet — that point landed on a different sheet. Finish is disabled; Esc or Undo last point to fix it.</span>
+              <span style={{ color: "var(--c-danger)", fontSize: 12.5 }}>A zónát egy tervlapon belül rajzold meg. Az utolsó pont másik tervlapra került; az Esc vagy az utolsó pont visszavonása javítja.</span>
             ) : (
               <>
-                {liveArea != null && poly.length >= 3 && <div style={{ fontSize: 22, fontWeight: 700, color: "var(--cobalt)" }}>{num(areaVal(liveArea, units))} <span style={{ fontSize: 13, fontWeight: 600 }}>{areaUnit(units)} in zone</span></div>}
-                <div style={{ fontSize: 11.5, color: "var(--ink-muted)", marginTop: 4 }}>⏎, double-click, or the Finish button closes the zone and lists everything inside · Esc cancels</div>
+                {liveArea != null && poly.length >= 3 && <div style={{ fontSize: 22, fontWeight: 700, color: "var(--cobalt)" }}>{num(areaVal(liveArea, units))} <span style={{ fontSize: 13, fontWeight: 600 }}>{areaUnit(units)} a zónában</span></div>}
+                <div style={{ fontSize: 11.5, color: "var(--ink-muted)", marginTop: 4 }}>Az ⏎, a dupla kattintás vagy a Lezárás gomb bezárja a zónát és felsorolja a tartalmát; az Esc megszakítja.</div>
               </>
             )
           ) : liveArea != null && poly.length >= 3 ? (
             <>
               <div style={{ fontSize: 22, fontWeight: 700, color: tool === "deduct" ? "var(--c-danger)" : "var(--ink)" }}>{tool === "deduct" ? "−" : ""}{num(areaVal(liveArea, units))} <span style={{ fontSize: 13, fontWeight: 600 }}>{areaUnit(units)}</span></div>
-              <div style={{ fontSize: 12.5, color: "var(--ink-secondary)", marginTop: 2 }}>{units === "metric" ? `${fl(livePerim)} perim` : `${num(liveArea / 9)} SY  ·  ${num(livePerim)} LF perim`}</div>
+              <div style={{ fontSize: 12.5, color: "var(--ink-secondary)", marginTop: 2 }}>{units === "metric" ? `${fl(livePerim)} kerület` : `${num(liveArea / 9)} SY  ·  ${num(livePerim)} LF kerület`}</div>
               {condH > 0 && <div style={{ fontSize: 11.5, color: "var(--ink-muted)", marginTop: 2 }}>@H {num(heightVal(condH, units), 2)}{units === "metric" ? " m" : "′"}: {fa(livePerim * condH)} vert{units === "metric" ? "" : ` · ${num((liveArea * condH) / 27)} CY`}</div>}
-              {CURVABLE.has(tool) && <div style={{ fontSize: 11.5, color: "var(--ink-muted)", marginTop: 4 }}>{bowOpen ? "Bow set — click the far END of the arc" : curveMode && poly.length ? "Click a point ON the bow, then its far end" : curveIdx.length ? `${curveIdx.length} arc${curveIdx.length === 1 ? "" : "s"} — each one a true circle through 3 points` : "Q or the switch above draws an arc · ⌥-click flips one point"}</div>}
+              {CURVABLE.has(tool) && <div style={{ fontSize: 11.5, color: "var(--ink-muted)", marginTop: 4 }}>{bowOpen ? "Az ív pontja megadva; kattints az ív távolabbi végpontjára" : curveMode && poly.length ? "Kattints egy pontra az íven, majd a távolabbi végpontjára" : curveIdx.length ? `${curveIdx.length} ív · mindegyik három ponton átmenő körív` : "A Q vagy a fenti kapcsoló ívet rajzol; az ⌥-kattintás egy pontra módot vált"}</div>}
             </>
           ) : selShape ? (
             // #283 — a FINISHED takeoff reads the same as it did mid-trace.
@@ -9736,55 +9738,55 @@ export default function TakeoffCanvas() {
                 <div style={{ fontSize: 22, fontWeight: 700, color: col || "var(--ink)" }}>{txt} <span style={{ fontSize: 13, fontWeight: 600 }}>{unit}</span></div>
               );
               const sub = (txt) => <div style={{ fontSize: 12.5, color: "var(--ink-secondary)", marginTop: 2 }}>{txt}</div>;
-              const foot = <div style={{ fontSize: 11.5, color: "var(--ink-muted)", marginTop: 4 }}>{shTag} · selected{selShape.origin === "agent" ? " · agent" : ""}</div>;
+              const foot = <div style={{ fontSize: 11.5, color: "var(--ink-muted)", marginTop: 4 }}>{shTag} · kijelölve{selShape.origin === "agent" ? " · AI" : ""}</div>;
               if (selShape.measure_role === "count") return <>{big(num(c.count || 1, 0), "EA")}{foot}</>;
               if (selShape.measure_role === "linear") {
-                return <>{big(num(lenVal(lf, units)), lenUnit(units))}{a > 0 ? sub(`${fa(a)} border`) : null}{foot}</>;
+                return <>{big(num(lenVal(lf, units)), lenUnit(units))}{a > 0 ? sub(`${fa(a)} szegély`) : null}{foot}</>;
               }
               if (selShape.measure_role === "surface_area") {
                 const h = selShape.height_override === true
                   ? Number(selShape.height_ft) || 0
                   : Number(selShape.height_ft) || Number(condById[selShape.condition_id]?.height_ft) || 0;
-                return <>{big(num(areaVal(a, units)), `${areaUnit(units)} wall`)}{sub(`${fl(lf)} × ${num(heightVal(h, units), 2)}${units === "metric" ? " m" : " ft"}`)}{foot}</>;
+                return <>{big(num(areaVal(a, units)), `${areaUnit(units)} fal`)}{sub(`${fl(lf)} × ${num(heightVal(h, units), 2)}${units === "metric" ? " m" : " ft"}`)}{foot}</>;
               }
               const ded = selShape.measure_role === "deduct";
               return (
                 <>
                   {big(`${ded ? "−" : ""}${num(areaVal(a, units))}`, areaUnit(units), ded ? "var(--c-danger)" : undefined)}
-                  {sub(units === "metric" ? `${fl(lf)} perim` : `${num(a / 9)} SY  ·  ${num(lf)} LF perim`)}
+                  {sub(units === "metric" ? `${fl(lf)} kerület` : `${num(a / 9)} SY  ·  ${num(lf)} LF kerület`)}
                   {foot}
                 </>
               );
             })()
           ) : (
-            <div style={{ fontSize: 12.5, opacity: 0.6 }}>{!unitsPerPx ? "Set scale first" : tool === "zone" ? "Trace a region (an apartment, a wing) — ⏎ closes it and lists every condition inside" : !activeCond ? "Pick a condition" : tool === "oneclick" ? "Click inside a room — it selects itself" : tool === "surface" ? "Trace the wall run" : "Click to trace an area"}</div>
+            <div style={{ fontSize: 12.5, opacity: 0.6 }}>{!unitsPerPx ? "Előbb állítsd be a méretarányt" : tool === "zone" ? "Rajzolj körbe egy területet; az ⏎ lezárja és felsorolja a benne lévő tételeket" : !activeCond ? "Válassz egy tételt" : tool === "oneclick" ? "Kattints egy helyiség belsejébe az automatikus kijelöléshez" : tool === "surface" ? "Rajzold végig a falszakaszt" : "Kattints a terület körberajzolásához"}</div>
           )}
           {selShape?.measure_role === "surface_area" && (
-            <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 8 }} title="Height for THIS wall only — full-height tile here, 4-ft wainscot there, same condition. ↺ returns to the condition height.">
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 8 }} title="Csak ennek a falnak a magassága. A ↺ visszaállítja a tétel alapértelmezett magasságát.">
               <Icon name="height" size={12} />
-              <span style={{ fontSize: 11, color: "var(--ink-muted)" }}>this wall</span>
+              <span style={{ fontSize: 11, color: "var(--ink-muted)" }}>ez a fal</span>
               <input name="shape-height-ft" type="number" min="0" step={heightStep(units)} value={shapeHDraft ?? dimInputStr(selShape.height_ft, units, "height")}
                 onChange={(e) => { setShapeHDraft(e.target.value); setShapeHeight(e.target.value); }}
                 onBlur={() => { if (shapeHDraft != null) setShapeHeight(shapeHDraft); setShapeHDraft(null); }}
                 style={{ width: 56, padding: "2px 5px", border: "1px solid var(--ink-faint)", fontSize: 12 }} />
               <span style={{ fontSize: 11, color: "var(--ink-muted)" }}>{heightUnit(units)} → {fa(selShape.computed?.area_sf || 0)}</span>
               {condH > 0 && Number(selShape.height_ft) !== condH && (
-                <button onClick={clearShapeHeight} title="Set this wall to the condition height" style={{ border: "none", background: "none", cursor: "pointer", color: "var(--ink-muted)", padding: 0 }}>↺</button>
+                <button onClick={clearShapeHeight} title="Fal visszaállítása a tétel magasságára" style={{ border: "none", background: "none", cursor: "pointer", color: "var(--ink-muted)", padding: 0 }}>↺</button>
               )}
             </div>
           )}
           <div style={{ height: 1, background: "var(--divider-soft)", margin: "8px 0" }} />
-          <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: 0.4, opacity: 0.5 }}>{aCond?.finish_tag || "—"} total ({condRow?.shape_count || 0}{condMult > 1 ? ` ×${condMult}` : ""})</div>
+          <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: 0.4, opacity: 0.5 }}>{aCond?.finish_tag || "—"} összesen ({condRow?.shape_count || 0}{condMult > 1 ? ` ×${condMult}` : ""})</div>
           {condTotal !== 0 && <div style={{ fontSize: 15, fontWeight: 700, marginTop: 2 }}>{num(areaVal(condTotal, units))} <span style={{ fontSize: 12, fontWeight: 600 }}>{areaUnit(units)}</span> {units === "imperial" && <span style={{ fontSize: 12, fontWeight: 500, color: "var(--ink-secondary)" }}>· {num(condTotal / 9)} SY</span>}</div>}
-          {wallTotal > 0 && <div style={{ fontSize: 15, fontWeight: 700, marginTop: 2 }}>{num(areaVal(wallTotal, units))} <span style={{ fontSize: 12, fontWeight: 600 }}>{areaUnit(units)} wall</span></div>}
-          {borderTotal > 0 && <div style={{ fontSize: 15, fontWeight: 700, marginTop: 2 }}>{num(areaVal(borderTotal, units))} <span style={{ fontSize: 12, fontWeight: 600 }}>{areaUnit(units)} border</span></div>}
+          {wallTotal > 0 && <div style={{ fontSize: 15, fontWeight: 700, marginTop: 2 }}>{num(areaVal(wallTotal, units))} <span style={{ fontSize: 12, fontWeight: 600 }}>{areaUnit(units)} fal</span></div>}
+          {borderTotal > 0 && <div style={{ fontSize: 15, fontWeight: 700, marginTop: 2 }}>{num(areaVal(borderTotal, units))} <span style={{ fontSize: 12, fontWeight: 600 }}>{areaUnit(units)} szegély</span></div>}
           {lfTotal > 0 && <div style={{ fontSize: 15, fontWeight: 700, marginTop: 2 }}>{num(lenVal(lfTotal, units))} <span style={{ fontSize: 12, fontWeight: 600 }}>{lenUnit(units)}</span></div>}
           {countTotal > 0 && <div style={{ fontSize: 15, fontWeight: 700, marginTop: 2 }}>{num(countTotal, 0)} <span style={{ fontSize: 12, fontWeight: 600 }}>EA</span></div>}
-          {vertTotal > 0 && <div style={{ fontSize: 11.5, color: "var(--ink-muted)", marginTop: 2 }} title="Display only — floor-area perimeters × this condition's height (not committed)">{fa(vertTotal)} vert (perim × H)</div>}
+          {vertTotal > 0 && <div style={{ fontSize: 11.5, color: "var(--ink-muted)", marginTop: 2 }} title="Csak megjelenített érték: alapterületi kerület × a tétel magassága; nincs mentve">{fa(vertTotal)} függőleges (kerület × H)</div>}
           {condTotal === 0 && lfTotal === 0 && countTotal === 0 && wallTotal === 0 && borderTotal === 0 && <div style={{ fontSize: 12.5, color: "var(--ink-muted)", marginTop: 2 }}>—</div>}
           {tally.length > 0 && (
             <>
-              <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: 0.4, opacity: 0.5, marginTop: 8 }}>Measurements</div>
+              <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: 0.4, opacity: 0.5, marginTop: 8 }}>Mérések</div>
               <div style={{ fontFamily: "var(--f-mono)", fontSize: 11.5, lineHeight: 1.5, marginTop: 2 }}>
                 {tally.map((r) => (
                   <div key={r.id} style={{ display: "flex", gap: 6, whiteSpace: "nowrap" }}>
@@ -9793,14 +9795,14 @@ export default function TakeoffCanvas() {
                       {fl(r.lf)}
                       {r.role === "wall"
                         ? <> × {num(heightVal(r.h, units), 2)} {heightUnit(units)} = {fa(r.sf)}</>
-                        : <span style={{ color: "var(--ink-muted)" }}> linear</span>}
+                        : <span style={{ color: "var(--ink-muted)" }}> hossz</span>}
                     </span>
                   </div>
                 ))}
               </div>
             </>
           )}
-          <div style={{ fontSize: 10.5, opacity: 0.45, marginTop: 6 }}>{visibleShapes.length} shapes on {groupKeys.length > 1 ? `${groupKeys.length} sheets` : "sheet"} · zoom {(tf.scale * 100).toFixed(0)}%</div>
+          <div style={{ fontSize: 10.5, opacity: 0.45, marginTop: 6 }}>{visibleShapes.length} alakzat {groupKeys.length > 1 ? `${groupKeys.length} tervlapon` : "a tervlapon"} · nagyítás {(tf.scale * 100).toFixed(0)}%</div>
         </div>
 
         {/* zone check results — ephemeral, clears with the tool/outline. Docked at
@@ -9813,18 +9815,18 @@ export default function TakeoffCanvas() {
         {zoneRows && (
           <div style={{ position: "absolute", right: 56, bottom: 14, width: 300, maxHeight: "calc(100% - 28px)", overflowY: "auto", background: "var(--paper-bright)", border: "1px solid var(--ink-faint)", borderRadius: 0, boxShadow: "0 6px 22px rgba(0,0,0,.16)", zIndex: 7, fontSize: 12.5, fontVariantNumeric: "tabular-nums" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "9px 12px", borderBottom: "1px solid var(--ink-faint)" }}>
-              <b style={{ fontSize: 12.5 }}>Zone check</b>
-              <span style={{ fontFamily: "var(--f-mono)", fontSize: 9.5, color: "var(--ink-muted)" }}>nothing saved</span>
+              <b style={{ fontSize: 12.5 }}>Zónaellenőrzés</b>
+              <span style={{ fontFamily: "var(--f-mono)", fontSize: 9.5, color: "var(--ink-muted)" }}>nincs mentve</span>
               <button onClick={resetZone} style={{ marginLeft: "auto", border: "none", background: "none", cursor: "pointer", fontSize: 15, lineHeight: 1, color: "var(--ink)" }}>×</button>
             </div>
             {zoneRows.length === 0 && (
-              <div style={{ padding: "10px 12px", color: "var(--ink-muted)", fontSize: 11.5 }}>No takeoffs inside this zone on this sheet.</div>
+              <div style={{ padding: "10px 12px", color: "var(--ink-muted)", fontSize: 11.5 }}>Ezen a tervlapon nincs tervmérés a zónán belül.</div>
             )}
             {zoneRows.map((zr) => {
               const parts = [];
               if (zr.floor_sf) parts.push(fa(zr.floor_sf));
-              if (zr.wall_sf) parts.push(`${fa(zr.wall_sf)} wall`);
-              if (zr.border_sf) parts.push(`${fa(zr.border_sf)} border`);
+              if (zr.wall_sf) parts.push(`${fa(zr.wall_sf)} fal`);
+              if (zr.border_sf) parts.push(`${fa(zr.border_sf)} szegély`);
               if (zr.lf) parts.push(fl(zr.lf));
               if (zr.ea) parts.push(`${num(zr.ea, 0)} EA`);
               const open = zoneExpand === zr.id;
@@ -9839,7 +9841,7 @@ export default function TakeoffCanvas() {
                   {zr.materials.length > 0 && (
                     <button onClick={() => setZoneExpand(open ? null : zr.id)}
                       style={{ marginTop: 4, padding: 0, border: "none", background: "none", cursor: "pointer", fontSize: 10.5, color: "var(--ink-muted)" }}>
-                      {open ? "▾" : "▸"} materials · {zr.materials.length}
+                      {open ? "▾" : "▸"} anyagok · {zr.materials.length}
                     </button>
                   )}
                   {open && zr.materials.map((m, i) => (
@@ -9852,8 +9854,8 @@ export default function TakeoffCanvas() {
               );
             })}
             <div style={{ padding: "7px 12px", fontSize: 10, color: "var(--ink-muted)" }}>
-              Shapes counted by their center point · same sheet only · counted shapes glow cobalt.
-              {zoneRows.some((r) => (r.multiplier || 1) > 1) && <> Rows marked ×N already have the condition's multiplier applied — the same convention as the Report's Groups section, not its base-quantity by-sheet rows.</>}
+              Az alakzatok a középpontjuk alapján számítanak · csak azonos tervlapon · a beszámított alakzatok kéken világítanak.
+              {zoneRows.some((r) => (r.multiplier || 1) > 1) && <> Az ×N jelű sorok már tartalmazzák a tétel szorzóját.</>}
               {/* A deduct classifies by its OWN center, independent of its positive
                   area's center (same rule the Report's by-sheet "negative slices"
                   note already documents for a cross-sheet split) — a zone edge
@@ -9862,7 +9864,7 @@ export default function TakeoffCanvas() {
                   link is never stored, only inferred by overlap, and geometric
                   containment pairing would guess wrong for nested/overlapping
                   positives. */}
-              {zoneRows.some((r) => r.total_sf < 0 || r.floor_sf < 0) && <> A negative row means a deduct here counted but its positive area's center fell outside the zone (or vice-versa) — the zone edge split a deduct from its shape.</>}
+              {zoneRows.some((r) => r.total_sf < 0 || r.floor_sf < 0) && <> A negatív sor azt jelzi, hogy a zónahatár különválasztotta a kivonást az alapul szolgáló területtől.</>}
             </div>
           </div>
         )}
@@ -10025,10 +10027,10 @@ export default function TakeoffCanvas() {
       {loadError && (
         <div style={{ position: "absolute", top: 12, left: "50%", transform: "translateX(-50%)", zIndex: 60, display: "flex", alignItems: "center", gap: 12, maxWidth: 640, padding: "10px 14px", background: "var(--paper-bright)", border: "1px solid var(--c-danger)", boxShadow: "var(--shadow-2)", fontSize: 12.5, color: "var(--ink)" }}>
           <span>
-            <strong style={{ color: "var(--c-danger)" }}>Couldn't load this project's saved takeoff</strong> ({loadError}).
-            Autosave is paused so nothing overwrites your saved work — reload the tab to retry.
+            <strong style={{ color: "var(--c-danger)" }}>A projekt mentett tervmérése nem tölthető be</strong> ({loadError}).
+            Az automatikus mentés szünetel, így nem írja felül a korábbi munkát. Az újrapróbáláshoz töltsd újra a lapot.
           </span>
-          <button onClick={() => window.location.reload()} style={{ whiteSpace: "nowrap", padding: "6px 12px", border: "1px solid var(--ink-faint)", background: "var(--paper-bright)", cursor: "pointer", fontSize: 12 }}>Reload</button>
+          <button onClick={() => window.location.reload()} style={{ whiteSpace: "nowrap", padding: "6px 12px", border: "1px solid var(--ink-faint)", background: "var(--paper-bright)", cursor: "pointer", fontSize: 12 }}>Újratöltés</button>
         </div>
       )}
 
@@ -10090,27 +10092,27 @@ export default function TakeoffCanvas() {
         return (
           <div style={{ position: "fixed", right: 12, top: "calc(var(--topbar-h) + 12px)", width: 288, zIndex: Z.popover, background: "var(--paper-cream)", border: "1px solid var(--ink-faint)", boxShadow: "var(--shadow-pop)", display: "flex", flexDirection: "column", fontSize: "var(--fs-m)" }}>
             <div style={{ display: "flex", alignItems: "baseline", gap: 8, padding: "10px 12px", borderBottom: "1px solid var(--ink-faint)" }}>
-              <span className="field-label">SYMBOL SWEEP</span>
+              <span className="field-label">SZIMBÓLUMKERESÉS</span>
               <span style={{ flex: 1 }} />
               {sweep.complete
-                ? <span style={{ fontFamily: "var(--f-mono)", fontSize: "var(--fs-2xs)", letterSpacing: ".1em", color: "var(--c-positive)", border: "1px solid var(--c-positive)", padding: "2px 6px" }}>COMPLETE</span>
-                : <span style={{ fontFamily: "var(--f-mono)", fontSize: "var(--fs-2xs)", letterSpacing: ".1em", color: "#fff", background: "var(--c-warning)", padding: "3px 6px" }}>FLOOR — NOT A TOTAL</span>}
+                ? <span style={{ fontFamily: "var(--f-mono)", fontSize: "var(--fs-2xs)", letterSpacing: ".1em", color: "var(--c-positive)", border: "1px solid var(--c-positive)", padding: "2px 6px" }}>TELJES</span>
+                : <span style={{ fontFamily: "var(--f-mono)", fontSize: "var(--fs-2xs)", letterSpacing: ".1em", color: "#fff", background: "var(--c-warning)", padding: "3px 6px" }}>RÉSZEREDMÉNY</span>}
             </div>
             {sweep.seed.segments <= 3 && (
               <div style={{ padding: "8px 12px", background: "var(--tint-select)", color: "var(--ink)", fontSize: "var(--fs-s)", lineHeight: 1.45 }}>
-                The seed is only {sweep.seed.segments} segment(s) — likely a FRAGMENT, and fragments match everywhere (every square corner reads as one). Marquee the whole symbol.
+                A minta csak {sweep.seed.segments} szakaszból áll, ezért valószínűleg töredék, amely sok helyen tévesen egyezhet. Jelöld ki a teljes szimbólumot.
               </div>
             )}
             {!sweep.complete && (
               <div style={{ padding: "8px 12px", background: "var(--c-warning)", color: "#fff", fontSize: "var(--fs-s)", lineHeight: 1.45 }}>
-                {sweep.dropped} placement(s) were never scored — tighten the marquee around more distinctive linework before trusting this as a total.
+                {sweep.dropped} előfordulás nem kapott értékelést. Szűkítsd a kijelölést jellegzetesebb vonalrajzra, mielőtt végösszegként használod.
               </div>
             )}
             <div style={{ padding: "10px 12px", display: "flex", flexDirection: "column", gap: 8 }}>
-              <div><b style={{ fontFamily: "var(--f-display)", fontSize: "var(--fs-xl)" }}>{matchN}</b> of {sweep.matches.length} matched will commit{mLine && tagGroups.length <= 1 ? <span style={{ color: "var(--ink-soft)" }}> — {mLine}</span> : null}</div>
+              <div><b style={{ fontFamily: "var(--f-display)", fontSize: "var(--fs-xl)" }}>{matchN}</b> / {sweep.matches.length} egyezés kerül rögzítésre{mLine && tagGroups.length <= 1 ? <span style={{ color: "var(--ink-soft)" }}> — {mLine}</span> : null}</div>
               {tagGroups.length > 1 && (
                 <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-                  <div className="field-label">BY LABEL — UNTICK A TAG TO EXCLUDE IT</div>
+                  <div className="field-label">CÍMKE SZERINT — KIKAPCSOLÁSSAL KIHAGYHATÓ</div>
                   {tagGroups.map((g) => {
                     const isSeedTag = seedTag && g.tag === seedTag;
                     const isOff = offSet.has(g.tag);
@@ -10118,38 +10120,38 @@ export default function TakeoffCanvas() {
                       <label key={g.tag} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: "var(--fs-s)", cursor: "pointer", color: isOff ? "var(--text-faint)" : !isSeedTag && g.tag !== "\u2205" ? "var(--c-warning)" : "var(--ink)" }}>
                         <input type="checkbox" checked={!isOff}
                           onChange={() => setSweep((sw2) => ({ ...sw2, excludedTags: isOff ? sw2.excludedTags.filter((t) => t !== g.tag) : [...sw2.excludedTags, g.tag] }))} />
-                        <span style={{ fontFamily: "var(--f-mono)", fontWeight: 600 }}>{g.tag === "\u2205" ? "no label" : g.tag}</span>
+                        <span style={{ fontFamily: "var(--f-mono)", fontWeight: 600 }}>{g.tag === "\u2205" ? "nincs címke" : g.tag}</span>
                         <span>×{g.n}</span>
-                        {isSeedTag && <span style={{ fontSize: "var(--fs-2xs)", color: "var(--ink-muted)" }}>seed's tag</span>}
-                        {!isSeedTag && g.tag !== "\u2205" && !isOff && <span style={{ fontSize: "var(--fs-2xs)" }}>different device?</span>}
+                        {isSeedTag && <span style={{ fontSize: "var(--fs-2xs)", color: "var(--ink-muted)" }}>a minta címkéje</span>}
+                        {!isSeedTag && g.tag !== "\u2205" && !isOff && <span style={{ fontSize: "var(--fs-2xs)" }}>másik elem?</span>}
                       </label>
                     );
                   })}
                 </div>
               )}
-              {unlabeled > 0 && tagGroups.length <= 1 && <div style={{ fontSize: "var(--fs-s)", color: "var(--c-warning)" }}>{unlabeled} match(es) carry no label while this family is labeled — look at those first.</div>}
-              <div><b style={{ fontFamily: "var(--f-display)", fontSize: "var(--fs-xl)", color: openQ ? "var(--c-warning)" : "var(--ink)" }}>{sweep.questions.length}</b> question(s){openQ ? <span style={{ color: "var(--ink-soft)" }}> — ↵ accept · X dismiss · → next</span> : <span style={{ color: "var(--ink-soft)" }}> — all answered</span>}</div>
+              {unlabeled > 0 && tagGroups.length <= 1 && <div style={{ fontSize: "var(--fs-s)", color: "var(--c-warning)" }}>{unlabeled} egyezésnek nincs címkéje, miközben a mintának van. Ezeket ellenőrizd először.</div>}
+              <div><b style={{ fontFamily: "var(--f-display)", fontSize: "var(--fs-xl)", color: openQ ? "var(--c-warning)" : "var(--ink)" }}>{sweep.questions.length}</b> kérdés{openQ ? <span style={{ color: "var(--ink-soft)" }}> — ↵ elfogadás · X elvetés · → következő</span> : <span style={{ color: "var(--ink-soft)" }}> — mind megválaszolva</span>}</div>
               {sweep.questions.length > 0 && (
                 <div style={{ display: "flex", flexDirection: "column", gap: 4, maxHeight: 150, overflowY: "auto" }}>
                   {sweep.questions.map((q, i) => (
                     <button key={i} type="button" onClick={() => setSweep((s) => ({ ...s, qIndex: i }))}
                       style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 8px", fontFamily: "var(--f-body)", fontSize: "var(--fs-s)", textAlign: "left", background: i === sweep.qIndex ? "var(--tint-select)" : "transparent", border: `1px solid ${i === sweep.qIndex ? "var(--c-warning)" : "var(--ink-faint)"}`, color: q.state === "dismissed" ? "var(--text-faint)" : "var(--ink)", textDecoration: q.state === "dismissed" ? "line-through" : "none", cursor: "pointer" }}>
                       <span style={{ fontFamily: "var(--f-mono)", fontWeight: 700, color: q.state === "accepted" ? "var(--c-positive)" : q.state === "dismissed" ? "var(--text-faint)" : DS.symbol.question }}>{q.state === "accepted" ? "✓" : q.state === "dismissed" ? "×" : "?"}</span>
-                      <span>{Math.round(q.score * 100)}%{q.label ? ` · ${q.label.label}` : ""}{q.readings > 1 ? ` · read ${q.readings} ways` : ""}</span>
+                      <span>{Math.round(q.score * 100)}%{q.label ? ` · ${q.label.label}` : ""}{q.readings > 1 ? ` · ${q.readings} módon felismerve` : ""}</span>
                     </button>
                   ))}
                 </div>
               )}
               <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: "var(--fs-s)", cursor: "pointer" }}>
                 <input type="checkbox" checked={sweep.includeSeed} onChange={(e) => setSweep((s) => ({ ...s, includeSeed: e.target.checked }))} />
-                <span>Count the seed{seedTag ? <span> — drawing says <b style={{ fontFamily: "var(--f-mono)" }}>{seedTag}</b></span> : null}</span>
+                <span>A minta beleszámít{seedTag ? <span> — a terven: <b style={{ fontFamily: "var(--f-mono)" }}>{seedTag}</b></span> : null}</span>
               </label>
             </div>
             <div style={{ padding: "10px 12px", borderTop: "1px solid var(--ink-faint)", display: "flex", flexDirection: "column", gap: 6 }}>
               <button type="button" className="btn-primary" onClick={commitSweep} style={{ justifyContent: "center" }}>
-                Commit {commitN} as {condById[activeCond]?.finish_tag || "…"}
+                {commitN} darab rögzítése ehhez: {condById[activeCond]?.finish_tag || "…"}
               </button>
-              <button type="button" className="btn-ghost" onClick={() => setSweep(null)} style={{ justifyContent: "center" }}>Discard (Esc)</button>
+              <button type="button" className="btn-ghost" onClick={() => setSweep(null)} style={{ justifyContent: "center" }}>Elvetés (Esc)</button>
             </div>
           </div>
         );
@@ -10167,8 +10169,8 @@ export default function TakeoffCanvas() {
           </span>
         )}
         <span style={{ marginLeft: "auto", display: "flex", gap: 12, opacity: 0.75 }} aria-live="polite">
-          <span>{shapes.filter((s) => panelKeySet.has(s.sheet_id)).length} shapes</span>
-          <span>{cloudMode ? "drive" : "local"}{saveState === "saving" ? " · saving…" : saveState === "saved" ? " · saved" : ""}</span>
+          <span>{shapes.filter((s) => panelKeySet.has(s.sheet_id)).length} alakzat</span>
+          <span>{cloudMode ? "Drive" : "helyi"}{saveState === "saving" ? " · mentés…" : saveState === "saved" ? " · mentve" : ""}</span>
         </span>
       </footer>
       {/* BYO-key AI settings — the single config surface for the ai.js seam
