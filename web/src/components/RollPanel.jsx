@@ -113,10 +113,10 @@ export default function RollPanel({
     <div style={{ width: 320, flexShrink: 0, display: "flex", flexDirection: "column", borderLeft: "1px solid var(--ink-faint)", background: "var(--paper-bright)", overflow: "hidden", minHeight: 0 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "9px 12px", background: "var(--ink)", color: "var(--paper-cream)" }}>
         <Icon name="roll" size={15} />
-        <strong style={{ flex: 1, fontSize: 12.5 }}>Roll goods</strong>
-        <button onClick={() => onShow(!show)} title="Draw the figured cuts over the plan" style={ctl(show)}>cuts</button>
-        <button onClick={() => onEdit(!edit)} title="Edit cuts on the plan — drag a cut along its lane, pull its ends to resize; double-click resets a cut to the figured layout" style={ctl(edit)}>edit</button>
-        <button onClick={onClose} title="Close panel" style={{ border: "none", background: "transparent", color: "var(--paper-cream)", fontSize: 16, cursor: "pointer", padding: "0 2px" }}>×</button>
+        <strong style={{ flex: 1, fontSize: 12.5 }}>Tekercses anyagok</strong>
+        <button onClick={() => onShow(!show)} title="Számított szabások megjelenítése a terven" style={ctl(show)}>szabások</button>
+        <button onClick={() => onEdit(!edit)} title="Szabások szerkesztése a terven" style={ctl(edit)}>szerkesztés</button>
+        <button onClick={onClose} title="Panel bezárása" style={{ border: "none", background: "transparent", color: "var(--paper-cream)", fontSize: 16, cursor: "pointer", padding: "0 2px" }}>×</button>
       </div>
       <div style={{ flex: 1, overflow: "auto", fontSize: 12 }}>
         {layouts.length === 0 && (
@@ -148,9 +148,9 @@ export default function RollPanel({
                 <RollDiagram ri={ri} editable onReorder={(ids) => onReorder(condId, ids)} />
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 2 }}>
-                <span style={{ fontSize: 10.5, color: "var(--ink-muted)" }}>Drag a cut on the roll to change the cutting order — the roll re-packs.</span>
+                <span style={{ fontSize: 10.5, color: "var(--ink-muted)" }}>A vágási sorrend módosításához húzd arrébb a szabást a tekercsen.</span>
                 <button onClick={() => onResetOrder(condId)} title="Clear the manual cutting order — the packer sequences widest-then-longest again"
-                  style={{ marginLeft: "auto", flexShrink: 0, padding: "2px 8px", border: "1px solid var(--ink-faint)", background: "transparent", color: "var(--ink-muted)", cursor: "pointer", fontSize: 10.5 }}>reset order</button>
+                  style={{ marginLeft: "auto", flexShrink: 0, padding: "2px 8px", border: "1px solid var(--ink-faint)", background: "transparent", color: "var(--ink-muted)", cursor: "pointer", fontSize: 10.5 }}>sorrend visszaállítása</button>
               </div>
               {/* the cut list — numbered in cutting order, with the piece and the room extent */}
               <div style={{ marginTop: 6 }}>

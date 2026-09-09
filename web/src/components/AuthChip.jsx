@@ -26,7 +26,7 @@ export default function AuthChip() {
       <span title={user.email} style={{ fontSize: 12, color: "var(--ink-muted)", maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
         {user.email}
       </span>
-      <button type="button" onClick={() => signOut()} title="Sign out"
+      <button type="button" onClick={() => signOut()} title="Kijelentkezés"
         style={{ ...base, padding: "5px 8px", color: "var(--ink-muted)" }}>
         Sign out
       </button>

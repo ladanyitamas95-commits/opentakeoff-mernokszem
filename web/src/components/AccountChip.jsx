@@ -25,12 +25,12 @@ export default function AccountChip({ note, onOpenChange }) {
 
   return (
     <ToolMenu
-      title={`Account — ${user.email}`}
+      title={`Fiók — ${user.email}`}
       onOpenChange={onOpenChange}
       faceStyle={{ padding: "4px 8px 4px 4px" }}
       menuStyle={{ minWidth: 224 }}
       face={
-        <span aria-label="Account" style={{
+        <span aria-label="Fiók" style={{
           width: 20, height: 20, background: "var(--cobalt)", color: "var(--paper-bright)",
           fontFamily: "var(--f-mono)", fontSize: 9, fontWeight: 700,
           display: "inline-flex", alignItems: "center", justifyContent: "center",
@@ -40,7 +40,7 @@ export default function AccountChip({ note, onOpenChange }) {
         { section: "Signed in" },
         { note: <>{user.email}{note ? <><br />{note}</> : null}</> },
         "divider",
-        { id: "signout", label: "Sign out", danger: true, title: "Sign out", onSelect: () => signOut() },
+        { id: "signout", label: "Kijelentkezés", danger: true, title: "Kijelentkezés", onSelect: () => signOut() },
       ]}
     />
   );

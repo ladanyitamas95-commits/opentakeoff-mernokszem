@@ -36,15 +36,15 @@ export const GETTERS = {
 // Table columns: order + header + default visibility. foot(g) fills the tfoot
 // cell from grandTotals(rows); undefined → blank. ref: never in the tfoot.
 export const TABLE_PROFILE = [
-  { key: "finish",        header: "Finish",     defaultVisible: true, locked: true },
-  { key: "shapes",        header: "Shapes",     defaultVisible: true },
-  { key: "floor_sf",      header: "Floor SF",   defaultVisible: true },
-  { key: "wall_sf",       header: "Wall SF",    defaultVisible: true },
-  { key: "border_sf",     header: "Border SF",  defaultVisible: true },
-  { key: "total_sf",      header: "Total SF",   defaultVisible: false, foot: (g) => g.total_sf },
+  { key: "finish",        header: "Tétel",       defaultVisible: true, locked: true },
+  { key: "shapes",        header: "Alakzatok",   defaultVisible: true },
+  { key: "floor_sf",      header: "Padló SF",    defaultVisible: true },
+  { key: "wall_sf",       header: "Fal SF",      defaultVisible: true },
+  { key: "border_sf",     header: "Szegély SF",  defaultVisible: true },
+  { key: "total_sf",      header: "Összes SF",   defaultVisible: false, foot: (g) => g.total_sf },
   { key: "lf",            header: "LF",         defaultVisible: true },
   { key: "ea",            header: "EA",         defaultVisible: true },
-  { key: "waste_pct",     header: "Waste",      defaultVisible: true },
+  { key: "waste_pct",     header: "Hulladék",   defaultVisible: true },
   { key: "total_sf_net",  header: "SF w/Waste", defaultVisible: true,  accent: true, foot: (g) => g.total_sf_net },
   { key: "sy_net",        header: "SY w/Waste", defaultVisible: true,  accent: true, foot: (g) => g.sy_net },
   // grandTotals output carries all four keys the waste getters read, so the
@@ -57,9 +57,9 @@ export const TABLE_PROFILE = [
 // CSV columns. The first 13 are the frozen v1 export (byte-stable, golden-
 // tested); opt-ins APPEND at the end — never reorder or rename the base 13.
 export const CSV_PROFILE = [
-  { key: "finish",       header: "Finish",              defaultVisible: true, locked: true },
-  { key: "shapes",       header: "Shapes",              defaultVisible: true },
-  { key: "multiplier",   header: "Multiplier",          defaultVisible: true },
+  { key: "finish",       header: "Tétel",                defaultVisible: true, locked: true },
+  { key: "shapes",       header: "Alakzatok",            defaultVisible: true },
+  { key: "multiplier",   header: "Szorzó",               defaultVisible: true },
   { key: "waste_pct",    header: "Waste %",             defaultVisible: true },
   { key: "floor_sf",     header: "Floor SF",            defaultVisible: true },
   { key: "wall_sf",      header: "Wall SF",             defaultVisible: true },
@@ -153,11 +153,11 @@ export function customColProfile(conditionColumns) {
 // APPENDED (never inserted) so existing spec-column order in shipped exports is
 // preserved when it's added.
 export const SPEC_FIELDS = [
-  { field: "manufacturer", header: "Manufacturer" },
-  { field: "style",        header: "Style" },
-  { field: "color",        header: "Spec Color" },
-  { field: "size",         header: "Size" },
-  { field: "description",  header: "Description" },
+  { field: "manufacturer", header: "Gyártó" },
+  { field: "style",        header: "Típus" },
+  { field: "color",        header: "Termékszín" },
+  { field: "size",         header: "Méret" },
+  { field: "description",  header: "Leírás" },
 ];
 
 // The one visible-string rule for a spec value — a string with visible content
@@ -197,8 +197,8 @@ export function specColProfile(conditions) {
 // least one condition carries a visible value — a project that never uses
 // them produces zero extra columns.
 export const LABOR_FIELDS = [
-  { field: "laborType", header: "Labor Type" },
-  { field: "subfloorType", header: "Subfloor Type" },
+  { field: "laborType", header: "Kivitelezési mód" },
+  { field: "subfloorType", header: "Aljzat típusa" },
 ];
 
 export function laborValue(labor, field) {
@@ -284,7 +284,7 @@ export function partitionRowsBy(rows, columnDef, attrsByCond) {
   for (const v of [...byValue.keys()].sort()) {
     groups.push({ value: v, label: v, rows: byValue.get(v) });
   }
-  if (nullRows.length) groups.push({ value: null, label: "Unassigned", rows: nullRows });
+  if (nullRows.length) groups.push({ value: null, label: "Nincs besorolva", rows: nullRows });
   return groups;
 }
 

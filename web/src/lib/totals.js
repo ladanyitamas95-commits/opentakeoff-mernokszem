@@ -224,7 +224,7 @@ export function labelGroupedRows(conditions, shapes, shapeLabels = [], ctx = nul
     const bucketShapes = byLabel.get(v);
     return {
       value: v || null,               // null = Unlabeled
-      label: v || "Unlabeled",
+      label: v || "Címke nélkül",
       rows: conditionTotals(conditions, bucketShapes, ctx).filter((r) => r.shape_count > 0),
       perimByCond: floorPerimeterLf(bucketShapes),
     };
@@ -256,7 +256,7 @@ export function authorGroupedRows(conditions, shapes, ctx = null) {
     const bucketShapes = byAuthor.get(v);
     return {
       value: v || null,             // null = Unattributed
-      label: v || "Unattributed",
+      label: v || "Szerző nélkül",
       rows: conditionTotals(conditions, bucketShapes, ctx).filter((r) => r.shape_count > 0),
       perimByCond: floorPerimeterLf(bucketShapes),
     };
@@ -410,7 +410,7 @@ export function totalsToCsv(rows, projectName = "", bySheet = null, sheetLabel =
   // reference figures never total). A metric descriptor carries `conv` so the
   // by-key reads convert exactly like the body cells.
   const foot = (c) => {
-    if (c.key === "finish") return "TOTAL";
+    if (c.key === "finish") return "ÖSSZESEN";
     // derived waste feet: same getter as the body cells (g carries all four inputs)
     const v = (c.key === "waste_sf" || c.key === "waste_lf") ? GETTERS[c.key](g) : (g[c.key] !== undefined ? g[c.key] : "");
     return c.conv && v !== "" ? c.conv(v) : v;
@@ -425,10 +425,10 @@ export function totalsToCsv(rows, projectName = "", bySheet = null, sheetLabel =
   for (const r of rows) for (const m of (r.materials || [])) perCond.push([r.finish_tag, m.name, m.qty, m.unit, `1 ${m.unit || "unit"} / ${m.per} ${basisLabel(m.basis)}`, m.note || ""]);
   if (perCond.length) {
     lines.push("");
-    lines.push(["Finish", "Material", "Qty", "Unit", "Coverage", "Note"].map(esc).join(","));
+    lines.push(["Tétel", "Anyag", "Mennyiség", "Egység", "Kiadósság", "Megjegyzés"].map(esc).join(","));
     for (const row of perCond) lines.push(row.map(esc).join(","));
     lines.push("");
-    lines.push(["Material (combined)", "Qty", "Unit"].map(esc).join(","));
+    lines.push(["Anyag (összesítve)", "Mennyiség", "Egység"].map(esc).join(","));
     for (const s of materialsSummary(rows)) lines.push([s.name, s.qty, s.unit].map(esc).join(","));
   }
 
@@ -437,7 +437,7 @@ export function totalsToCsv(rows, projectName = "", bySheet = null, sheetLabel =
   // because display labels are session-volatile.
   if (bySheet && bySheet.length) {
     lines.push("");
-    lines.push(["Sheet", "Sheet ID", "Finish", `Floor ${AU}`, `Wall ${AU}`, `Border ${AU}`, LU, "EA"].map(esc).join(","));
+    lines.push(["Tervlap", "Tervlapazonosító", "Tétel", `Padló ${AU}`, `Fal ${AU}`, `Szegély ${AU}`, LU, "db"].map(esc).join(","));
     for (const g of bySheet) {
       const label = sheetLabel ? sheetLabel(g.sheet_id) : g.sheet_id;
       for (const row of g.rows) {
@@ -456,9 +456,9 @@ export function totalsToCsv(rows, projectName = "", bySheet = null, sheetLabel =
   // CSV stays byte-identical.
   if (byLabel && byLabel.length) {
     lines.push("");
-    lines.push(["Label", "Finish", `Floor ${AU}`, `Wall ${AU}`, `Border ${AU}`, LU, "EA"].map(esc).join(","));
+    lines.push(["Címke", "Tétel", `Padló ${AU}`, `Fal ${AU}`, `Szegély ${AU}`, LU, "db"].map(esc).join(","));
     for (const g of byLabel) {
-      const name = g.value || "Unlabeled";
+      const name = g.value || "Címke nélkül";
       for (const row of g.rows) lines.push([name, row.finish_tag, A(row.floor_sf), A(row.wall_sf), A(row.border_sf), L(row.lf), row.ea].map(esc).join(","));
     }
   }

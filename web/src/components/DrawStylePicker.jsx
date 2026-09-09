@@ -45,9 +45,9 @@ export default function DrawStylePicker({ styles, ids, activeId, onPick }) {
   return (
     <div ref={rootRef} style={{ padding: "8px 12px", position: "relative" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <span style={{ fontSize: 11.5, fontWeight: 600, color: "var(--ink-soft)", whiteSpace: "nowrap" }}>Style</span>
+        <span style={{ fontSize: 11.5, fontWeight: 600, color: "var(--ink-soft)", whiteSpace: "nowrap" }}>Stílus</span>
         <button type="button" aria-haspopup="true" aria-expanded={open} onClick={() => setOpen((v) => !v)}
-          title="Drawing style — the look of the measuring draft (stroke, vertices, readout chip). Applies to the canvas live."
+          title="Rajzi stílus — a mérési vázlat vonalai, pontjai és kijelzése. Azonnal érvényesül a terven."
           style={{ flex: 1, display: "flex", alignItems: "center", gap: 8, padding: "5px 8px", cursor: "pointer", border: `1px solid ${open ? "var(--cobalt)" : "var(--ink-faint)"}`, background: "var(--paper-cream)", color: "var(--ink)", fontSize: 12.5 }}>
           <StylePreview t={active} />
           <span style={{ flex: 1, textAlign: "left" }}>{active.label}</span>
@@ -55,7 +55,7 @@ export default function DrawStylePicker({ styles, ids, activeId, onPick }) {
         </button>
       </div>
       {open && (
-        <div aria-label="Drawing style"
+        <div aria-label="Rajzi stílus"
           style={{ position: "absolute", left: 12, right: 12, top: "100%", marginTop: 2, zIndex: 70, background: "var(--paper-cream)", border: "1px solid var(--ink)", boxShadow: "var(--shadow-2)", padding: "4px 0" }}>
           {ids.map((id) => {
             const t = styles[id];

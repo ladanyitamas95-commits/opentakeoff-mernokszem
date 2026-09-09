@@ -46,7 +46,7 @@ const centered = {
 };
 const brand = (
   <strong style={{ fontFamily: "var(--f-display)", fontSize: 20, letterSpacing: "-0.02em" }}>
-    open<span style={{ fontStyle: "italic", color: "var(--cobalt)" }}>takeoff</span>
+    MérnökSzem <span style={{ fontStyle: "italic", color: "var(--cobalt)" }}>TakeOff</span>
   </strong>
 );
 
@@ -65,8 +65,8 @@ function Centered({ title, body }) {
 // extra element under the button (the home flavor's skip link).
 function SignInScreen({
   ready, signIn,
-  title = "This project is stored in your team's Google Drive",
-  body = "Sign in with your team Google account to open it. Only accounts on the team domain can sign in.",
+  title = "A projekt a csapat Google Drive tárhelyén található",
+  body = "A megnyitáshoz jelentkezz be a csapat Google-fiókjával. Csak a csapat domainjéhez tartozó fiókok léphetnek be.",
   footer = null,
 }) {
   const [err, setErr] = useState("");
@@ -80,9 +80,9 @@ function SignInScreen({
         style={{ padding: "9px 16px", border: "1px solid var(--ink)", background: "var(--ink)",
           color: "var(--paper-bright)", cursor: ready ? "pointer" : "default", fontWeight: 600,
           fontSize: 13.5, opacity: ready ? 1 : 0.5 }}>
-        Sign in with Google
+        Bejelentkezés Google-fiókkal
       </button>
-      {err ? <div style={{ fontSize: 12.5, color: "var(--c-danger)", maxWidth: 460 }}>Sign-in failed: {err}</div> : null}
+      {err ? <div style={{ fontSize: 12.5, color: "var(--c-danger)", maxWidth: 460 }}>Sikertelen bejelentkezés: {err}</div> : null}
       {footer}
     </div>
   );
@@ -151,8 +151,8 @@ function ProjectGate({ projectId }) {
   useEffect(() => () => { setActiveStore(); }, []);
 
   if (!user) return <SignInScreen ready={ready} signIn={signIn} />;
-  if (error) return <Centered title="Couldn't open this project" body={error} />;
-  if (!storeReady) return <Centered title="Opening project…" />;
+  if (error) return <Centered title="A projekt nem nyitható meg" body={error} />;
+  if (!storeReady) return <Centered title="Projekt megnyitása…" />;
   // key on projectId so switching projects (or sign-in) remounts a fresh canvas
   return <TakeoffCanvas key={projectId} />;
 }
@@ -169,11 +169,11 @@ function ProjectHomeGate() {
   if (!user) {
     return (
       <SignInScreen ready={ready} signIn={signIn}
-        title="Your team's projects live in Google Drive"
-        body="Sign in with your team Google account to browse and open them. Only accounts on the team domain can sign in."
+        title="A csapat projektjei a Google Drive tárhelyen vannak"
+        body="A projektek böngészéséhez és megnyitásához jelentkezz be a csapat Google-fiókjával."
         footer={
           <Link to="/" style={{ fontSize: 12.5, color: "var(--ink-muted)" }}>
-            skip — use the local canvas
+            kihagyás — helyi tervmérés használata
           </Link>
         } />
     );
@@ -268,31 +268,31 @@ function FolderGate() {
     return (
       <div style={centered}>
         {brand}
-        <div style={{ fontSize: 15, fontWeight: 600 }}>This workspace syncs to the folder “{link.name}”</div>
+        <div style={{ fontSize: 15, fontWeight: 600 }}>A munkaterület a(z) „{link.name}” mappával szinkronizál</div>
         <div style={{ fontSize: 13, color: "var(--ink-muted)", maxWidth: 460 }}>
-          The browser needs you to re-allow access after a restart — one click, and your takeoff
-          keeps syncing through that folder. Nothing leaves your machine except what the folder's
-          own sync client replicates.
+          Újraindítás után ismét engedélyezd a hozzáférést. Ezután a tervmérés tovább
+          szinkronizálódik a mappán keresztül. Csak a mappa saját szinkronizálója által
+          továbbított adatok hagyják el a gépet.
         </div>
         <button type="button"
           onClick={async () => {
             const perm = await requestFolderPermission(link.handle);
             if (perm === "granted") await install(link);
-            else setErr("The browser did not grant access. You can keep working locally, or forget the folder.");
+            else setErr("A böngésző nem adott hozzáférést. Folytathatod helyben, vagy leválaszthatod a mappát.");
           }}
           style={{ padding: "9px 16px", border: "1px solid var(--ink)", background: "var(--ink)",
             color: "var(--paper-bright)", cursor: "pointer", fontWeight: 600, fontSize: 13.5 }}>
-          Resume folder sync
+          Mappaszinkron folytatása
         </button>
         {err ? <div style={{ fontSize: 12.5, color: "var(--c-danger)", maxWidth: 460 }}>{err}</div> : null}
         <div style={{ display: "flex", gap: 16 }}>
           <button type="button" onClick={() => setStatus("plain")}
             style={{ border: "none", background: "transparent", color: "var(--ink-muted)", fontSize: 12.5, cursor: "pointer", textDecoration: "underline" }}>
-            not now — work locally
+            most nem — helyi munka
           </button>
           <button type="button" onClick={forget}
             style={{ border: "none", background: "transparent", color: "var(--c-danger)", fontSize: 12.5, cursor: "pointer", textDecoration: "underline" }}>
-            forget this folder
+            mappa leválasztása
           </button>
         </div>
       </div>
@@ -303,20 +303,20 @@ function FolderGate() {
   return (
     <div style={centered}>
       {brand}
-      <div style={{ fontSize: 15, fontWeight: 600 }}>The synced folder “{link?.name}” can't be opened</div>
+      <div style={{ fontSize: 15, fontWeight: 600 }}>A szinkronizált „{link?.name}” mappa nem nyitható meg</div>
       <div style={{ fontSize: 13, color: "var(--ink-muted)", maxWidth: 460 }}>
-        {err || "The folder may have been moved or deleted."} Your takeoff is safe in this browser —
-        you can keep working locally, or forget the folder link.
+        {err || "A mappát áthelyezték vagy törölték."} A tervmérés biztonságban van ebben a böngészőben —
+        folytathatod helyben, vagy leválaszthatod a mappát.
       </div>
       <div style={{ display: "flex", gap: 16 }}>
         <button type="button" onClick={() => setStatus("plain")}
           style={{ padding: "9px 16px", border: "1px solid var(--ink)", background: "var(--ink)",
             color: "var(--paper-bright)", cursor: "pointer", fontWeight: 600, fontSize: 13.5 }}>
-          Work locally
+          Helyi munka
         </button>
         <button type="button" onClick={forget}
           style={{ border: "none", background: "transparent", color: "var(--c-danger)", fontSize: 12.5, cursor: "pointer", textDecoration: "underline" }}>
-          forget this folder
+          mappa leválasztása
         </button>
       </div>
     </div>
@@ -400,10 +400,10 @@ function M365Gate({ cfg }) {
     return (
       <div style={centered}>
         {brand}
-        <div style={{ fontSize: 15, fontWeight: 600 }}>This workspace syncs through your Microsoft 365 library</div>
+        <div style={{ fontSize: 15, fontWeight: 600 }}>A munkaterület a Microsoft 365 dokumentumtárral szinkronizál</div>
         <div style={{ fontSize: 13, color: "var(--ink-muted)", maxWidth: 460 }}>
-          Sign in with your work account to keep syncing. The token stays in this browser —
-          there is no server of ours between you and your tenant. (Experimental — issue #315.)
+          A szinkronizálás folytatásához jelentkezz be a munkahelyi fiókoddal. A token ebben a
+          böngészőben marad. A funkció kísérleti.
         </div>
         <button type="button"
           onClick={async () => {
@@ -414,17 +414,17 @@ function M365Gate({ cfg }) {
               setStatus("building");
               await install();
             } catch (e) {
-              setErr(`Sign-in failed: ${String(e?.message || e)} — if this is an admin-consent block, SELF_HOSTING.md names the scope to consent.`);
+              setErr(`Sikertelen bejelentkezés: ${String(e?.message || e)} — rendszergazdai engedélyezés esetén lásd a SELF_HOSTING.md fájlt.`);
             }
           }}
           style={{ padding: "9px 16px", border: "1px solid var(--ink)", background: "var(--ink)",
             color: "var(--paper-bright)", cursor: "pointer", fontWeight: 600, fontSize: 13.5 }}>
-          Sign in with Microsoft
+          Bejelentkezés Microsoft-fiókkal
         </button>
         {err ? <div style={{ fontSize: 12.5, color: "var(--c-danger)", maxWidth: 460 }}>{err}</div> : null}
         <div style={{ display: "flex", gap: 16 }}>
-          <button type="button" onClick={() => setStatus("local")} style={linkBtn}>not now — work locally</button>
-          <button type="button" onClick={stop} style={{ ...linkBtn, color: "var(--c-danger)" }}>stop syncing through 365</button>
+          <button type="button" onClick={() => setStatus("local")} style={linkBtn}>most nem — helyi munka</button>
+          <button type="button" onClick={stop} style={{ ...linkBtn, color: "var(--c-danger)" }}>365-szinkron leállítása</button>
         </div>
       </div>
     );
@@ -433,19 +433,18 @@ function M365Gate({ cfg }) {
   return (
     <div style={centered}>
       {brand}
-      <div style={{ fontSize: 15, fontWeight: 600 }}>365 sync can't start</div>
+      <div style={{ fontSize: 15, fontWeight: 600 }}>A 365-szinkron nem indítható el</div>
       <div style={{ fontSize: 13, color: "var(--ink-muted)", maxWidth: 460 }}>
-        {err || "The Microsoft sign-in layer failed to load."} Your takeoff is safe in this browser.
-        This path is experimental (issue #315) — a report of this exact message is exactly the
-        external testing it needs.
+        {err || "A Microsoft bejelentkezési modul nem töltődött be."} A tervmérés biztonságban van ebben a böngészőben.
+        Ez a funkció kísérleti.
       </div>
       <div style={{ display: "flex", gap: 16 }}>
         <button type="button" onClick={() => setStatus("local")}
           style={{ padding: "9px 16px", border: "1px solid var(--ink)", background: "var(--ink)",
             color: "var(--paper-bright)", cursor: "pointer", fontWeight: 600, fontSize: 13.5 }}>
-          Work locally
+          Helyi munka
         </button>
-        <button type="button" onClick={stop} style={{ ...linkBtn, color: "var(--c-danger)" }}>stop syncing through 365</button>
+        <button type="button" onClick={stop} style={{ ...linkBtn, color: "var(--c-danger)" }}>365-szinkron leállítása</button>
       </div>
     </div>
   );

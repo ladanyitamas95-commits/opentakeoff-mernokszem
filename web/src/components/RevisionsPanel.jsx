@@ -129,8 +129,8 @@ export default function RevisionsPanel({ current, units = "imperial", onRestore,
     <div style={{ position: "absolute", inset: 0, zIndex: 50, display: "flex", flexDirection: "column", background: "var(--paper-cream)" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 18px", borderBottom: "1px solid var(--ink)", background: "var(--paper-bright)" }}>
         <Icon name="revisions" size={18} />
-        <strong style={{ fontFamily: "var(--f-display)", fontSize: 16, color: "var(--ink)" }}>Revisions</strong>
-        <span style={{ fontSize: 12, color: "var(--ink-muted)" }}>save the takeoff at each bid revision, then compare what moved</span>
+        <strong style={{ fontFamily: "var(--f-display)", fontSize: 16, color: "var(--ink)" }}>Revíziók</strong>
+        <span style={{ fontSize: 12, color: "var(--ink-muted)" }}>mentsd el a tervmérést minden tervváltozatnál, majd hasonlítsd össze</span>
         <div style={{ flex: 1 }} />
         <input value={saveName} onChange={(e) => setSaveName(e.target.value)} placeholder={defaultName()}
           className="field-input" style={{ width: 220, padding: "5px 9px", fontSize: 13 }}
@@ -139,7 +139,7 @@ export default function RevisionsPanel({ current, units = "imperial", onRestore,
           title="Snapshot the current takeoff (conditions, shapes, markups) as a named revision">
           <Icon name="revisions" size={13} />Save revision
         </button>
-        <button onClick={onClose} title="Back to the canvas"
+        <button onClick={onClose} title="Vissza a tervhez"
           style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 10px", border: "1px solid var(--ink-faint)", background: "transparent", color: "var(--ink)", cursor: "pointer", fontSize: 12.5 }}>
           <Icon name="close" size={12} />Close
         </button>
@@ -151,7 +151,7 @@ export default function RevisionsPanel({ current, units = "imperial", onRestore,
         {/* saved revisions */}
         <div style={{ maxWidth: 980, margin: "0 auto" }}>
           {revs === null ? (
-            <div style={{ padding: 24, textAlign: "center", color: "var(--ink-muted)" }}>Loading revisions…</div>
+            <div style={{ padding: 24, textAlign: "center", color: "var(--ink-muted)" }}>Revíziók betöltése…</div>
           ) : revs.length === 0 ? (
             <div style={{ padding: "28px 24px", textAlign: "center", color: "var(--ink-muted)", border: "1px dashed var(--ink-faint)", background: "var(--paper-bright)" }}>
               No revisions yet. Save one now, and after the next addendum lands you can compare exactly which quantities moved.
@@ -159,11 +159,11 @@ export default function RevisionsPanel({ current, units = "imperial", onRestore,
           ) : (
             <table style={{ width: "100%", borderCollapse: "collapse", background: "var(--paper-bright)", border: "1px solid var(--ink-faint)" }}>
               <thead><tr>
-                <th style={{ ...th, textAlign: "left" }}>Revision</th>
-                <th style={th}>Saved</th>
-                <th style={th}>Conditions</th>
-                <th style={th}>Shapes</th>
-                <th style={{ ...th, textAlign: "left", paddingLeft: 18 }}>Actions</th>
+                <th style={{ ...th, textAlign: "left" }}>Revízió</th>
+                <th style={th}>Mentve</th>
+                <th style={th}>Tételek</th>
+                <th style={th}>Alakzatok</th>
+                <th style={{ ...th, textAlign: "left", paddingLeft: 18 }}>Műveletek</th>
               </tr></thead>
               <tbody>
                 {revs.map((r) => (
@@ -175,7 +175,7 @@ export default function RevisionsPanel({ current, units = "imperial", onRestore,
                     <td style={{ ...td, textAlign: "left", paddingLeft: 18 }}>
                       <button className="btn-ghost" style={{ fontSize: 11.5, padding: "3px 8px" }}
                         onClick={() => { setBaseId(r.id); setCompareId("current"); }}
-                        title="Diff this revision against the live takeoff">Compare with current</button>{" "}
+                        title="Revízió összehasonlítása az aktuális tervméréssel">Összehasonlítás az aktuálissal</button>{" "}
                       <button className="btn-ghost" style={{ fontSize: 11.5, padding: "3px 8px", color: confirmId === `restore:${r.id}` ? "var(--c-warning)" : undefined }}
                         onClick={() => (confirmId === `restore:${r.id}` ? restore(r.id) : setConfirmId(`restore:${r.id}`))} disabled={busy}
                         title="Replace the live takeoff with this revision — the live takeoff is auto-backed-up first">
@@ -195,21 +195,21 @@ export default function RevisionsPanel({ current, units = "imperial", onRestore,
         {revs?.length > 0 && (
           <div style={{ maxWidth: 980, margin: "26px auto 0" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-              <h3 style={{ fontFamily: "var(--f-display)", fontSize: 14, color: "var(--ink)", margin: 0 }}>Compare</h3>
+              <h3 style={{ fontFamily: "var(--f-display)", fontSize: 14, color: "var(--ink)", margin: 0 }}>Összehasonlítás</h3>
               <select value={baseId} onChange={(e) => setBaseId(e.target.value)} style={sel} name="compare-baseline">
                 <option value="" disabled>baseline…</option>
                 {revs.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
               </select>
               <span style={{ color: "var(--ink-muted)" }}>→</span>
               <select value={compareId} onChange={(e) => setCompareId(e.target.value)} style={sel} name="compare-to">
-                <option value="current">Current takeoff</option>
+                <option value="current">Aktuális tervmérés</option>
                 {revs.filter((r) => r.id !== baseId).map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
               </select>
               <div style={{ flex: 1 }} />
               <label style={{ fontSize: 12, color: "var(--ink-muted)", display: "inline-flex", gap: 6, alignItems: "center", cursor: "pointer" }}>
                 <input type="checkbox" checked={showUnchanged} onChange={(e) => setShowUnchanged(e.target.checked)} name="show-unchanged" />show unchanged
               </label>
-              <button className="btn-ghost" onClick={exportCsv} disabled={!diff}><Icon name="document" size={13} />Export compare CSV</button>
+              <button className="btn-ghost" onClick={exportCsv} disabled={!diff}><Icon name="document" size={13} />Összehasonlítás exportálása</button>
             </div>
 
             {!diff ? (
@@ -228,8 +228,8 @@ export default function RevisionsPanel({ current, units = "imperial", onRestore,
                 </p>
                 <table style={{ width: "100%", borderCollapse: "collapse", background: "var(--paper-bright)", border: "1px solid var(--ink-faint)" }}>
                   <thead><tr>
-                    <th style={{ ...th, textAlign: "left" }}>Finish</th>
-                    <th style={{ ...th, textAlign: "left" }}>Status</th>
+                    <th style={{ ...th, textAlign: "left" }}>Tétel</th>
+                    <th style={{ ...th, textAlign: "left" }}>Állapot</th>
                     <th style={th}>Δ Floor {AU}</th>
                     <th style={th}>Δ Wall {AU}</th>
                     <th style={th}>Δ Border {AU}</th>
@@ -263,7 +263,7 @@ export default function RevisionsPanel({ current, units = "imperial", onRestore,
 
                 {sheetRows.length > 0 && (
                   <>
-                    <h3 style={{ fontFamily: "var(--f-display)", fontSize: 14, color: "var(--ink)", margin: "22px 0 8px" }}>By sheet</h3>
+                    <h3 style={{ fontFamily: "var(--f-display)", fontSize: 14, color: "var(--ink)", margin: "22px 0 8px" }}>Tervlaponként</h3>
                     <table style={{ width: "100%", borderCollapse: "collapse", background: "var(--paper-bright)", border: "1px solid var(--ink-faint)" }}>
                       <thead><tr>
                         <th style={{ ...th, textAlign: "left" }}>Sheet</th>
@@ -294,7 +294,7 @@ export default function RevisionsPanel({ current, units = "imperial", onRestore,
 
                 {matRows.length > 0 && (
                   <>
-                    <h3 style={{ fontFamily: "var(--f-display)", fontSize: 14, color: "var(--ink)", margin: "22px 0 8px" }}>Buy list</h3>
+                    <h3 style={{ fontFamily: "var(--f-display)", fontSize: 14, color: "var(--ink)", margin: "22px 0 8px" }}>Beszerzési lista</h3>
                     <table style={{ width: "100%", borderCollapse: "collapse", background: "var(--paper-bright)", border: "1px solid var(--ink-faint)" }}>
                       <thead><tr>
                         <th style={{ ...th, textAlign: "left" }}>Material</th>

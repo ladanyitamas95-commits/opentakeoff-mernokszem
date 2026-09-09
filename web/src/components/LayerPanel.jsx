@@ -76,8 +76,8 @@ export default function LayerPanel({
     <div style={{ width: 300, flexShrink: 0, display: "flex", flexDirection: "column", borderLeft: "1px solid var(--ink-faint)", background: "var(--paper-bright)", overflow: "hidden", minHeight: 0 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "9px 12px", background: "var(--ink)", color: "var(--paper-cream)" }}>
         <Icon name="layers" size={15} />
-        <strong style={{ flex: 1, fontSize: 12.5 }}>Layers</strong>
-        <button onClick={onClose} title="Close panel" style={{ border: "none", background: "transparent", color: "var(--paper-cream)", fontSize: 16, cursor: "pointer", padding: "0 2px" }}>×</button>
+        <strong style={{ flex: 1, fontSize: 12.5 }}>Rétegek</strong>
+        <button onClick={onClose} title="Panel bezárása" style={{ border: "none", background: "transparent", color: "var(--paper-cream)", fontSize: 16, cursor: "pointer", padding: "0 2px" }}>×</button>
       </div>
       <div style={{ padding: "8px 12px", borderBottom: "1px solid var(--ink-faint)", fontSize: 11, lineHeight: 1.5, color: "var(--ink-muted)" }}>
         What the drawing states each ink is — feeds One-Click and room

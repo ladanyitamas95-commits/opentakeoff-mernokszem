@@ -23,12 +23,12 @@ import { evaluateTags, isCreatable } from "../lib/scheduleEdit";
 
 // category → display group, in the order an estimator reads a floor set
 const GROUPS = [
-  { key: "floor", label: "Floor" },
-  { key: "base", label: "Base" },
-  { key: "wall", label: "Wall" },
-  { key: "transition", label: "Transition" },
-  { key: "ceiling", label: "Ceiling" },
-  { key: "other", label: "Other" },
+  { key: "floor", label: "Padló" },
+  { key: "base", label: "Lábazat" },
+  { key: "wall", label: "Fal" },
+  { key: "transition", label: "Átmenet" },
+  { key: "ceiling", label: "Mennyezet" },
+  { key: "other", label: "Egyéb" },
 ];
 
 export default function ImportSchedulePanel({ rows = [], existing = new Set(), palette = [], startIndex = 0, skipped = 0, onCreate, onClose }) {
@@ -94,7 +94,7 @@ export default function ImportSchedulePanel({ rows = [], existing = new Set(), p
   const create = () => { if (count) onCreate(creatable.map(({ key, row }) => ({ ...row, finish_tag: stateOf(key).tag }))); };
 
   const lbl = { fontFamily: "var(--f-mono)", fontSize: 9, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--ink-muted)" };
-  const flagFor = { "in-use": "in use", duplicate: "duplicate", empty: "needs a code" };
+  const flagFor = { "in-use": "használatban", duplicate: "duplikált", empty: "kód szükséges" };
 
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.32)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 40 }} onClick={onClose}>
@@ -102,13 +102,13 @@ export default function ImportSchedulePanel({ rows = [], existing = new Set(), p
         style={{ width: 560, maxHeight: "min(82vh, 720px)", display: "flex", flexDirection: "column", background: "var(--paper-bright)", border: "1px solid var(--cobalt)", boxShadow: "var(--shadow-pop)", fontSize: 12.5 }}>
         {/* header */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", borderBottom: "1px solid var(--ink-faint)", background: "var(--cobalt)", color: "var(--accent-contrast)" }}>
-          <span style={{ fontWeight: 700 }}>Import from schedule — {rows.length} finish{rows.length === 1 ? "" : "es"} found</span>
-          <button onClick={onClose} title="Close" style={{ background: "transparent", border: "none", color: "var(--accent-contrast)", cursor: "pointer", display: "inline-flex" }}><Icon name="close" size={14} /></button>
+          <span style={{ fontWeight: 700 }}>Importálás kimutatásból — {rows.length} tétel található</span>
+          <button onClick={onClose} title="Bezárás" style={{ background: "transparent", border: "none", color: "var(--accent-contrast)", cursor: "pointer", display: "inline-flex" }}><Icon name="close" size={14} /></button>
         </div>
 
         {skipped > 0 && (
           <div style={{ padding: "5px 14px", background: "var(--paper)", borderBottom: "1px solid var(--ink-faint)", ...lbl, opacity: 0.85 }}>
-            {skipped} row{skipped === 1 ? "" : "s"} skipped (couldn't be read as a single finish)
+            {skipped} sor kimaradt, mert nem volt egyértelműen beolvasható
           </div>
         )}
 
@@ -149,11 +149,11 @@ export default function ImportSchedulePanel({ rows = [], existing = new Set(), p
                       ) : (
                         <button
                           type="button"
-                          title="Click to fix the code"
+                          title="Kattints a kód javításához"
                           onClick={(e) => { e.preventDefault(); e.stopPropagation(); startEdit(key, r); }}
                           style={{ fontFamily: "var(--f-mono)", fontWeight: 600, fontSize: 12.5, minWidth: 58, textAlign: "left", padding: "1px 3px", border: "1px dashed var(--ink-faint)", background: "transparent", color: st?.status === "empty" ? "var(--ink-muted)" : "var(--ink)", cursor: "text" }}
                         >
-                          {st?.tag || "set code"}
+                          {st?.tag || "kód megadása"}
                         </button>
                       )}
                       <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
@@ -173,10 +173,10 @@ export default function ImportSchedulePanel({ rows = [], existing = new Set(), p
 
         {/* footer */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 10, padding: "10px 14px", borderTop: "1px solid var(--ink-faint)" }}>
-          <button onClick={onClose} style={{ padding: "7px 12px", border: "1px solid var(--ink-faint)", background: "transparent", color: "var(--ink)", cursor: "pointer", fontSize: 12 }}>Cancel</button>
+          <button onClick={onClose} style={{ padding: "7px 12px", border: "1px solid var(--ink-faint)", background: "transparent", color: "var(--ink)", cursor: "pointer", fontSize: 12 }}>Mégse</button>
           <button onClick={create} disabled={!count}
             style={{ padding: "8px 16px", border: "none", background: count ? "var(--ink)" : "var(--text-faint)", color: "var(--paper-bright)", cursor: count ? "pointer" : "default", fontWeight: 700, fontFamily: "var(--f-mono)", fontSize: 11, letterSpacing: "0.1em", textTransform: "uppercase" }}>
-            Create {count} condition{count === 1 ? "" : "s"}
+            {count} tétel létrehozása
           </button>
         </div>
       </div>

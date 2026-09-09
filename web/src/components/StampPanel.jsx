@@ -93,16 +93,16 @@ export default function StampPanel({ docked = false, library = { stamps: [], set
       {docked ? (
         // docked: no blue title bar / ×; Export/Import become a slim light toolbar
         <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 10px", borderBottom: "1px solid var(--ink-faint)" }}>
-          <button onClick={onExport} title="Export the stamp library as JSON" style={ctrl}>Export</button>
-          <button onClick={() => fileRef.current?.click()} title="Import a stamp library (.json, merges) or a vector symbol (.svg, added as a stamp)" style={ctrl}>Import</button>
+          <button onClick={onExport} title="Bélyegzőkönyvtár exportálása JSON-ként" style={ctrl}>Exportálás</button>
+          <button onClick={() => fileRef.current?.click()} title="Bélyegzőkönyvtár vagy SVG-szimbólum importálása" style={ctrl}>Importálás</button>
           {fileInput}
         </div>
       ) : (
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "9px 12px", borderBottom: "1px solid var(--ink-faint)", background: "var(--cobalt)", color: "var(--accent-contrast)" }}>
-          <strong>Stamps · palette</strong>
+          <strong>Bélyegzők · paletta</strong>
           <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <button onClick={onExport} title="Export the stamp library as JSON" style={{ ...ctrl, border: "1px solid rgba(255,255,255,.5)", color: "var(--accent-contrast)" }}>Export</button>
-            <button onClick={() => fileRef.current?.click()} title="Import a stamp library (.json, merges) or a vector symbol (.svg, added as a stamp)" style={{ ...ctrl, border: "1px solid rgba(255,255,255,.5)", color: "var(--accent-contrast)" }}>Import</button>
+            <button onClick={onExport} title="Bélyegzőkönyvtár exportálása JSON-ként" style={{ ...ctrl, border: "1px solid rgba(255,255,255,.5)", color: "var(--accent-contrast)" }}>Exportálás</button>
+            <button onClick={() => fileRef.current?.click()} title="Bélyegzőkönyvtár vagy SVG-szimbólum importálása" style={{ ...ctrl, border: "1px solid rgba(255,255,255,.5)", color: "var(--accent-contrast)" }}>Importálás</button>
             {fileInput}
             <button onClick={onClose} style={{ background: "none", border: "none", color: "var(--accent-contrast)", fontSize: 16, cursor: "pointer" }}>×</button>
           </span>
@@ -112,7 +112,7 @@ export default function StampPanel({ docked = false, library = { stamps: [], set
       <div style={{ padding: "8px 10px", color: "var(--ink-muted)" }}>
         {armedStamp
           ? <span><b style={{ color: "var(--cobalt)" }}>“{armedStamp.name}” armed</b> — click the plan to place it. Esc to cancel.</span>
-          : <span>Click <b>Place</b> on a stamp, then click the plan. Placed stamps are normal, editable markups.</span>}
+          : <span>Kattints az <b>Elhelyezés</b> gombra, majd a tervre. A bélyegzők később szerkeszthetők.</span>}
       </div>
 
       {/* set filter — the model carries StampSets; the palette groups by them */}
@@ -132,7 +132,7 @@ export default function StampPanel({ docked = false, library = { stamps: [], set
         </button>
       </div>
 
-      {shown.length === 0 && <div style={{ padding: "12px", color: "var(--ink-muted)" }}>No stamps here yet.</div>}
+      {shown.length === 0 && <div style={{ padding: "12px", color: "var(--ink-muted)" }}>Még nincs bélyegző.</div>}
       {shown.map((s) => {
         const armed = armedStamp?.id === s.id;
         return (
@@ -149,12 +149,12 @@ export default function StampPanel({ docked = false, library = { stamps: [], set
               )}
               <div style={{ fontSize: 10.5, color: "var(--ink-muted)" }}>{s.elements.length} element{s.elements.length === 1 ? "" : "s"}</div>
             </div>
-            <button onClick={() => onArm(s)} title="Arm this stamp for placement"
+            <button onClick={() => onArm(s)} title="Bélyegző aktiválása elhelyezéshez"
               style={{ ...ctrl, color: armed ? "var(--accent-contrast)" : "var(--cobalt)", background: armed ? "var(--cobalt)" : "transparent", border: `1px solid var(--cobalt)`, fontWeight: 600 }}>
               {armed ? "Armed" : "Place"}
             </button>
-            <button onClick={() => setEditId((id) => (id === s.id ? null : s.id))} title="Rename stamp" style={{ border: "none", background: "none", cursor: "pointer", color: "var(--ink-muted)" }}>✎</button>
-            <button onClick={() => { if (window.confirm(`Delete stamp “${s.name}”?`)) onDelete(s.id); }} title="Delete stamp" style={{ border: "none", background: "none", cursor: "pointer", color: "var(--c-danger)" }}>🗑</button>
+            <button onClick={() => setEditId((id) => (id === s.id ? null : s.id))} title="Bélyegző átnevezése" style={{ border: "none", background: "none", cursor: "pointer", color: "var(--ink-muted)" }}>✎</button>
+            <button onClick={() => { if (window.confirm(`Törlöd ezt a bélyegzőt: „${s.name}”?`)) onDelete(s.id); }} title="Bélyegző törlése" style={{ border: "none", background: "none", cursor: "pointer", color: "var(--c-danger)" }}>🗑</button>
           </div>
         );
       })}

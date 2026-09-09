@@ -510,19 +510,19 @@ export default function PlanNavigator({
       {/* RIGHT: source toggle · browse filters · add plans · account */}
       {browseEnabled && (
         <div style={{ display: "inline-flex", border: "1px solid var(--ink-faint)", borderRadius: 2, overflow: "hidden" }}>
-          <button onClick={() => setMode("plan")} style={{ ...ctrlBtn, border: "none", background: mode === "plan" ? "var(--ink)" : "transparent", color: mode === "plan" ? "var(--paper-bright)" : "var(--ink-muted)" }}>Plan set</button>
-          <button onClick={() => setMode("browse")} style={{ ...ctrlBtn, border: "none", background: mode === "browse" ? "var(--ink)" : "transparent", color: mode === "browse" ? "var(--paper-bright)" : "var(--ink-muted)" }}>Browse Drive</button>
+          <button onClick={() => setMode("plan")} style={{ ...ctrlBtn, border: "none", background: mode === "plan" ? "var(--ink)" : "transparent", color: mode === "plan" ? "var(--paper-bright)" : "var(--ink-muted)" }}>Tervcsomag</button>
+          <button onClick={() => setMode("browse")} style={{ ...ctrlBtn, border: "none", background: mode === "browse" ? "var(--ink)" : "transparent", color: mode === "browse" ? "var(--paper-bright)" : "var(--ink-muted)" }}>Drive böngészése</button>
         </div>
       )}
       {mode === "browse" && (
         <>
-          <input name="drive-filter" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Filter by name…"
+          <input name="drive-filter" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Szűrés név szerint…"
             style={{ padding: "6px 10px", border: "1px solid var(--ink-faint)", background: "var(--paper-bright)", fontSize: 12.5, minWidth: 140 }} />
           <select name="drive-sort" value={sort} onChange={(e) => setSort(e.target.value)} title="Sort files"
             style={{ padding: "6px 8px", border: "1px solid var(--ink-faint)", background: "transparent", fontSize: 12 }}>
-            <option value="name">Name</option>
-            <option value="size">Size</option>
-            <option value="date">Modified</option>
+            <option value="name">Név</option>
+            <option value="size">Méret</option>
+            <option value="date">Módosítva</option>
           </select>
         </>
       )}
@@ -561,7 +561,7 @@ export default function PlanNavigator({
       )}
       <AuthChip />
       {onCloseProject && (
-        <button onClick={onCloseProject} title="Close this project and return to the local canvas" style={{ ...ctrlBtn, color: "var(--ink-muted)" }}>Close project</button>
+        <button onClick={onCloseProject} title="Projekt bezárása és visszatérés a helyi munkaterülethez" style={{ ...ctrlBtn, color: "var(--ink-muted)" }}>Projekt bezárása</button>
       )}
       {canClose && (
         <button onClick={onExit} title="Back to the canvas (Esc)" style={ctrlBtn}>
@@ -586,7 +586,7 @@ export default function PlanNavigator({
     <>
       <div style={{ flex: 1, overflow: "auto" }}>
         {bLoading ? (
-          <div style={{ padding: 40, textAlign: "center", color: "var(--ink-muted)", fontSize: 13 }}>Reading folder…</div>
+          <div style={{ padding: 40, textAlign: "center", color: "var(--ink-muted)", fontSize: 13 }}>Mappa beolvasása…</div>
         ) : bErr ? (
           <div style={{ padding: 40, textAlign: "center", color: "var(--c-danger)", fontSize: 13 }}>Couldn't read the folder: {bErr}</div>
         ) : (folders.length === 0 && pdfs.length === 0) ? (
@@ -599,7 +599,7 @@ export default function PlanNavigator({
               <div key={f.id} onClick={() => drillInto(f)} style={{ ...rowBase, cursor: "pointer" }}>
                 <span style={{ fontSize: 15, width: 20, textAlign: "center", color: "var(--cobalt)" }}><Icon name="chevronRight" size={13} /></span>
                 <strong style={{ fontFamily: "var(--f-body)", fontSize: 13.5, color: "var(--ink)", flex: 1 }}>{f.name}</strong>
-                <span style={{ fontFamily: "var(--f-mono)", fontSize: 10.5, color: "var(--ink-muted)", textTransform: "uppercase", letterSpacing: "0.08em" }}>folder</span>
+                <span style={{ fontFamily: "var(--f-mono)", fontSize: 10.5, color: "var(--ink-muted)", textTransform: "uppercase", letterSpacing: "0.08em" }}>mappa</span>
               </div>
             ))}
             {pdfs.map((f) => {
@@ -616,8 +616,8 @@ export default function PlanNavigator({
                   <span style={{ fontFamily: "var(--f-mono)", fontSize: 13, color: "var(--ink)", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={f.name}>{f.name}</span>
                   <span style={{ fontFamily: "var(--f-mono)", fontSize: 11, color: "var(--ink-muted)", minWidth: 64, textAlign: "right" }}>{fmtSize(f.size)}</span>
                   <span style={{ fontFamily: "var(--f-mono)", fontSize: 11, color: "var(--ink-muted)", minWidth: 84, textAlign: "right" }}>{fmtDate(f.modifiedTime)}</span>
-                  {inSet ? <span style={{ ...tagStyle, color: "var(--c-positive)" }}>added</span>
-                    : conflict ? <span style={{ ...tagStyle, color: "var(--c-warning)" }}>name in use</span>
+                  {inSet ? <span style={{ ...tagStyle, color: "var(--c-positive)" }}>hozzáadva</span>
+                    : conflict ? <span style={{ ...tagStyle, color: "var(--c-warning)" }}>név használatban</span>
                     : <span style={{ minWidth: 72 }} />}
                 </label>
               );
@@ -631,7 +631,7 @@ export default function PlanNavigator({
         </span>
         <div style={{ flex: 1 }} />
         {picked.length > 0 && (
-          <button onClick={() => setPicked([])} style={{ padding: "7px 12px", border: "1px solid var(--ink-faint)", background: "transparent", color: "var(--ink-muted)", cursor: "pointer", fontSize: 12 }}>Clear</button>
+          <button onClick={() => setPicked([])} style={{ padding: "7px 12px", border: "1px solid var(--ink-faint)", background: "transparent", color: "var(--ink-muted)", cursor: "pointer", fontSize: 12 }}>Törlés</button>
         )}
         <button onClick={addPicked} disabled={!picked.length || adding}
           style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "8px 16px", border: "1px solid var(--ink)", background: picked.length ? "var(--cobalt)" : "var(--text-faint)", color: "var(--paper-bright)", cursor: picked.length && !adding ? "pointer" : "default", fontWeight: 700, fontSize: 13 }}>
@@ -672,7 +672,7 @@ export default function PlanNavigator({
                       style={{ padding: "5px 8px", border: "none", background: "var(--paper-bright)", color: "var(--ink-muted)", cursor: "pointer", fontFamily: "var(--f-mono)", fontSize: 11, boxShadow: "var(--shadow-1)" }}>✕</button>
                   )}
                   <button onClick={(e) => { e.stopPropagation(); onOpen([key], false); }} title="Open just this sheet"
-                    style={{ padding: "5px 12px", border: "none", background: "var(--ink)", color: "var(--paper-bright)", cursor: "pointer", fontFamily: "var(--f-mono)", fontSize: 10, letterSpacing: "0.1em", textTransform: "uppercase" }}>View</button>
+                    style={{ padding: "5px 12px", border: "none", background: "var(--ink)", color: "var(--paper-bright)", cursor: "pointer", fontFamily: "var(--f-mono)", fontSize: 10, letterSpacing: "0.1em", textTransform: "uppercase" }}>Megnyitás</button>
                 </div>
                 <div style={{ height: 185, display: "flex", alignItems: "center", justifyContent: "center", background: "var(--well)", borderBottom: "1px solid var(--ink-faint)", overflow: "hidden" }}>
                   {thumb
@@ -682,7 +682,7 @@ export default function PlanNavigator({
                 <div style={{ padding: "8px 10px", display: "flex", alignItems: "baseline", gap: 8 }}>
                   <strong style={{ fontFamily: "var(--f-mono)", fontSize: 12.5, color: "var(--ink)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", flex: 1 }} title={key}>{labelOf(key)}</strong>
                   {levels[key] && <span title="Level" style={{ fontSize: 9.5, fontFamily: "var(--f-mono)", color: "var(--ink-muted)", border: "1px solid var(--ink-faint)", padding: "1px 5px" }}>{levels[key]}</span>}
-                  {isOpenTab && <span title="Already open as a tab" style={{ fontSize: 9.5, fontFamily: "var(--f-mono)", color: "var(--cobalt)", textTransform: "uppercase", letterSpacing: "0.08em" }}>open</span>}
+                  {isOpenTab && <span title="Már meg van nyitva lapon" style={{ fontSize: 9.5, fontFamily: "var(--f-mono)", color: "var(--cobalt)", textTransform: "uppercase", letterSpacing: "0.08em" }}>nyitva</span>}
                   {cnt > 0 && <span style={{ fontFamily: "var(--f-mono)", fontSize: 10.5, color: "var(--ink-muted)" }}>{cnt}▦</span>}
                   <span style={{ fontSize: 10, fontWeight: 600, whiteSpace: "nowrap", color: scales[key] ? (scaleUnconfirmed[key] === false ? "var(--c-warning)" : "var(--c-positive)") : detectedScales[key] ? "var(--c-warning)" : "var(--c-danger)" }}
                     title={scales[key] && scaleUnconfirmed[key] === false ? "Scale set by an agent — no person has confirmed it. Open the sheet and confirm from the scale menu." : undefined}>
@@ -699,13 +699,13 @@ export default function PlanNavigator({
           <div style={{ padding: 48, textAlign: "center", color: "var(--ink-muted)", fontSize: 13.5, lineHeight: 1.7 }}>
             {!sheets.length ? (
               <div style={{ maxWidth: 560, margin: "0 auto" }}>
-                <div style={{ fontFamily: "var(--f-mono)", fontSize: 10.5, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--cobalt)", marginBottom: 6 }}>People &amp; agents · one engine</div>
-                <div style={{ fontFamily: "var(--f-display)", fontSize: 18, color: "var(--ink)", lineHeight: 1.32, marginBottom: 5 }}>Measure a plan by hand — or point an AI&nbsp;agent at the same engine.</div>
-                <div style={{ fontSize: 13, color: "var(--ink-muted)", lineHeight: 1.55, marginBottom: 20 }}>Every measurement keeps its scale and how it was made — a person, one click, or an agent.</div>
+                <div style={{ fontFamily: "var(--f-mono)", fontSize: 10.5, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--cobalt)", marginBottom: 6 }}>Szakember és AI · egy mérőrendszer</div>
+                <div style={{ fontFamily: "var(--f-display)", fontSize: 18, color: "var(--ink)", lineHeight: 1.32, marginBottom: 5 }}>Mérj fel kézzel, vagy bízd a feladatot az AI asszisztensre.</div>
+                <div style={{ fontSize: 13, color: "var(--ink-muted)", lineHeight: 1.55, marginBottom: 20 }}>Minden mérés megőrzi a méretarányt és a létrehozás módját.</div>
                 <button onClick={() => fileRef.current?.click()}
                   style={{ display: "block", width: "100%", margin: "24px auto 0", padding: "44px 24px", border: "2px dashed var(--ink-faint)", background: "var(--paper-bright)", cursor: "pointer", color: "var(--ink-muted)", fontFamily: "var(--f-body)", fontSize: 13.5, lineHeight: 1.7 }}>
-                  <div style={{ fontFamily: "var(--f-display)", fontSize: 20, color: "var(--ink)", marginBottom: 8 }}>Open your plans</div>
-                  Drag a PDF, an image, or a whole .zip plan set here — or click to choose. Nothing leaves your browser.
+                  <div style={{ fontFamily: "var(--f-display)", fontSize: 20, color: "var(--ink)", marginBottom: 8 }}>Terv feltöltése</div>
+                  Húzz ide PDF-et, képet vagy ZIP-tervcsomagot, vagy kattints a kiválasztáshoz. A fájlok a böngészőben maradnak.
                 </button>
                 {isGoogleConfigured() && (!user || projectHomeFolderId()) && (
                   <div style={{ marginTop: 10, fontSize: 12, lineHeight: 1.6 }}>
@@ -714,13 +714,13 @@ export default function PlanNavigator({
                         <button type="button" onClick={handleDriveSignIn} disabled={driveBusy}
                           title="Sign in with your team Google account to open projects stored in Drive"
                           style={{ border: "none", background: "transparent", padding: 0, color: "var(--cobalt)", cursor: driveBusy ? "default" : "pointer", fontSize: 12, textDecoration: "underline", fontFamily: "var(--f-body)" }}>
-                          {driveBusy ? "Signing in…" : "or sign in with Google Drive"}
+                          {driveBusy ? "Bejelentkezés…" : "vagy jelentkezz be Google Drive-val"}
                         </button>
-                        {driveErr ? <div style={{ color: "var(--c-danger)", fontSize: 11.5, marginTop: 5 }}>Sign-in failed: {driveErr}</div> : null}
+                        {driveErr ? <div style={{ color: "var(--c-danger)", fontSize: 11.5, marginTop: 5 }}>Sikertelen bejelentkezés: {driveErr}</div> : null}
                       </>
                     ) : (
                       <Link to="/projects" style={{ color: "var(--cobalt)", fontSize: 12, textDecoration: "underline" }}>
-                        browse your Google Drive projects
+                        Google Drive-projektek böngészése
                       </Link>
                     )}
                   </div>
@@ -732,17 +732,17 @@ export default function PlanNavigator({
                         <button type="button" onClick={doLinkM365}
                           title="Sign in with your work account and sync this workspace through the configured document library. Experimental (issue #315) — tokens stay in this browser."
                           style={{ border: "none", background: "transparent", padding: 0, color: "var(--cobalt)", cursor: "pointer", fontSize: 12, textDecoration: "underline", fontFamily: "var(--f-body)" }}>
-                          or sync through your Microsoft 365 library (experimental)
+                          vagy szinkronizálás Microsoft 365 dokumentumtárral (kísérleti)
                         </button>
                         {m365Err ? <div style={{ color: "var(--c-danger)", fontSize: 11.5, marginTop: 5 }}>365 sign-in failed: {m365Err}</div> : null}
                       </>
                     ) : (
                       <span style={{ color: "var(--ink-muted)" }}>
-                        syncing through your <strong style={{ color: "var(--ink)" }}>Microsoft 365 library</strong>
+                        szinkronizálás a <strong style={{ color: "var(--ink)" }}>Microsoft 365 dokumentumtárral</strong>
                         {" · "}
                         <button type="button" onClick={doStopM365}
                           style={{ border: "none", background: "transparent", padding: 0, color: "var(--c-danger)", cursor: "pointer", fontSize: 12, textDecoration: "underline", fontFamily: "var(--f-body)" }}>
-                          stop
+                          leállítás
                         </button>
                       </span>
                     )}
@@ -754,48 +754,48 @@ export default function PlanNavigator({
                       <button type="button" onClick={doLinkFolder}
                         title="Pick a folder your team already syncs (a network share, a synced document library) — the takeoff syncs through it as one JSON file. No account, no credentials; the folder's own sync client does the transport."
                         style={{ border: "none", background: "transparent", padding: 0, color: "var(--cobalt)", cursor: "pointer", fontSize: 12, textDecoration: "underline", fontFamily: "var(--f-body)" }}>
-                        or sync this workspace through a shared folder
+                        vagy szinkronizálás megosztott mappán keresztül
                       </button>
                     ) : (
                       <span style={{ color: "var(--ink-muted)" }}>
-                        syncing through folder <strong style={{ color: "var(--ink)" }}>“{folderLink.name}”</strong>
+                        szinkronizálás ezen keresztül: <strong style={{ color: "var(--ink)" }}>„{folderLink.name}”</strong>
                         {" · "}
                         <button type="button" onClick={doForgetFolder}
                           style={{ border: "none", background: "transparent", padding: 0, color: "var(--c-danger)", cursor: "pointer", fontSize: 12, textDecoration: "underline", fontFamily: "var(--f-body)" }}>
-                          stop
+                          leállítás
                         </button>
                       </span>
                     )}
                   </div>
                 )}
                 <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "18px auto 16px", color: "var(--text-faint)", fontFamily: "var(--f-mono)", fontSize: 10.5, letterSpacing: "0.14em", textTransform: "uppercase" }}>
-                  <span style={{ flex: 1, height: 1, background: "var(--ink-faint)" }} />new here?<span style={{ flex: 1, height: 1, background: "var(--ink-faint)" }} />
+                  <span style={{ flex: 1, height: 1, background: "var(--ink-faint)" }} />most próbálod?<span style={{ flex: 1, height: 1, background: "var(--ink-faint)" }} />
                 </div>
                 <button onClick={loadSample} disabled={sampleBusy} title="Open a real floor finish plan and try a takeoff"
                   style={{ display: "inline-flex", alignItems: "center", gap: 9, padding: "13px 22px", border: "1px solid var(--ink)", background: "var(--cobalt)", color: "var(--paper-bright)", cursor: sampleBusy ? "default" : "pointer", opacity: sampleBusy ? 0.65 : 1, fontWeight: 700, fontSize: 14, fontFamily: "var(--f-body)" }}>
-                  <Icon name="takeoff" size={16} />{sampleBusy ? "Loading sample…" : "Load sample plan"}
+                  <Icon name="takeoff" size={16} />{sampleBusy ? "Mintaterv betöltése…" : "Mintaterv megnyitása"}
                 </button>
                 <div style={{ fontFamily: "var(--f-body)", fontSize: 12.5, color: "var(--ink-muted)", marginTop: 11, lineHeight: 1.6 }}>
-                  A real medical-center <strong style={{ color: "var(--ink)" }}>floor finish plan</strong> — the scale auto-detects;
-                  pick a finish and trace a flooring takeoff in seconds.
+                  Valós <strong style={{ color: "var(--ink)" }}>burkolati terv</strong> automatikusan felismert méretaránnyal.
+                  Válassz tételt, és kezdd el a tervmérést.
                 </div>
                 <div style={{ marginTop: 30, fontFamily: "var(--f-mono)", fontSize: 10.5, letterSpacing: "0.1em", color: "var(--text-faint)" }}>
-                  Apache-2.0 open source · an open project by{" "}
+                  Apache-2.0 nyílt forráskód · eredeti projekt:{" "}
                   <a href="https://kentucky-ai.com" target="_blank" rel="noopener" style={{ color: "var(--ink-muted)" }}>Kentucky&nbsp;AI</a>
                 </div>
               </div>
             ) : enumerated ? (
               <>
-                <div style={{ fontFamily: "var(--f-display)", fontSize: 16, color: "var(--ink)", marginBottom: 6 }}>Couldn't read those PDFs</div>
-                None of the opened files would render — try opening them again.
+                <div style={{ fontFamily: "var(--f-display)", fontSize: 16, color: "var(--ink)", marginBottom: 6 }}>A PDF-ek nem olvashatók</div>
+                Egyik megnyitott fájl sem jeleníthető meg. Próbáld újra megnyitni őket.
               </>
-            ) : "Reading the plan set…"}
+            ) : "Tervcsomag beolvasása…"}
           </div>
         )}
       </div>
       {stitches.length > 0 && (
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", padding: "9px 18px", borderTop: "1px solid var(--ink-faint)", background: "var(--paper-bright)" }}>
-          <span style={{ fontFamily: "var(--f-mono)", fontSize: 10.5, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--ink-muted)" }}>Stitched surfaces</span>
+          <span style={{ fontFamily: "var(--f-mono)", fontSize: 10.5, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--ink-muted)" }}>Összefűzött felületek</span>
           {stitches.map((st) => (
             <span key={st.id} style={{ display: "inline-flex", alignItems: "center", gap: 6, border: "1px solid var(--ink-faint)", padding: "4px 8px", fontSize: 12 }}>
               <button onClick={() => onOpenStitch && onOpenStitch(st.id)} title={`Open ${st.name} — ${st.members.length} sheets as one working surface`}
@@ -813,8 +813,8 @@ export default function PlanNavigator({
           {sel.length > 0 && (
             <>
               <button onClick={assignLevel} title="Group the selected sheets under a floor/level — the gallery sorts by it and tabs carry the label"
-                style={{ padding: "7px 12px", border: "1px solid var(--ink-faint)", background: "transparent", color: "var(--ink)", cursor: "pointer", fontSize: 12 }}>Assign level…</button>
-              <button onClick={() => setSel([])} style={{ padding: "7px 12px", border: "1px solid var(--ink-faint)", background: "transparent", color: "var(--ink-muted)", cursor: "pointer", fontSize: 12 }}>Clear</button>
+                style={{ padding: "7px 12px", border: "1px solid var(--ink-faint)", background: "transparent", color: "var(--ink)", cursor: "pointer", fontSize: 12 }}>Szint hozzárendelése…</button>
+              <button onClick={() => setSel([])} style={{ padding: "7px 12px", border: "1px solid var(--ink-faint)", background: "transparent", color: "var(--ink-muted)", cursor: "pointer", fontSize: 12 }}>Kijelölés törlése</button>
             </>
           )}
           <button disabled={!sel.length} onClick={() => onOpen(sel, false)}
@@ -881,7 +881,7 @@ export default function PlanNavigator({
           );
         })}
         {!sheets.length && (
-          <div style={{ padding: 40, textAlign: "center", color: "var(--ink-muted)", fontSize: 13 }}>The workspace is empty — nothing stored.</div>
+          <div style={{ padding: 40, textAlign: "center", color: "var(--ink-muted)", fontSize: 13 }}>A munkaterület üres.</div>
         )}
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 18px", borderTop: "1px solid var(--ink)", background: "var(--paper-bright)", flexWrap: "wrap" }}>
@@ -912,12 +912,12 @@ export default function PlanNavigator({
         ) : (
           <button onClick={doLinkFolder} disabled={working}
             title="Pick a folder your team already syncs — the takeoff syncs through it as one JSON file, no credentials involved"
-            style={{ ...ctrlBtn, opacity: working ? 0.5 : 1 }}>Sync through a folder…</button>
+            style={{ ...ctrlBtn, opacity: working ? 0.5 : 1 }}>Szinkronizálás mappával…</button>
         ))}
         {onClearWorkspace && (
           <button onClick={() => setConfirmClear(true)} disabled={working}
             title="Remove every stored PDF and reset the takeoff — a snapshot of a non-empty takeoff is saved first (Revisions restores it)"
-            style={{ ...ctrlBtn, border: "1px solid var(--c-danger)", color: "var(--c-danger)", opacity: working ? 0.5 : 1 }}>Clear workspace…</button>
+            style={{ ...ctrlBtn, border: "1px solid var(--c-danger)", color: "var(--c-danger)", opacity: working ? 0.5 : 1 }}>Munkaterület törlése…</button>
         )}
         <button onClick={() => setConfirmBulk(true)} disabled={!mSel.length || working}
           style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "8px 16px", border: "1px solid var(--ink)", background: mSel.length && !working ? "var(--ink)" : "var(--ink-faint)", color: "var(--paper-bright)", cursor: mSel.length && !working ? "pointer" : "default", fontWeight: 700, fontSize: 13 }}>
@@ -950,14 +950,14 @@ export default function PlanNavigator({
   const clearDialog = confirmClear && (
     <div onClick={() => setConfirmClear(false)} style={{ position: "absolute", inset: 0, zIndex: 5, background: "var(--scrim)", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
       <div onClick={(e) => e.stopPropagation()} className="panel" style={{ width: 460, maxWidth: "100%", background: "var(--paper-bright)", boxShadow: "var(--shadow-2)", padding: "18px 20px" }}>
-        <strong style={{ fontFamily: "var(--f-display)", fontSize: 15, color: "var(--c-danger)" }}>Clear the whole workspace?</strong>
+        <strong style={{ fontFamily: "var(--f-display)", fontSize: 15, color: "var(--c-danger)" }}>Törlöd a teljes munkaterületet?</strong>
         <p style={{ fontSize: 12.5, color: "var(--ink-muted)", lineHeight: 1.6, margin: "10px 0 4px" }}>
           Every stored PDF ({sheets.length}) is removed and the takeoff resets to empty — a clean start without touching browser storage by hand.
           <br /><span style={{ color: "var(--ink)" }}>A non-empty takeoff is snapshotted first</span> — Revisions → restore brings it back (you'd re-open the same PDFs to see its shapes). The PDFs themselves aren't stored anywhere else.
         </p>
         <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 16 }}>
           <button onClick={() => setConfirmClear(false)} style={{ ...ctrlBtn, color: "var(--ink-muted)" }}>Cancel</button>
-          <button onClick={doClear} style={{ ...ctrlBtn, border: "1px solid var(--c-danger)", background: "var(--c-danger)", color: "var(--paper-bright)", fontWeight: 700 }}>Clear workspace</button>
+          <button onClick={doClear} style={{ ...ctrlBtn, border: "1px solid var(--c-danger)", background: "var(--c-danger)", color: "var(--paper-bright)", fontWeight: 700 }}>Munkaterület törlése</button>
         </div>
       </div>
     </div>

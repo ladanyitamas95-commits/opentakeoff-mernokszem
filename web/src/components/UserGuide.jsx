@@ -62,45 +62,45 @@ function Section({ title, children }) {
 }
 
 const START = [
-  ["Open a plan", "Drag a PDF, an image, or a whole .zip plan set onto the canvas — or click Load sample plan to use the bundled VA finish plan. Nothing leaves your machine."],
-  ["Set the scale first", "Every quantity depends on it. The Scale menu offers what the sheet's own title block states; hover it to preview a calibrated ruler on the drawing, or calibrate two points of a known dimension. Remembered per sheet."],
-  ["Add a condition", "A condition is a finish — CPT-1, LVT, base. Give it a tag, a waste %, and a colour. Press 1–9 to arm one."],
-  ["Measure", oneClickEnabled() ? "One-Click a room and it selects itself; or trace by hand with Area, Rectangle, Linear or Count. In One-Click, ⏎ creates it." : "Trace by hand with Area, Rectangle, Linear or Count — click the corners, ⏎ closes the shape. (One-Click Area is temporarily gated while the flood engine is re-validated.)"],
-  ["Read the report", "REPORT totals every condition, applies waste, and gives you order quantities, a buy list, and CSV / Excel export."],
+  ["Terv feltöltése", "Húzz egy PDF-et, képet vagy ZIP-tervcsomagot a munkaterületre. A fájlok a gépeden maradnak."],
+  ["Méretarány beállítása", "Minden mennyiség ettől függ. Válaszd ki a tervlapon megadott méretarányt, vagy kalibrálj két ismert távolságú ponttal."],
+  ["Tétel hozzáadása", "A tétel egy mérendő anyag vagy szerkezet, például CPT-1, LVT vagy lábazat. Adj meg kódot, hulladékszázalékot és színt."],
+  ["Mérés", oneClickEnabled() ? "Kattints egy helyiségbe az automatikus területfelismeréshez, vagy mérj kézzel a Terület, Téglalap, Hossz és Darabszám eszközzel." : "Mérj kézzel a Terület, Téglalap, Hossz és Darabszám eszközzel. Kattints a sarokpontokra, majd az ⏎ lezárja az alakzatot."],
+  ["Riport megnyitása", "A Riport tételenként összesít, hozzáadja a hulladékot, és exportálható rendelési mennyiséget készít."],
 ];
 
 export const TOOLS = [
-  ...(oneClickEnabled() ? [[["O"], "One-Click Area — click inside a room, it selects itself"]] : []),
-  [["A"], "Area"], [["R"], "Rectangle"], [["L"], "Linear"], [["Q"], "Straight ⇄ Curve (mid-trace)"],
-  [["S"], "Surface Area (walls)"], [["C"], "Count"],
-  [["D"], "Deduct shape (Cut Out)"], [["⇧", "D"], "Deduct rectangle"],
-  [["H"], "Highlighter"], [["K"], "Check a dimension against what the drawing says"],
-  [["N"], "Dimension line — a standalone length label at the sheet's scale (markup, never counted)"],
-  [["V"], "Select"], [["G"], "Sheet gallery"],
-  [["1", "–", "9"], "Arm condition N"],
+  ...(oneClickEnabled() ? [[["O"], "Terület egy kattintással — kattints a helyiség belsejébe"]] : []),
+  [["A"], "Terület"], [["R"], "Téglalap"], [["L"], "Hossz"], [["Q"], "Egyenes ⇄ íves vonal"],
+  [["S"], "Falfelület"], [["C"], "Darabszám"],
+  [["D"], "Levonási alakzat"], [["⇧", "D"], "Levonási téglalap"],
+  [["H"], "Kiemelő"], [["K"], "Méret ellenőrzése a tervhez képest"],
+  [["N"], "Méretvonal — önálló hosszméret a terv méretarányával"],
+  [["V"], "Kijelölés"], [["G"], "Tervlapgaléria"],
+  [["1", "–", "9"], "Tétel aktiválása"],
   ...(commandBoxEnabled() ? [[["hold", "M"], "Push-to-talk dictation — release runs it, Esc discards"]] : []),
 ];
 
 export const DRAW = [
-  [["⏎"], oneClickEnabled() ? "Finish the shape. In One-Click: Create the selection" : "Finish the shape"],
-  [["⌫"], "Back out one step — the last point, then the picked vertex, the region, the selected shape, the markup"],
-  [["⌘", "Z"], "Mid-trace pops the last point; otherwise undo"],
-  [["⇧", "⌘", "Z"], "Redo"],
-  [["Esc"], "Back out one level — vertex pick first, then anything in progress"],
+  [["⏎"], oneClickEnabled() ? "Alakzat lezárása; automatikus mérésnél a kijelölés létrehozása" : "Alakzat lezárása"],
+  [["⌫"], "Visszalépés egy lépéssel"],
+  [["⌘", "Z"], "Visszavonás"],
+  [["⇧", "⌘", "Z"], "Ismét"],
+  [["Esc"], "Aktuális művelet megszakítása"],
   [["hold", "⇧"], "Force the 45° angle lock at any cursor angle"],
   ...(oneClickEnabled() ? [[["⌥", "click"], "In One-Click: carve a cutout inside a selected space"]] : []),
   [["⇧", "click"], "Insert a vertex at an edge midpoint, and drag it"],
-  [["⌘", "C"], "Copy"], [["⌘", "V"], "Paste under the cursor"], [["⌘", "D"], "Duplicate"],
+  [["⌘", "C"], "Másolás"], [["⌘", "V"], "Beillesztés a kurzorhoz"], [["⌘", "D"], "Duplikálás"],
   [["T"], "Trace another one like the selected shape — its condition and its tool arm, the selection drops"],
 ];
 
 export const VIEW = [
-  [["scroll"], "Zoom toward the cursor"],
-  [["two-finger"], "Pan, both axes"],
-  [["⇧", "scroll"], "Pan"],
+  [["görgetés"], "Nagyítás a kurzor irányába"],
+  [["két ujj"], "Terv mozgatása"],
+  [["⇧", "görgetés"], "Terv mozgatása"],
   [["hold", "Space"], "Pan with any tool armed — as does middle-drag or right-drag"],
-  [["F"], "Focus mode — collapse the chrome, trade it for canvas height"],
-  [["?"], "Open this guide"],
+  [["F"], "Fókuszmód — kezelőfelület elrejtése"],
+  [["?"], "Súgó megnyitása"],
 ];
 
 export default function UserGuide({ onClose }) {
@@ -133,7 +133,7 @@ export default function UserGuide({ onClose }) {
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
-        aria-label="OpenTakeoff user guide"
+        aria-label="MérnökSzem TakeOff felhasználói útmutató"
         className="panel"
         style={{
           width: "min(760px, 100%)", background: "var(--paper-bright)", color: "var(--ink)",
@@ -141,16 +141,16 @@ export default function UserGuide({ onClose }) {
           boxShadow: "var(--shadow-2)",
         }}>
         <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12, marginBottom: 4 }}>
-          <strong style={{ fontFamily: "var(--f-display)", fontSize: 17, letterSpacing: "-0.02em" }}>How OpenTakeoff works</strong>
-          <button onClick={onClose} title="Close (Esc)"
+          <strong style={{ fontFamily: "var(--f-display)", fontSize: 17, letterSpacing: "-0.02em" }}>A MérnökSzem TakeOff használata</strong>
+          <button onClick={onClose} title="Bezárás (Esc)"
             style={{ background: "none", border: "none", color: "var(--ink-soft)", fontSize: 18, cursor: "pointer", lineHeight: 1, padding: 4 }}>×</button>
         </div>
         <p style={{ fontSize: 12.5, color: "var(--ink-soft)", lineHeight: 1.5, margin: "0 0 22px" }}>
-          A takeoff canvas that runs entirely in your browser — no account, no upload, no install. Open a plan,
-          set the scale, measure the finishes, export a priced quantity report.
+          Böngészőben működő tervmérő felület. Tölts fel tervet, állítsd be a méretarányt,
+          mérd fel a tételeket, majd készíts mennyiségkimutatást.
         </p>
 
-        <Section title="Five minutes to a takeoff">
+        <Section title="Tervmérés öt perc alatt">
           <ol style={{ margin: 0, paddingLeft: 18, display: "grid", gap: 9 }}>
             {START.map(([t, d]) => (
               <li key={t} style={{ fontSize: 12.5, lineHeight: 1.5 }}>
@@ -161,14 +161,14 @@ export default function UserGuide({ onClose }) {
           </ol>
         </Section>
 
-        <Section title="Tools"><Table rows={TOOLS} /></Section>
-        <Section title="Drawing & editing"><Table rows={DRAW} /></Section>
-        <Section title="Getting around"><Table rows={VIEW} /></Section>
+        <Section title="Eszközök"><Table rows={TOOLS} /></Section>
+        <Section title="Rajzolás és szerkesztés"><Table rows={DRAW} /></Section>
+        <Section title="Navigáció"><Table rows={VIEW} /></Section>
 
         <div style={{ borderTop: "1px solid var(--ink-faint)", paddingTop: 14, fontSize: 12.5, color: "var(--ink-soft)", lineHeight: 1.5 }}>
-          This is the short version. The full manual covers conditions, markups and RFIs, revisions,
-          the report and exports, the Agent panel, and driving OpenTakeoff from an AI agent over MCP —{" "}
-          <a href={GUIDE_URL} target="_blank" rel="noreferrer" style={{ color: "var(--cobalt)" }}>read the complete guide</a>.
+          Ez a rövid útmutató. A teljes, jelenleg angol nyelvű kézikönyv a tételeket, jelöléseket,
+          RFI-ket, revíziókat, riportokat és az AI/MCP használatot is bemutatja —{" "}
+          <a href={GUIDE_URL} target="_blank" rel="noreferrer" style={{ color: "var(--cobalt)" }}>teljes kézikönyv megnyitása</a>.
         </div>
       </div>
     </div>

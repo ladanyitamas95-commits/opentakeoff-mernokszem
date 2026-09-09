@@ -437,54 +437,54 @@ export default function ReportPanel({ projectName, onProjectName, conditions, sh
     <div className="report-panel" style={{ ...theme.vars, position: "absolute", inset: 0, zIndex: 50, display: "flex", flexDirection: "column", background: "var(--paper-cream)" }}>
       <div className="report-toolbar" style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 18px", borderBottom: "1px solid var(--ink)", background: "var(--paper-bright)" }}>
         <Icon name="takeoffs" size={18} />
-        <strong style={{ fontFamily: "var(--f-display)", fontSize: 16, color: "var(--ink)" }}>Takeoff report</strong>
-        <input name="project-name" value={projectName} onChange={(e) => onProjectName(e.target.value)} placeholder="Project name (optional)"
+        <strong style={{ fontFamily: "var(--f-display)", fontSize: 16, color: "var(--ink)" }}>Tervmérési riport</strong>
+        <input name="project-name" value={projectName} onChange={(e) => onProjectName(e.target.value)} placeholder="Projekt neve (nem kötelező)"
           className="field-input" style={{ width: 260, padding: "5px 9px", fontSize: 13 }} />
         <div style={{ flex: 1 }} />
         <button className="btn-ghost" onClick={() => setShowInfo(true)}
-          title="Your company identity and the client/job details for the print header and marked-set cover">Project info</button>
+          title="Cégadatok és projektadatok a nyomtatott fejléchez">Projektadatok</button>
         {/* always rendered, even with zero custom columns — Sheet grouping
             is useful on its own */}
         <label style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12.5, color: "var(--ink)", whiteSpace: "nowrap" }}
-          title="Break the condition table into sections with subtotals">
+          title="Tételtábla csoportosítása részösszegekkel">
           Group:
           <select name="report-group-by" value={groupBy} onChange={(e) => { setGroupByRaw(e.target.value); saveGroupBy(e.target.value); }}
             style={{ padding: "5px 6px", border: "1px solid var(--ink-faint)", background: "transparent", fontSize: 12, maxWidth: 160 }}>
-            <option value="">None</option>
-            <option value="sheet">Sheet</option>
-            {shapeLabels.length > 0 && <option value="label">Label</option>}
-            {hasAuthors && <option value="author">Author</option>}
+            <option value="">Nincs</option>
+            <option value="sheet">Tervlap</option>
+            {shapeLabels.length > 0 && <option value="label">Címke</option>}
+            {hasAuthors && <option value="author">Szerző</option>}
             {conditionColumns.map((cc) => (
               <option key={cc.id} value={cc.id}>{columnLabel(cc)}</option>
             ))}
           </select>
         </label>
         <div ref={colsRef} style={{ position: "relative" }}>
-          <button className="btn-ghost" onClick={() => setShowCols((s) => !s)} title="Choose which columns the table and CSV show">Columns</button>
+          <button className="btn-ghost" onClick={() => setShowCols((s) => !s)} title="A táblázatban és CSV-ben látható oszlopok kiválasztása">Oszlopok</button>
           {showCols && (
             <div className="report-modal" style={{ position: "absolute", top: "calc(100% + 6px)", right: 0, zIndex: 70, width: 272, background: "var(--paper-bright)", border: "1px solid var(--ink)", boxShadow: "var(--shadow-2)", padding: "10px 12px", fontSize: 12.5, color: "var(--ink)" }}>
               <div style={{ display: "flex", alignItems: "center", marginBottom: 6 }}>
-                <strong style={{ fontFamily: "var(--f-display)", fontSize: 13 }}>Columns</strong>
+                <strong style={{ fontFamily: "var(--f-display)", fontSize: 13 }}>Oszlopok</strong>
                 <div style={{ flex: 1 }} />
                 <button onClick={applyLaborPreset} title="No-waste actuals per condition — hides SF/SY w/Waste, shows Total SF"
-                  style={{ border: "none", background: "transparent", color: "var(--cobalt)", cursor: "pointer", fontSize: 11.5, padding: "0 10px 0 0" }}>Labor view</button>
+                  style={{ border: "none", background: "transparent", color: "var(--cobalt)", cursor: "pointer", fontSize: 11.5, padding: "0 10px 0 0" }}>Munkadíj nézet</button>
                 <button onClick={() => { setColPrefs({}); saveColPrefs({}); }} title="Back to the default column set"
-                  style={{ border: "none", background: "transparent", color: "var(--cobalt)", cursor: "pointer", fontSize: 11.5, padding: "0 10px 0 0" }}>Reset</button>
+                  style={{ border: "none", background: "transparent", color: "var(--cobalt)", cursor: "pointer", fontSize: 11.5, padding: "0 10px 0 0" }}>Visszaállítás</button>
                 <button onClick={() => setShowCols(false)} title="Close"
                   style={{ border: "none", background: "transparent", color: "var(--ink-muted)", cursor: "pointer", fontSize: 13, padding: 0, lineHeight: 1 }}>✕</button>
               </div>
               {TABLE_PROFILE.filter((c) => !c.locked && c.defaultVisible).map(colCheckbox)}
-              <div style={{ borderTop: "1px solid var(--ink-faint)", margin: "8px 0 4px", paddingTop: 6, fontFamily: "var(--f-mono)", fontSize: 9.5, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--ink-muted)" }}>Optional</div>
+              <div style={{ borderTop: "1px solid var(--ink-faint)", margin: "8px 0 4px", paddingTop: 6, fontFamily: "var(--f-mono)", fontSize: 9.5, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--ink-muted)" }}>Választható</div>
               {TABLE_PROFILE.filter((c) => !c.locked && !c.defaultVisible).map(colCheckbox)}
-              <div style={{ borderTop: "1px solid var(--ink-faint)", margin: "8px 0 4px", paddingTop: 6, fontFamily: "var(--f-mono)", fontSize: 9.5, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--ink-muted)" }}>Custom columns</div>
+              <div style={{ borderTop: "1px solid var(--ink-faint)", margin: "8px 0 4px", paddingTop: 6, fontFamily: "var(--f-mono)", fontSize: 9.5, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--ink-muted)" }}>Egyéni oszlopok</div>
               {customCols.length ? customCols.map(colCheckbox) : (
-                <div style={{ fontSize: 10.5, color: "var(--ink-muted)", lineHeight: 1.5 }}>No custom columns yet — define them from the condition bar in the canvas.</div>
+                <div style={{ fontSize: 10.5, color: "var(--ink-muted)", lineHeight: 1.5 }}>Még nincs egyéni oszlop — a tervmérés tételsávjában hozhatsz létre.</div>
               )}
               {/* read-only product-spec columns — only shown when a schedule
                   import attached spec data to at least one condition */}
               {specCols.length > 0 && (
                 <>
-                  <div style={{ borderTop: "1px solid var(--ink-faint)", margin: "8px 0 4px", paddingTop: 6, fontFamily: "var(--f-mono)", fontSize: 9.5, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--ink-muted)" }}>Product spec (imported)</div>
+                  <div style={{ borderTop: "1px solid var(--ink-faint)", margin: "8px 0 4px", paddingTop: 6, fontFamily: "var(--f-mono)", fontSize: 9.5, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--ink-muted)" }}>Importált termékadatok</div>
                   {specCols.map(colCheckbox)}
                 </>
               )}
@@ -492,7 +492,7 @@ export default function ReportPanel({ projectName, onProjectName, conditions, sh
                   a value typed in from the Supporting Materials panel */}
               {laborCols.length > 0 && (
                 <>
-                  <div style={{ borderTop: "1px solid var(--ink-faint)", margin: "8px 0 4px", paddingTop: 6, fontFamily: "var(--f-mono)", fontSize: 9.5, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--ink-muted)" }}>Labor & subfloor</div>
+                  <div style={{ borderTop: "1px solid var(--ink-faint)", margin: "8px 0 4px", paddingTop: 6, fontFamily: "var(--f-mono)", fontSize: 9.5, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--ink-muted)" }}>Kivitelezés és aljzat</div>
                   {laborCols.map(colCheckbox)}
                 </>
               )}
@@ -501,17 +501,17 @@ export default function ReportPanel({ projectName, onProjectName, conditions, sh
           )}
         </div>
         <div ref={templatesRef} style={{ position: "relative" }}>
-          <button className="btn-ghost" onClick={() => setShowTemplates((s) => !s)} title="Save and recall report layouts (columns + grouping)">Templates{templates.length ? ` (${templates.length})` : ""}</button>
+          <button className="btn-ghost" onClick={() => setShowTemplates((s) => !s)} title="Riportelrendezések mentése és betöltése">Sablonok{templates.length ? ` (${templates.length})` : ""}</button>
           {showTemplates && (
             <div className="report-modal" style={{ position: "absolute", top: "calc(100% + 6px)", right: 0, zIndex: 70, width: 260, background: "var(--paper-bright)", border: "1px solid var(--ink)", boxShadow: "var(--shadow-2)", padding: "10px 12px", fontSize: 12.5, color: "var(--ink)" }}>
               <div style={{ display: "flex", alignItems: "center", marginBottom: 6 }}>
-                <strong style={{ fontFamily: "var(--f-display)", fontSize: 13 }}>Templates</strong>
+                <strong style={{ fontFamily: "var(--f-display)", fontSize: 13 }}>Sablonok</strong>
                 <div style={{ flex: 1 }} />
                 <button onClick={() => setShowTemplates(false)} title="Close"
                   style={{ border: "none", background: "transparent", color: "var(--ink-muted)", cursor: "pointer", fontSize: 13, padding: 0, lineHeight: 1 }}>✕</button>
               </div>
               <div style={{ fontSize: 10.5, color: "var(--ink-muted)", lineHeight: 1.4, marginBottom: 6 }}>Saved column + grouping layouts (this device). Click one to apply.</div>
-              {templates.length === 0 && <div style={{ fontSize: 10.5, color: "var(--ink-muted)", marginBottom: 6 }}>No saved templates yet.</div>}
+              {templates.length === 0 && <div style={{ fontSize: 10.5, color: "var(--ink-muted)", marginBottom: 6 }}>Még nincs mentett sablon.</div>}
               {templates.map((t) => (
                 <div key={t.id} style={{ display: "flex", alignItems: "center", gap: 4, padding: "2px 0" }}>
                   <button onClick={() => applyTemplate(t)} title="Apply this layout"
@@ -525,9 +525,9 @@ export default function ReportPanel({ projectName, onProjectName, conditions, sh
               <div style={{ display: "flex", alignItems: "center", gap: 6, borderTop: "1px solid var(--ink-faint)", marginTop: 6, paddingTop: 8 }}>
                 <input name="template-name" value={tplName} onChange={(e) => setTplName(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && !e.nativeEvent.isComposing && saveAsTemplate()}
-                  placeholder="Name this layout" style={{ flex: 1, minWidth: 0, padding: "3px 6px", borderRadius: 0, border: "1px solid var(--ink-faint)", fontSize: 12 }} />
+                  placeholder="Elrendezés neve" style={{ flex: 1, minWidth: 0, padding: "3px 6px", borderRadius: 0, border: "1px solid var(--ink-faint)", fontSize: 12 }} />
                 <button onClick={saveAsTemplate} disabled={!tplName.trim()} title="Save the current columns + grouping under this name"
-                  style={{ padding: "3px 8px", borderRadius: 0, border: "1px dashed var(--ink-faint)", background: "transparent", color: "var(--ink-muted)", cursor: "pointer", fontSize: 12 }}>Save</button>
+                  style={{ padding: "3px 8px", borderRadius: 0, border: "1px dashed var(--ink-faint)", background: "transparent", color: "var(--ink-muted)", cursor: "pointer", fontSize: 12 }}>Mentés</button>
               </div>
               {/* Optional Drive sync — only when signed in and a Projects root is
                   configured. Load MERGES (this device wins on a name clash); it
@@ -538,9 +538,9 @@ export default function ReportPanel({ projectName, onProjectName, conditions, sh
                   <div style={{ fontSize: 10.5, color: "var(--ink-muted)", lineHeight: 1.4, marginBottom: 6 }}>Carry these across your own devices via Drive. Load only adds templates this device doesn't have — a same-name template is never overwritten (rename or delete it here first to pull a newer copy).</div>
                   <div style={{ display: "flex", gap: 6 }}>
                     <button onClick={pushToDrive} disabled={syncBusy} title="Write your saved templates to your private Drive file"
-                      style={{ flex: 1, padding: "4px 8px", borderRadius: 0, border: "1px solid var(--ink-faint)", background: "transparent", color: "var(--cobalt)", cursor: syncBusy ? "default" : "pointer", fontSize: 12 }}>Push to Drive</button>
+                      style={{ flex: 1, padding: "4px 8px", borderRadius: 0, border: "1px solid var(--ink-faint)", background: "transparent", color: "var(--cobalt)", cursor: syncBusy ? "default" : "pointer", fontSize: 12 }}>Mentés Drive-ra</button>
                     <button onClick={loadFromDrive} disabled={syncBusy} title="Merge templates from your Drive file into this device"
-                      style={{ flex: 1, padding: "4px 8px", borderRadius: 0, border: "1px solid var(--ink-faint)", background: "transparent", color: "var(--cobalt)", cursor: syncBusy ? "default" : "pointer", fontSize: 12 }}>Load from Drive</button>
+                      style={{ flex: 1, padding: "4px 8px", borderRadius: 0, border: "1px solid var(--ink-faint)", background: "transparent", color: "var(--cobalt)", cursor: syncBusy ? "default" : "pointer", fontSize: 12 }}>Betöltés Drive-ról</button>
                   </div>
                   {syncMsg && <div style={{ fontSize: 10.5, color: "var(--ink-muted)", marginTop: 6 }}>{syncMsg}</div>}
                 </div>
@@ -549,11 +549,11 @@ export default function ReportPanel({ projectName, onProjectName, conditions, sh
           )}
         </div>
         <div ref={themeRef} style={{ position: "relative" }}>
-          <button className="btn-ghost" onClick={() => setShowTheme((s) => !s)} title="Apply an imported design-token theme to the report (colors + fonts)">Theme{theme.name ? " ●" : ""}</button>
+          <button className="btn-ghost" onClick={() => setShowTheme((s) => !s)} title="Importált szín- és betűkészlet alkalmazása a riportra">Téma{theme.name ? " ●" : ""}</button>
           {showTheme && (
             <div className="report-modal" style={{ position: "absolute", top: "calc(100% + 6px)", right: 0, zIndex: 70, width: 292, background: "var(--paper-bright)", border: "1px solid var(--ink)", boxShadow: "var(--shadow-2)", padding: "10px 12px", fontSize: 12.5, color: "var(--ink)" }}>
               <div style={{ display: "flex", alignItems: "center", marginBottom: 6 }}>
-                <strong style={{ fontFamily: "var(--f-display)", fontSize: 13 }}>Report theme</strong>
+                <strong style={{ fontFamily: "var(--f-display)", fontSize: 13 }}>Riport témája</strong>
                 <div style={{ flex: 1 }} />
                 <button onClick={() => setShowTheme(false)} title="Close"
                   style={{ border: "none", background: "transparent", color: "var(--ink-muted)", cursor: "pointer", fontSize: 13, padding: 0, lineHeight: 1 }}>✕</button>
@@ -567,14 +567,14 @@ export default function ReportPanel({ projectName, onProjectName, conditions, sh
                   <div style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontWeight: 600 }} title={theme.name}>{theme.name}</div>
                 </div>
               ) : (
-                <div style={{ fontSize: 11.5, color: "var(--ink-muted)", marginBottom: 8 }}>Using the default house style.</div>
+                <div style={{ fontSize: 11.5, color: "var(--ink-muted)", marginBottom: 8 }}>Alapértelmezett MérnökSzem megjelenés.</div>
               )}
               <div style={{ display: "flex", gap: 6 }}>
                 <button onClick={() => themeFileRef.current?.click()} title="Choose a design-token file to import"
-                  style={{ flex: 1, padding: "5px 8px", border: "1px solid var(--ink)", background: "var(--ink)", color: "var(--paper-bright)", cursor: "pointer", fontSize: 12, fontWeight: 600 }}>Import theme…</button>
+                  style={{ flex: 1, padding: "5px 8px", border: "1px solid var(--ink)", background: "var(--ink)", color: "var(--paper-bright)", cursor: "pointer", fontSize: 12, fontWeight: 600 }}>Téma importálása…</button>
                 {theme.name && (
                   <button onClick={resetTheme} title="Remove the imported theme and return to the default"
-                    style={{ padding: "5px 10px", border: "1px solid var(--ink-faint)", background: "transparent", color: "var(--cobalt)", cursor: "pointer", fontSize: 12 }}>Reset</button>
+                    style={{ padding: "5px 10px", border: "1px solid var(--ink-faint)", background: "transparent", color: "var(--cobalt)", cursor: "pointer", fontSize: 12 }}>Visszaállítás</button>
                 )}
               </div>
               {theme.warnings.length > 0 && (
@@ -592,9 +592,9 @@ export default function ReportPanel({ projectName, onProjectName, conditions, sh
             Every item keeps the exact disabled condition + tooltip its button
             carried. RFI exports stay their own controls, shown only when RFIs exist. */}
         <ToolMenu
-          title="Download the report and shape data"
+          title="Riport és alakzatadatok letöltése"
           disabled={!rows.length && !shapes.length && !markups.length && !rfis.length}
-          face={<><Icon name="document" size={13} />Export</>}
+          face={<><Icon name="document" size={13} />Exportálás</>}
           items={[
             { section: "Report" },
             { id: "csv", icon: "document", label: "CSV", disabled: !rows.length, onSelect: exportCsv },
@@ -611,9 +611,9 @@ export default function ReportPanel({ projectName, onProjectName, conditions, sh
           ]}
         />
         <ToolMenu
-          title="Print the report, or generate the marked-set PDF"
+          title="Riport nyomtatása vagy jelölt PDF készítése"
           disabled={!rows.length && !markups.length && !rfis.length /* both items are disabled exactly here: with no rows/rfis, the marked-set condition also collapses to true */}
-          face={<span>Print</span>}
+          face={<span>Nyomtatás</span>}
           items={[
             { id: "print", label: "Print report", disabled: !rows.length && !markups.length && !rfis.length, title: "Print the on-screen report (browser print / save as PDF)", onSelect: () => window.print() },
             ...(onMarkedSet ? [
@@ -636,7 +636,7 @@ export default function ReportPanel({ projectName, onProjectName, conditions, sh
           title="Optionally contribute this takeoff's derived data to the open flooring model">
           <Icon name="oneClick" size={13} />Contribute
         </button>
-        <button onClick={onClose} title="Back to the canvas (Esc)"
+        <button onClick={onClose} title="Vissza a tervhez (Esc)"
           style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 10px", border: "1px solid var(--ink-faint)", background: "transparent", color: "var(--ink)", cursor: "pointer", fontSize: 12.5 }}>
           <Icon name="close" size={12} />Close
         </button>
@@ -673,7 +673,7 @@ export default function ReportPanel({ projectName, onProjectName, conditions, sh
                 <div style={{ fontFamily: "var(--f-display)", fontWeight: 700, fontSize: 12.5, lineHeight: 1.15 }}>{brand.brandName}</div>
               )}
             </div>
-            <div style={{ fontFamily: "var(--f-mono)", fontSize: 10.5, letterSpacing: "0.16em", textTransform: "uppercase", color: "var(--ink-muted)", whiteSpace: "nowrap" }}>Takeoff Report</div>
+            <div style={{ fontFamily: "var(--f-mono)", fontSize: 10.5, letterSpacing: "0.16em", textTransform: "uppercase", color: "var(--ink-muted)", whiteSpace: "nowrap" }}>Tervmérési riport</div>
           </div>
 
           {/* project title */}
@@ -777,7 +777,7 @@ export default function ReportPanel({ projectName, onProjectName, conditions, sh
                   {/* single-row group: no subtotal — it would repeat the row verbatim */}
                   {sub && (
                     <tr>
-                      <td style={{ ...td, textAlign: "left", borderTop: "1px solid var(--ink-soft)", color: "var(--ink-muted)", fontWeight: 600 }}>Subtotal</td>
+                      <td style={{ ...td, textAlign: "left", borderTop: "1px solid var(--ink-soft)", color: "var(--ink-muted)", fontWeight: 600 }}>Részösszeg</td>
                       {/* lighter than the grand-total tfoot: thin border,
                           muted color; same foot mechanism on the group's
                           own grandTotals */}
@@ -793,7 +793,7 @@ export default function ReportPanel({ projectName, onProjectName, conditions, sh
             })}
             <tfoot>
               <tr>
-                <td style={{ ...td, textAlign: "left", borderTop: "2px solid var(--ink)", borderBottom: "2px solid var(--ink)", background: "var(--paper-cream)", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", fontFamily: "var(--f-mono)" }}>Total</td>
+                <td style={{ ...td, textAlign: "left", borderTop: "2px solid var(--ink)", borderBottom: "2px solid var(--ink)", background: "var(--paper-cream)", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", fontFamily: "var(--f-mono)" }}>Összesen</td>
                 {/* finish is always first & locked; every other visible column gets its
                     own td — footed columns render foot(g), ref columns never foot */}
                 {tableCols.slice(1).map((c) => (
@@ -824,14 +824,14 @@ export default function ReportPanel({ projectName, onProjectName, conditions, sh
         )}
         {rows.length > 0 && bySheet.length > 0 && (
           <div style={{ maxWidth: 980, margin: "26px auto 0" }}>
-            <h3 style={{ fontFamily: "var(--f-display)", fontSize: 12, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--ink)", margin: "0 0 10px", paddingBottom: 5, borderBottom: "1.25px solid var(--ink)" }}>By sheet</h3>
+            <h3 style={{ fontFamily: "var(--f-display)", fontSize: 12, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--ink)", margin: "0 0 10px", paddingBottom: 5, borderBottom: "1.25px solid var(--ink)" }}>Tervlaponként</h3>
             {bySheet.map((gp) => (
               <div key={gp.sheet_id} style={{ margin: "0 0 14px" }}>
                 <h3 style={{ fontFamily: "var(--f-mono)", fontSize: 11, letterSpacing: "0.06em", color: "var(--ink-muted)", margin: "0 0 6px" }}>{sheetLabel ? sheetLabel(gp.sheet_id) : gp.sheet_id}</h3>
                 <table style={{ width: "100%", borderCollapse: "collapse", background: "var(--paper-bright)", border: "1px solid var(--ink-faint)" }}>
                   <thead>
                     <tr>
-                      <th style={{ ...th, textAlign: "left" }}>Finish</th>
+                      <th style={{ ...th, textAlign: "left" }}>Tétel</th>
                       <th style={th}>Floor {AU}</th>
                       <th style={th}>Wall {AU}</th>
                       <th style={th}>Border {AU}</th>
@@ -872,13 +872,13 @@ export default function ReportPanel({ projectName, onProjectName, conditions, sh
         {markups.some((m) => m.type !== "svg" && m.type !== "image") && (
           <div style={{ maxWidth: 980, margin: "26px auto 0" }}>
             {/* svg symbols and image markups aren't revision notes — excluded */}
-            <h3 style={{ fontFamily: "var(--f-display)", fontSize: 12, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--ink)", margin: "0 0 10px", paddingBottom: 5, borderBottom: "1.25px solid var(--ink)" }}>Revisions noted</h3>
+            <h3 style={{ fontFamily: "var(--f-display)", fontSize: 12, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--ink)", margin: "0 0 10px", paddingBottom: 5, borderBottom: "1.25px solid var(--ink)" }}>Rögzített revíziók</h3>
             <table style={{ width: "100%", borderCollapse: "collapse", background: "var(--paper-bright)", border: "1px solid var(--ink-faint)" }}>
               <thead>
                 <tr>
-                  <th style={{ ...th, textAlign: "left" }}>Type</th>
-                  <th style={{ ...th, textAlign: "left" }}>Sheet</th>
-                  <th style={{ ...th, textAlign: "left" }}>Note</th>
+                  <th style={{ ...th, textAlign: "left" }}>Típus</th>
+                  <th style={{ ...th, textAlign: "left" }}>Tervlap</th>
+                  <th style={{ ...th, textAlign: "left" }}>Megjegyzés</th>
                 </tr>
               </thead>
               <tbody>
@@ -902,13 +902,13 @@ export default function ReportPanel({ projectName, onProjectName, conditions, sh
         )}
         {matSummary.length > 0 && (
           <div style={{ maxWidth: 980, margin: "26px auto 0" }}>
-            <h3 style={{ fontFamily: "var(--f-display)", fontSize: 12, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--ink)", margin: "0 0 10px", paddingBottom: 5, borderBottom: "1.25px solid var(--ink)" }}>Supporting materials — buy list</h3>
+            <h3 style={{ fontFamily: "var(--f-display)", fontSize: 12, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--ink)", margin: "0 0 10px", paddingBottom: 5, borderBottom: "1.25px solid var(--ink)" }}>Kiegészítő anyagok — beszerzési lista</h3>
             <table style={{ width: "100%", borderCollapse: "collapse", background: "var(--paper-bright)", border: "1px solid var(--ink-faint)" }}>
               <thead>
                 <tr>
-                  <th style={{ ...th, textAlign: "left" }}>Material</th>
-                  <th style={th}>Quantity</th>
-                  <th style={{ ...th, textAlign: "left", paddingLeft: 16 }}>Unit</th>
+                  <th style={{ ...th, textAlign: "left" }}>Anyag</th>
+                  <th style={th}>Mennyiség</th>
+                  <th style={{ ...th, textAlign: "left", paddingLeft: 16 }}>Egység</th>
                 </tr>
               </thead>
               <tbody>
@@ -922,7 +922,7 @@ export default function ReportPanel({ projectName, onProjectName, conditions, sh
               </tbody>
             </table>
             <p style={{ maxWidth: 980, margin: "10px auto 0", fontSize: 11.5, color: "var(--ink-muted)", lineHeight: 1.7 }}>
-              <strong>By finish:</strong>{" "}
+              <strong>Tételenként:</strong>{" "}
               {rows.filter((r) => r.materials?.length).map((r) => (
                 // inline-block + a trailing space outside the span: each finish
                 // moves to the next line as a unit when it fits, and wraps
@@ -1050,31 +1050,31 @@ function ProjectInfoModal({ clientInfo = {}, onClientInfo, onSaved, onClose }) {
       <div onClick={(e) => e.stopPropagation()} className="panel" style={{ width: 520, maxWidth: "100%", maxHeight: "90%", overflow: "auto", background: "var(--paper-bright)", boxShadow: "var(--shadow-2)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 16px", borderBottom: "1px solid var(--ink)" }}>
           <Icon name="document" size={16} />
-          <strong style={{ fontFamily: "var(--f-display)", fontSize: 15 }}>Project info</strong>
+          <strong style={{ fontFamily: "var(--f-display)", fontSize: 15 }}>Projektadatok</strong>
         </div>
         <div style={{ padding: 16, fontSize: 13, lineHeight: 1.6, color: "var(--ink)" }}>
-          <div style={section}>Company — your trade names, saved on this device</div>
+          <div style={section}>Cég — ezen az eszközön mentett márkanevek</div>
           {/* trade-name picker: choose which identity prints on the report + marked-set */}
           <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "8px 0" }}>
             <select name="trade-name" aria-label="Active trade name" value={profs.activeId || ""} onChange={(e) => switchProfile(e.target.value)}
               className="field-input" style={{ flex: 1, minWidth: 0 }} disabled={!profs.profiles.length}>
-              {profs.profiles.length === 0 && <option value="">No trade name yet — add one</option>}
+              {profs.profiles.length === 0 && <option value="">Még nincs cégnév — adj hozzá egyet</option>}
               {profs.profiles.map((p) => <option key={p.id} value={p.id}>{p.name || "Untitled trade name"}</option>)}
             </select>
             <button onClick={addTradeName} className="btn-ghost" title="Add another trade name (e.g. a second brand)"
               style={{ padding: "5px 10px", whiteSpace: "nowrap" }}>+ Add</button>
             {profs.profiles.length > 1 && (
               <button onClick={deleteActive} title="Delete the selected trade name"
-                style={{ padding: "5px 10px", border: "1px solid var(--ink-faint)", background: "transparent", color: "var(--c-danger)", cursor: "pointer", fontSize: 12, whiteSpace: "nowrap" }}>Delete</button>
+                style={{ padding: "5px 10px", border: "1px solid var(--ink-faint)", background: "transparent", color: "var(--c-danger)", cursor: "pointer", fontSize: 12, whiteSpace: "nowrap" }}>Törlés</button>
             )}
           </div>
           <label style={row}>
-            <span className="field-label">Name</span>
+            <span className="field-label">Név</span>
             <input name="company-name" autoComplete="organization" value={active.name || ""} onChange={(e) => editActive({ name: e.target.value })}
-              placeholder="Your trade name" className="field-input" style={{ marginTop: 4 }} />
+              placeholder="Cégnév vagy márkanév" className="field-input" style={{ marginTop: 4 }} />
           </label>
           <label style={row}>
-            <span className="field-label">Address</span>
+            <span className="field-label">Cím</span>
             <textarea name="company-address" autoComplete="street-address" value={active.address || ""} onChange={(e) => editActive({ address: e.target.value })}
               rows={2} placeholder={"Street\nCity, ST"} className="field-input" style={{ marginTop: 4, resize: "vertical" }} />
           </label>
@@ -1086,18 +1086,18 @@ function ProjectInfoModal({ clientInfo = {}, onClientInfo, onSaved, onClose }) {
                 <>
                   <img src={active.logo} alt="Company logo" style={{ width: 120, height: "auto", flex: "none", border: "1px solid var(--ink-faint)", background: "var(--well)" }} />
                   <button onClick={removeLogo}
-                    style={{ border: "none", background: "transparent", color: "var(--cobalt)", cursor: "pointer", fontSize: 11.5, padding: 0, whiteSpace: "nowrap" }}>Remove logo</button>
+                    style={{ border: "none", background: "transparent", color: "var(--cobalt)", cursor: "pointer", fontSize: 11.5, padding: 0, whiteSpace: "nowrap" }}>Logó eltávolítása</button>
                 </>
               )}
             </div>
             {logoErr && <p style={err}>{logoErr}</p>}
           </div>
-          {saveFailed && <p style={err}>Couldn't save on this device</p>}
+          {saveFailed && <p style={err}>A mentés nem sikerült ezen az eszközön</p>}
 
           {/* branding mode — per project. Off = OpenTakeoff (default); on brands
               the report + marked set as the selected trade name, keeping a subtle
               "Measured with OpenTakeoff" credit. Disabled until a trade name exists. */}
-          <div style={{ ...section, borderTop: "1px solid var(--ink-faint)", marginTop: 14, paddingTop: 12 }}>Branding — how this project's documents present</div>
+          <div style={{ ...section, borderTop: "1px solid var(--ink-faint)", marginTop: 14, paddingTop: 12 }}>Arculat — hogyan jelenjenek meg a projekt dokumentumai</div>
           <label style={{ display: "flex", alignItems: "center", gap: 8, margin: "8px 0", cursor: profs.profiles.length ? "pointer" : "not-allowed", opacity: profs.profiles.length ? 1 : 0.6 }}>
             <input type="checkbox" name="trade-name-brand" checked={brandSel.mode === "clearlabel"} disabled={!profs.profiles.length}
               onChange={(e) => setBranding({ mode: e.target.checked ? "clearlabel" : "default" })} />
@@ -1122,30 +1122,30 @@ function ProjectInfoModal({ clientInfo = {}, onClientInfo, onSaved, onClose }) {
             </div>
           )}
 
-          <div style={{ ...section, borderTop: "1px solid var(--ink-faint)", marginTop: 14, paddingTop: 12 }}>Client / job — saved with this project</div>
+          <div style={{ ...section, borderTop: "1px solid var(--ink-faint)", marginTop: 14, paddingTop: 12 }}>Megrendelő és munka — a projekttel együtt mentve</div>
           <label style={row}>
-            <span className="field-label">Client name</span>
+            <span className="field-label">Megrendelő neve</span>
             <input name="client-name" autoComplete="off" value={clientInfo.client_name || ""} onChange={client("client_name")} className="field-input" style={{ marginTop: 4 }} />
           </label>
           <label style={row}>
-            <span className="field-label">Client address</span>
+            <span className="field-label">Megrendelő címe</span>
             <textarea name="client-address" autoComplete="off" value={clientInfo.client_address || ""} onChange={client("client_address")} rows={2}
               className="field-input" style={{ marginTop: 4, resize: "vertical" }} />
           </label>
           <div style={{ display: "flex", gap: 12 }}>
             <label style={{ ...row, flex: 1 }}>
-              <span className="field-label">PO / reference</span>
+              <span className="field-label">Megrendelés / hivatkozás</span>
               <input name="client-reference" autoComplete="off" value={clientInfo.reference || ""} onChange={client("reference")} className="field-input" style={{ marginTop: 4 }} />
             </label>
             <label style={{ ...row, flex: 1 }}>
-              <span className="field-label">Date</span>
+              <span className="field-label">Dátum</span>
               <input name="client-date" autoComplete="off" value={clientInfo.date || ""} onChange={client("date")} placeholder={'e.g. "Bid 7/12"'}
                 className="field-input" style={{ marginTop: 4 }} />
             </label>
           </div>
         </div>
         <div style={{ display: "flex", justifyContent: "flex-end", padding: "12px 16px", borderTop: "1px solid var(--ink-faint)" }}>
-          <button className="btn-primary" onClick={onClose}>Done</button>
+          <button className="btn-primary" onClick={onClose}>Kész</button>
         </div>
       </div>
     </div>

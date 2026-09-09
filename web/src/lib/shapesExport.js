@@ -43,7 +43,7 @@ export function shapesDetail(conditions, shapes, sheetLabel) {
 }
 
 export function shapesToCsv(rows, projectName = "", brandName = "OpenTakeoff") {
-  const header = ["Shape", "Sheet", "Sheet ID", "Finish", "Role", "Area SF", "LF", "EA", "Height ft", "Height override", "Origin"];
+  const header = ["Alakzat", "Tervlap", "Tervlapazonosító", "Tétel", "Szerep", "Terület SF", "Hossz LF", "Darabszám", "Magasság ft", "Egyedi magasság", "Forrás"];
   const lines = [
     "# Per-shape measured quantities — no multiplier or waste; deducts negative; LF on floor/deduct/surface rows is trace reference only (incl. openings) — linear rows alone sum to condition LF",
     header.map(esc).join(","),
@@ -52,7 +52,7 @@ export function shapesToCsv(rows, projectName = "", brandName = "OpenTakeoff") {
     lines.push([
       r.shape_id, r.sheet, r.sheet_id, r.finish, r.role,
       r.area_sf, r.lf, r.ea, r.height_ft,
-      r.height_override ? "yes" : "",
+      r.height_override ? "igen" : "",
       r.origin,
     ].map(esc).join(","));
   }

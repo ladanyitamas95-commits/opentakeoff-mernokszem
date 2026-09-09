@@ -34,7 +34,7 @@ export function authorTallyLine(shapes) {
   const parts = [...byAuthor.entries()]
     .sort((a, b) => (a[0] === "" ? 1 : b[0] === "" ? -1 : a[0].localeCompare(b[0])))
     .map(([a, n]) => `${a || "unattributed"} (${n})`);
-  return `Marks by: ${parts.join(" · ")}`;
+  return `Jelölte: ${parts.join(" · ")}`;
 }
 import { pointInPoly, starPath, arrowheadPath, cloudBezier, chiselRibbon } from "./geometry.js";
 import { transformPath, svgPlacedBox } from "./svgpath.js";
@@ -229,7 +229,7 @@ function invertPixels(cv) {
   ctx.restore();
 }
 
-export async function buildMarkedSetPdf({ projectName, dark, sheets, shapes, markups, approvals = [], rfis: rfisIn = [], conditions, getPage, loadPdfData, company, clientInfo, credit = null, provenance = null, coverTitle = "Marked Set", units = "imperial" }) {
+export async function buildMarkedSetPdf({ projectName, dark, sheets, shapes, markups, approvals = [], rfis: rfisIn = [], conditions, getPage, loadPdfData, company, clientInfo, credit = null, provenance = null, coverTitle = "Jelölt tervcsomag", units = "imperial" }) {
   // a withdrawn RFI is a tombstone (rfi.js liveRfis): its number stays
   // reserved but it prints nowhere — the schedule keeps the gap. An agent-
   // raised RFI prints exactly like a panel-raised one; who asked is on the
@@ -265,8 +265,8 @@ export async function buildMarkedSetPdf({ projectName, dark, sheets, shapes, mar
   // emailed around, so it should say what produced it. It also lets the MCP
   // export recognize its own prior output and overwrite that without ceremony,
   // while still refusing to clobber a file it didn't write (mcp/src/safewrite.ts).
-  doc.setProducer("OpenTakeoff");
-  doc.setCreator("OpenTakeoff");
+  doc.setProducer("MérnökSzem TakeOff");
+  doc.setCreator("MérnökSzem TakeOff");
   const font = await doc.embedFont(StandardFonts.Helvetica);
   const bold = await doc.embedFont(StandardFonts.HelveticaBold);
   const ink = dark ? rgb(0.93, 0.92, 0.89) : rgb(0.13, 0.12, 0.1);
@@ -333,17 +333,17 @@ export async function buildMarkedSetPdf({ projectName, dark, sheets, shapes, mar
         idY -= 11;
       }
     }
-    draw(String(projectName || "Untitled project"), { x: 52, y: 700, size: 22, font: bold, color: ink });
+    draw(String(projectName || "Névtelen projekt"), { x: 52, y: 700, size: 22, font: bold, color: ink });
     // client block (optional) sits under the project name; the meta line and
     // everything below shift down with it — no clientInfo, no shift: every y
     // matches the unbranded cover exactly.
     let metaY = 680;
     {
       const clientLines = [];
-      if (clientInfo?.client_name) clientLines.push(`Prepared for ${clientInfo.client_name}`);
+      if (clientInfo?.client_name) clientLines.push(`Megrendelő: ${clientInfo.client_name}`);
       for (const raw of String(clientInfo?.client_address || "").split("\n")) { const t = raw.trim(); if (t) clientLines.push(t); }
-      if (clientInfo?.reference) clientLines.push(`Ref ${clientInfo.reference}`);
-      if (clientInfo?.date) clientLines.push(`Date ${clientInfo.date}`);
+      if (clientInfo?.reference) clientLines.push(`Hivatkozás: ${clientInfo.reference}`);
+      if (clientInfo?.date) clientLines.push(`Dátum: ${clientInfo.date}`);
       if (clientLines.length) {
         let cy = 681;
         // capped: a pasted multi-line address must never push CONDITIONS off
@@ -376,7 +376,7 @@ export async function buildMarkedSetPdf({ projectName, dark, sheets, shapes, mar
     }
     let y = metaY - 34;
     const rows = conditionTotals(conditions, markedShapes).filter((r) => r.shape_count > 0);
-    draw("CONDITIONS", { x: 52, y, size: 9, font: bold, color: muted }); y -= 16;
+    draw("TÉTELEK", { x: 52, y, size: 9, font: bold, color: muted }); y -= 16;
     for (const r of rows) {
       const c = condById[r.id] || {};
       pg.drawRectangle({ x: 52, y: y - 2, width: 14, height: 10, color: rgb(...hex(c.color)), opacity: 0.8, borderColor: rgb(...hex(c.color)), borderWidth: 0.7 });
@@ -393,7 +393,7 @@ export async function buildMarkedSetPdf({ projectName, dark, sheets, shapes, mar
       if (y < 120) break;
     }
     y -= 10;
-    draw("BY SHEET", { x: 52, y, size: 9, font: bold, color: muted }); y -= 16;
+    draw("TERVLAPONKÉNT", { x: 52, y, size: 9, font: bold, color: muted }); y -= 16;
     const bySheet = sheetTotals(conditions, markedShapes);
     const bySheetId = new Map(bySheet.map((gr) => [gr.sheet_id, gr]));
     for (const sh of marked) {
@@ -419,7 +419,7 @@ export async function buildMarkedSetPdf({ projectName, dark, sheets, shapes, mar
     if (hasMultipliers(bySheet)) {
       draw(BY_SHEET_BASE_NOTE, { x: 52, y: 60, size: 7.5, font, color: muted });
     }
-    draw(`Generated ${new Date().toLocaleDateString()}`, { x: 52, y: 48, size: 8, font, color: muted });
+    draw(`Készült: ${new Date().toLocaleDateString("hu-HU")}`, { x: 52, y: 48, size: 8, font, color: muted });
   }
 
   // ── RFI schedule page — ONLY when RFIs exist, so an RFI-free export never
@@ -433,21 +433,21 @@ export async function buildMarkedSetPdf({ projectName, dark, sheets, shapes, mar
       while (s && fnt.widthOfTextAtSize(s, size) > maxW) s = s.slice(0, -2).trimEnd() + "…";
       return s;
     };
-    const footText = `Generated ${new Date().toLocaleDateString()}`;
+    const footText = `Készült: ${new Date().toLocaleDateString("hu-HU")}`;
     const BOT = 58;   // content never crosses below this; the footer sits at y=40
     let pg, draw, y;
     const newSchedPage = () => {
       pg = doc.addPage([612, 792]);
       draw = (t, opts) => pg.drawText(winAnsiSafe(t), opts);
       if (dark) pg.drawRectangle({ x: 0, y: 0, width: 612, height: 792, color: rgb(...DARK_BG) });
-      draw("RFI SCHEDULE", { x: 52, y: 744, size: 13, font: bold, color: cobalt });
+      draw("RFI-KIMUTATÁS", { x: 52, y: 744, size: 13, font: bold, color: cobalt });
       draw(`${rfis.length} RFI${rfis.length === 1 ? "" : "s"} · linked markups derived from markup.rfi_id`, { x: 52, y: 728, size: 9, font, color: muted });
       draw(footText, { x: 52, y: 40, size: 8, font, color: muted });   // footer on EVERY schedule page
       y = 704;
       draw("NO.", { x: 52, y, size: 8, font: bold, color: muted });
-      draw("SUBJECT", { x: 108, y, size: 8, font: bold, color: muted });
-      draw("STATUS", { x: 360, y, size: 8, font: bold, color: muted });
-      draw("BALL IN COURT", { x: 442, y, size: 8, font: bold, color: muted });
+      draw("TÁRGY", { x: 108, y, size: 8, font: bold, color: muted });
+      draw("ÁLLAPOT", { x: 360, y, size: 8, font: bold, color: muted });
+      draw("FELELŐS", { x: 442, y, size: 8, font: bold, color: muted });
       y -= 5;
       pg.drawLine({ start: { x: 52, y }, end: { x: 560, y }, thickness: 0.6, color: muted });
       y -= 15;
@@ -886,7 +886,7 @@ export async function buildMarkedSetPdf({ projectName, dark, sheets, shapes, mar
         pg.drawEllipse({ x: pcx, y: pcy, xScale: rPt * 0.78, yScale: rPt * 0.78, borderColor: acol, borderWidth: rPt * 0.035 });
       }
       // centered label, the bubble-text centering precedent (ASCII, WinAnsi-safe)
-      const label = isAgent ? "AGENT" : "APPROVED";
+      const label = isAgent ? "AI" : "JÓVÁHAGYVA";
       const size = rPt * (isAgent ? 0.3 : 0.26);
       const tw = bold.widthOfTextAtSize(label, size);
       pg.drawText(label, { x: pcx - tw / 2, y: pcy - size / 2.7, size, font: bold, color: acol, rotate: chipRot });

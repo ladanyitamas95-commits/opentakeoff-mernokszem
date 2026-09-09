@@ -31,7 +31,7 @@ export function counterRows(totals, activeCondId) {
 // zeros trimmed. EA counts arrive integral and print integral.
 export function fmtQty(n) {
   const v = Math.round((Number(n) || 0) * 100) / 100;
-  return v.toLocaleString("en-US", { maximumFractionDigits: 2 });
+  return v.toLocaleString("hu-HU", { maximumFractionDigits: 2 });
 }
 
 // Keep the widget reachable: at least a grab-strip of it stays inside the

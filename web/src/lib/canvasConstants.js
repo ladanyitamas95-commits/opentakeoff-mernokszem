@@ -55,27 +55,27 @@ export const SNAP_CELL = 24;   // snap-grid bucket, raster px (Spline runs 12 �
 
 // toolbar menus — STACK-style: the menu face shows the armed tool
 export const MEASURE_TOOLS = [
-  { id: "oneclick", icon: "oneClick", label: "One-Click Area", shortcut: "O" },
-  { id: "area", icon: "area", label: "Area", shortcut: "A" },
-  { id: "rect", icon: "rectTool", label: "Rectangle", shortcut: "R" },
-  { id: "linear", icon: "linear", label: "Linear", shortcut: "L" },
-  { id: "surface", icon: "surface", label: "Surface Area", shortcut: "S" },
-  { id: "count", icon: "count", label: "Count", shortcut: "C" },
-  { id: "symbol", icon: "symbol", label: "Symbol — marquee ONE instance, count every placement (#264)", shortcut: "Y" },
+  { id: "oneclick", icon: "oneClick", label: "Terület egy kattintással", shortcut: "O" },
+  { id: "area", icon: "area", label: "Terület", shortcut: "A" },
+  { id: "rect", icon: "rectTool", label: "Téglalap", shortcut: "R" },
+  { id: "linear", icon: "linear", label: "Hossz", shortcut: "L" },
+  { id: "surface", icon: "surface", label: "Falfelület", shortcut: "S" },
+  { id: "count", icon: "count", label: "Darabszám", shortcut: "C" },
+  { id: "symbol", icon: "symbol", label: "Szimbólum — jelölj ki egy példányt, majd számold meg az összeset", shortcut: "Y" },
 ];
 export const CUT_TOOLS = [
-  { id: "deduct", icon: "deduct", label: "Deduct shape", shortcut: "D" },
-  { id: "deduct-rect", icon: "deductRect", label: "Deduct rectangle", shortcut: "⇧D" },
+  { id: "deduct", icon: "deduct", label: "Levonási alakzat", shortcut: "D" },
+  { id: "deduct-rect", icon: "deductRect", label: "Levonási téglalap", shortcut: "⇧D" },
 ];
 export const MARKUP_TOOLS = [
-  { id: "highlighter", icon: "highlighter", label: "Highlighter", shortcut: "H" },
-  { id: "cloud", icon: "cloud", label: "Revision cloud" },
-  { id: "callout", icon: "callout", label: "Callout" },
-  { id: "text", icon: "textNote", label: "Text note" },
-  { id: "highlight", icon: "highlight", label: "Highlight box" },
+  { id: "highlighter", icon: "highlighter", label: "Kiemelő", shortcut: "H" },
+  { id: "cloud", icon: "cloud", label: "Revíziós felhő" },
+  { id: "callout", icon: "callout", label: "Hivatkozás" },
+  { id: "text", icon: "textNote", label: "Szöveges megjegyzés" },
+  { id: "highlight", icon: "highlight", label: "Kiemelő keret" },
   // N, not M — M is the push-to-talk dictation hold, globally
-  { id: "dimension", icon: "dimension", label: "Dimension line", shortcut: "N" },
-  { id: "image", icon: "image", label: "Image — marquee a region, or upload a file" },
+  { id: "dimension", icon: "dimension", label: "Méretvonal", shortcut: "N" },
+  { id: "image", icon: "image", label: "Kép — jelölj ki egy tervrészletet, vagy tölts fel fájlt" },
 ];
 export const MARKUP_IDS = MARKUP_TOOLS.map((t) => t.id);
 // highlighter inks — literal hex (SVG attrs; CSS vars don't resolve there).

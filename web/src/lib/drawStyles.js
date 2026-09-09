@@ -33,7 +33,7 @@ import { starPath } from "./geometry.js";
 //   dark                   sparse deep-merged overrides for the canvas ☾ invert
 export const DRAW_STYLES = {
   contemporary: {
-    label: "Contemporary",
+    label: "Modern",
     accent: "#2ec927",
     draft: { width: 2.75, lineWidth: 2.75, dash: null, fillMode: "none", tintAlpha: null },
     lastSegWidth: null,
@@ -58,7 +58,7 @@ export const DRAW_STYLES = {
     dark: {},   // intentionally empty: neon green carries on an inverted sheet
   },
   precision: {
-    label: "Precision",
+    label: "Precíziós",
     accent: "#3b6ce7",
     draft: { width: 1.5, lineWidth: 1.5, dash: [6, 4], fillMode: "tint", tintAlpha: 0.08 },
     lastSegWidth: null,
@@ -85,7 +85,7 @@ export const DRAW_STYLES = {
   drafting: {
     // today's look, value for value — regressing this default is the top risk,
     // so the unit test pins every one of these as a literal
-    label: "Drafting Table",
+    label: "Rajzasztal",
     accent: "#1f3fc7",
     draft: { width: 2, lineWidth: 2.5, dash: null, fillMode: "condition", tintAlpha: null },
     lastSegWidth: 3.5,
@@ -110,7 +110,7 @@ export const DRAW_STYLES = {
     dark: {},
   },
   siteglass: {
-    label: "Site Glass",
+    label: "Helyszíni üveg",
     accent: "#1f3fc7",
     draft: { width: 2, lineWidth: 2, dash: null, fillMode: "none", tintAlpha: null },
     lastSegWidth: 3,

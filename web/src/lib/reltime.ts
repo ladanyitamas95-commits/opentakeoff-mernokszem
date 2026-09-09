@@ -26,7 +26,7 @@ function parseIsoMs(iso: string): number {
 // "Aug 25, 2026" — UTC, independent of the reader's local zone (a plan shared
 // across time zones must show the same day for the same instant).
 function formatUtcDate(ms: number): string {
-  return new Intl.DateTimeFormat("en-US", { timeZone: "UTC", month: "short", day: "numeric", year: "numeric" }).format(new Date(ms));
+  return new Intl.DateTimeFormat("hu-HU", { timeZone: "UTC", month: "short", day: "numeric", year: "numeric" }).format(new Date(ms));
 }
 
 // Compact natural-language age of `iso` relative to `nowMs`:
@@ -38,14 +38,14 @@ export function relativeAge(iso: string, nowMs: number): string {
   const t = parseIsoMs(iso);
   if (!Number.isFinite(t) || !Number.isFinite(nowMs)) return "";
   const diffMs = nowMs - t;
-  if (diffMs / 1000 < 45) return "just now";
+  if (diffMs / 1000 < 45) return "éppen most";
   // Rounds to the nearest unit; the "min 1" floor for minutes falls out for
   // free — every diffMs in this bucket is >= 45_000ms (0.75min), which
   // already rounds up to 1.
-  if (diffMs < 60 * MIN_MS) return `${Math.round(diffMs / MIN_MS)}m ago`;
-  if (diffMs < DAY_MS) return `${Math.round(diffMs / HOUR_MS)}h ago`;
-  if (diffMs < 2 * DAY_MS) return "yesterday";
-  if (diffMs < 7 * DAY_MS) return `${Math.round(diffMs / DAY_MS)}d ago`;
+  if (diffMs < 60 * MIN_MS) return `${Math.round(diffMs / MIN_MS)} perce`;
+  if (diffMs < DAY_MS) return `${Math.round(diffMs / HOUR_MS)} órája`;
+  if (diffMs < 2 * DAY_MS) return "tegnap";
+  if (diffMs < 7 * DAY_MS) return `${Math.round(diffMs / DAY_MS)} napja`;
   return formatUtcDate(t);
 }
 
@@ -56,8 +56,8 @@ export function relativeAge(iso: string, nowMs: number): string {
 export function absoluteUtc(iso: string): string {
   const t = parseIsoMs(iso);
   if (!Number.isFinite(t)) return "";
-  const s = new Intl.DateTimeFormat("en-US", {
-    timeZone: "UTC", month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit", hour12: true,
+  const s = new Intl.DateTimeFormat("hu-HU", {
+    timeZone: "UTC", month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit", hour12: false,
   }).format(new Date(t));
   return `${s} (UTC)`;
 }
