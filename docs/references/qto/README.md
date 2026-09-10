@@ -4,7 +4,7 @@ Az itt tárolt QTO workbookok referenciaként használhatók az alábbiakhoz:
 
 - adatstruktúra;
 - taxonomy;
-- UI;
+- UX;
 - import/export;
 - assembly modelling.
 
@@ -16,5 +16,7 @@ A bennük lévő alábbi tartalmak nem tekinthetők automatikusan validált magy
 - material ratios;
 - densities;
 - engineering assumptions.
+
+Nem használhatók automatikusan validált magyar mérnöki szabályként.
 
 QTO referenciából származó production rule csak külön validálás után implementálható.
