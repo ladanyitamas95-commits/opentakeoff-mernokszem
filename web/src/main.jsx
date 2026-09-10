@@ -6,6 +6,7 @@ import "./styles/app.css";
 import "./styles/print.css";   // OT-only print block — kept out of app.css so tokens/app stay byte-synced with Spline
 import TakeoffCanvas from "./pages/TakeoffCanvas.jsx";
 import ProjectHome from "./components/ProjectHome.jsx";
+import UiFoundationPreview from "./components/UiFoundationPreview.jsx";
 import { GoogleAuthProvider, useGoogleAuth } from "./lib/google/AuthContext.jsx";
 import { projectIdFromUrl, setActiveStore, metaGet, metaDelete } from "./lib/store.js";
 import { isGoogleConfigured, getAccessToken } from "./lib/google/auth.js";
@@ -493,6 +494,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(
       <BrowserRouter>
         <Routes>
           <Route path="/projects" element={<ProjectHomeGate />} />
+          <Route path="/ui-foundation" element={<UiFoundationPreview />} />
           <Route path="*" element={<App />} />
         </Routes>
       </BrowserRouter>

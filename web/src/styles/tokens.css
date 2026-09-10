@@ -3,24 +3,51 @@
    surfaces on a cool field, cobalt the one saturated thing. Dark = "HUD" —
    true-black cockpit, electric blue, phosphor glow on the active instrument. */
 
-@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Space+Mono:wght@400;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&family=JetBrains+Mono:wght@400;500;600;700&family=Space+Mono:wght@400;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
 
 :root {
+  /* MérnökSzem brand foundation — W01 shared UI tokens */
+  --ms-brand-navy: #0D1B2A;
+  --ms-brand-gold: #C79A35;
+  --ms-background: #f7f8fa;
+  --ms-surface: #ffffff;
+  --ms-surface-muted: #f1f3f6;
+  --ms-text-primary: #0D1B2A;
+  --ms-text-secondary: #52606f;
+  --ms-border: #d8dee7;
+  --ms-primary: var(--ms-brand-navy);
+  --ms-accent: var(--ms-brand-gold);
+  --ms-muted: #7a8491;
+  --ms-focus: rgba(199, 154, 53, .28);
+  --ms-disabled: #c4cad3;
+  --ms-state-pass: #1f6b4a;
+  --ms-state-warning: #a8660d;
+  --ms-state-error: #b03a26;
+  --ms-state-review: var(--ms-brand-gold);
+  --ms-state-blocked: var(--ms-brand-navy);
+  --ms-state-pass-bg: #edf7f1;
+  --ms-state-warning-bg: #fff7e8;
+  --ms-state-error-bg: #fff0ed;
+  --ms-state-review-bg: #fbf5e7;
+  --ms-state-blocked-bg: #eef1f5;
+  --ms-radius-panel: 0;
+  --ms-grid-gap: 16px;
+
   /* surfaces — role names kept from the paper era: bright = base surface,
      cream = raised card, shadow = hover/pressed */
-  --paper-cream: #ffffff;        /* raised card / panel */
-  --paper-bright: #fafcfe;       /* base surface / chrome */
-  --paper-shadow: #e3e9f1;       /* hover / pressed */
+  --paper-cream: var(--ms-surface);        /* raised card / panel */
+  --paper-bright: var(--ms-background);       /* base surface / chrome */
+  --paper-shadow: var(--ms-surface-muted);       /* hover / pressed */
 
   /* ink — cool near-black */
-  --ink:        #0d1526;
-  --ink-soft:   #2a3a52;
-  --ink-muted:  #5c6b82;         /* mono labels */
-  --ink-faint:  #d8e0ec;         /* hairlines */
+  --ink:        var(--ms-text-primary);
+  --ink-soft:   #26384c;
+  --ink-muted:  var(--ms-text-secondary);         /* mono labels */
+  --ink-faint:  var(--ms-border);         /* hairlines */
 
   /* primary accent */
-  --cobalt:     #1f3fc7;
-  --cobalt-deep:#152a8c;
+  --cobalt:     var(--ms-accent);
+  --cobalt-deep:var(--ms-primary);
 
   /* terrazzo confetti — substrate variant only */
   --fleck-rust:  #c4502a;
@@ -49,8 +76,8 @@
   --grain-inverse-rgb: 255, 255, 255;
 
   /* type */
-  --f-display: "Bricolage Grotesque", "Inter", system-ui, sans-serif;
-  --f-body:    "Inter", system-ui, sans-serif;
+  --f-display: "Poppins", system-ui, sans-serif;
+  --f-body:    "Poppins", system-ui, sans-serif;
   --f-mono:    "JetBrains Mono", "IBM Plex Mono", ui-monospace, monospace;
   --f-mono-draft: "Space Mono", "JetBrains Mono", ui-monospace, monospace;
 
