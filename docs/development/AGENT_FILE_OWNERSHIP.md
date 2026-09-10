@@ -26,8 +26,16 @@ Ez a dokumentum a Phase 00 baseline alapján rögzíti a párhuzamos agent munka
 | `web/src/lib/shapesExport.js` | SINGLE_OWNER_REQUIRED | export schema |
 | `web/src/lib/rfi.js` | SINGLE_OWNER_REQUIRED | RFI schema és státusz/export |
 | `web/package.json`, lockfile | SINGLE_OWNER_REQUIRED | dependency és CI stabilitás |
+| `package.json`, `package-lock.json` | SINGLE_OWNER_REQUIRED | dependency és root workflow stabilitás, ha létrejön vagy módosul |
 | `mcp/package.json`, `mcp/src/*` | SINGLE_OWNER_REQUIRED | MCP tool contract |
 | `.github/workflows/ci.yml` | SINGLE_OWNER_REQUIRED | CI baseline |
+| `docs/development/DOMAIN_CONTRACT_REGISTRY.md` | CODEX owned / SINGLE_OWNER_REQUIRED | shared contract source of truth |
+| `docs/architecture/adr/ADR-001-domain-contract-freeze.md` | CODEX owned | domain contract ADR |
+| `docs/architecture/adr/ADR-002-unit-and-quantity-authority.md` | CODEX owned | unit/quantity authority ADR |
+| `docs/architecture/adr/ADR-003-production-backend-auth-persistence.md` | CODEX owned | backend/auth/persistence boundary |
+| DB migrations, ha létrejönnek | SINGLE_OWNER_REQUIRED | production adatvesztési és contract-kockázat |
+| API schema / shared types, ha létrejönnek | SINGLE_OWNER_REQUIRED | frontend/backend kompatibilitás |
+| export schema fájlok, ha létrejönnek | SINGLE_OWNER_REQUIRED | auditálható XLSX/CSV/JSON kompatibilitás |
 
 ## Draft ownership kategóriák
 
@@ -38,6 +46,21 @@ Ez a dokumentum a Phase 00 baseline alapján rögzíti a párhuzamos agent munka
 | LOVABLE_REFERENCE_ONLY | design referencia, vizuális koncepció, képernyőötlet | Nem írhat közvetlen production source contractot |
 | SINGLE_OWNER_REQUIRED | `TakeoffCanvas.jsx`, geometry, units, store, export schema, package/CI | Egyidejű módosítás tilos |
 | Shared/conflict-sensitive | route, persistence, measurement model, tests/golden fixtures | Előzetes diff és ownership egyeztetés kell |
+
+## Contract freeze utáni kötelező ownership szabályok
+
+| Terület | Ownership |
+| --- | --- |
+| Shared contracts | CODEX, single owner |
+| Measurement status enum | CODEX, single owner |
+| Unit policy | CODEX, single owner |
+| Coordinate/geometry schema | CODEX, single owner |
+| Backend/API schema | CODEX, single owner amíg nincs implementációs phase |
+| DB migrations | SINGLE_OWNER_REQUIRED |
+| Export schema | SINGLE_OWNER_REQUIRED |
+| Routing | SINGLE_OWNER_REQUIRED |
+| CI | SINGLE_OWNER_REQUIRED |
+| Lovable vizuális munka | LOVABLE_REFERENCE_ONLY, contractot nem módosíthat |
 
 ## Párhuzamosan jobban kezelhető területek
 
