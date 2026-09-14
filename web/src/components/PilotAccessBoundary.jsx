@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { Link } from "react-router";
 import { useGoogleAuth } from "../lib/google/AuthContext.jsx";
-import { isGoogleConfigured } from "../lib/google/auth.js";
 import { projectHomeFolderId } from "../lib/projectHome.js";
 import { PILOT_ACCESS_STATES, resolvePilotAccess } from "../lib/pilotAccess.js";
 import { BlockedState, Button, LoadingState } from "./ui/index.js";
@@ -17,7 +16,7 @@ const page = {
 
 const card = { width: "min(100%, 520px)" };
 
-export function PilotAccessView({ state, onSignIn, error = "", children }) {
+export function PilotAccessView({ state, onSignIn, signInFailed = false, children }) {
   if (state === PILOT_ACCESS_STATES.AUTHORIZED) return children;
 
   if (state === PILOT_ACCESS_STATES.LOADING) {
@@ -37,10 +36,10 @@ export function PilotAccessView({ state, onSignIn, error = "", children }) {
       <main style={page}>
         <div className="ms-card-stack" style={card}>
           <BlockedState title="Bejelentkezés szükséges">
-            A MérnökSzem pilot projektjei csak a manuálisan provisionált pilot fiókkal érhetők el.
+            A MérnökSzem pilot projektjei csak az előzetesen engedélyezett pilotfiókkal érhetők el.
           </BlockedState>
           <Button variant="primary" onClick={onSignIn}>Bejelentkezés Google-fiókkal</Button>
-          {error ? <div role="alert" className="ms-muted-copy">Sikertelen bejelentkezés: {error}</div> : null}
+          {signInFailed ? <div role="alert" className="ms-muted-copy">A bejelentkezés nem sikerült. Próbáld újra.</div> : null}
           <Link to="/" className="ms-muted-copy">Vissza a helyi tervméréshez</Link>
         </div>
       </main>
@@ -61,24 +60,52 @@ export function PilotAccessView({ state, onSignIn, error = "", children }) {
   );
 }
 
+export function PilotAccessBoundaryContent({
+  googleConfigured = false,
+  projectsRootConfigured = false,
+  ready = false,
+  user = null,
+  onSignIn,
+  signInFailed = false,
+  children,
+}) {
+  const state = resolvePilotAccess({
+    googleConfigured,
+    projectsRootConfigured,
+    ready,
+    user,
+  });
+  return (
+    <PilotAccessView state={state} onSignIn={onSignIn} signInFailed={signInFailed}>
+      {children}
+    </PilotAccessView>
+  );
+}
+
 export default function PilotAccessBoundary({ children }) {
-  const { user, ready, signIn } = useGoogleAuth();
-  const [error, setError] = useState("");
-  const configured = isGoogleConfigured() && Boolean(projectHomeFolderId());
-  const state = resolvePilotAccess({ configured, ready, user });
+  const { user, ready, configured: googleConfigured, signIn } = useGoogleAuth();
+  const [signInFailed, setSignInFailed] = useState(false);
+  const projectsRootConfigured = Boolean(projectHomeFolderId());
 
   const handleSignIn = async () => {
-    setError("");
+    setSignInFailed(false);
     try {
       await signIn();
-    } catch (e) {
-      setError(String(e?.message || e));
+    } catch {
+      setSignInFailed(true);
     }
   };
 
   return (
-    <PilotAccessView state={state} onSignIn={handleSignIn} error={error}>
+    <PilotAccessBoundaryContent
+      googleConfigured={googleConfigured}
+      projectsRootConfigured={projectsRootConfigured}
+      ready={ready}
+      user={user}
+      onSignIn={handleSignIn}
+      signInFailed={signInFailed}
+    >
       {children}
-    </PilotAccessView>
+    </PilotAccessBoundaryContent>
   );
 }

@@ -23,14 +23,15 @@ function hasUserIdentity(user) {
 /** @param {unknown} [input] */
 export function resolvePilotAccess(input = {}) {
   const source = input && typeof input === "object" ? input : {};
-  const { configured, ready, user } = /** @type {{configured?: unknown, ready?: unknown, user?: unknown}} */ (source);
-  if (configured !== true) return PILOT_ACCESS_STATES.BLOCKED_CONFIG;
-  if (ready === false) return PILOT_ACCESS_STATES.LOADING;
-  if (ready !== true) return PILOT_ACCESS_STATES.BLOCKED_CONFIG;
+  const { googleConfigured, projectsRootConfigured, ready, user } = /** @type {{googleConfigured?: unknown, projectsRootConfigured?: unknown, ready?: unknown, user?: unknown}} */ (source);
+  if (googleConfigured !== true || projectsRootConfigured !== true) {
+    return PILOT_ACCESS_STATES.BLOCKED_CONFIG;
+  }
+  if (ready !== true) return PILOT_ACCESS_STATES.LOADING;
   if (!hasUserIdentity(user)) return PILOT_ACCESS_STATES.UNAUTHENTICATED;
   return PILOT_ACCESS_STATES.AUTHORIZED;
 }
 
 export function isPilotAppPath(pathname) {
-  return pathname === PILOT_APP_ROUTES.app || pathname?.startsWith(`${PILOT_APP_ROUTES.app}/`) || false;
+  return typeof pathname === "string" && /^\/app(?:[/?#]|$)/.test(pathname);
 }
