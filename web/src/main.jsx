@@ -1,12 +1,16 @@
 import React, { useEffect, useState } from "react";
 import ReactDOM from "react-dom/client";
-import { BrowserRouter, Link, Navigate, Route, Routes, useLocation } from "react-router";
+import { BrowserRouter, Link, Navigate, Route, Routes, useLocation, useNavigate } from "react-router";
 import "./styles/tokens.css";
 import "./styles/app.css";
 import "./styles/print.css";   // OT-only print block — kept out of app.css so tokens/app stay byte-synced with Spline
 import TakeoffCanvas from "./pages/TakeoffCanvas.jsx";
 import ProjectHome from "./components/ProjectHome.jsx";
 import UiFoundationPreview from "./components/UiFoundationPreview.jsx";
+import AppShell from "./components/AppShell.jsx";
+import PilotAccessBoundary from "./components/PilotAccessBoundary.jsx";
+import { Button, EmptyState } from "./components/ui/index.js";
+import { PILOT_APP_ROUTES } from "./lib/pilotAccess.js";
 import { GoogleAuthProvider, useGoogleAuth } from "./lib/google/AuthContext.jsx";
 import { projectIdFromUrl, setActiveStore, metaGet, metaDelete } from "./lib/store.js";
 import { isGoogleConfigured, getAccessToken } from "./lib/google/auth.js";
@@ -180,6 +184,30 @@ function ProjectHomeGate() {
     );
   }
   return <ProjectHome />;
+}
+
+function FoundationAppHome() {
+  const navigate = useNavigate();
+  return (
+    <AppShell activeNav="documents" onNavigate={navigate}>
+      <EmptyState title="Nincs megnyitott projekt">
+        <div className="ms-card-stack">
+          <span>Válassz egy hozzáférhető pilot projektet a folytatáshoz.</span>
+          <Button variant="primary" onClick={() => navigate(PILOT_APP_ROUTES.projects)}>
+            Projektek megnyitása
+          </Button>
+        </div>
+      </EmptyState>
+    </AppShell>
+  );
+}
+
+function ProtectedFoundationApp() {
+  return <PilotAccessBoundary><FoundationAppHome /></PilotAccessBoundary>;
+}
+
+function ProtectedProjectHome() {
+  return <PilotAccessBoundary><ProjectHome /></PilotAccessBoundary>;
 }
 
 // Folder-synced workspace (#316): when a folder link is persisted, wrap the
@@ -495,6 +523,8 @@ ReactDOM.createRoot(document.getElementById("root")).render(
         <Routes>
           <Route path="/projects" element={<ProjectHomeGate />} />
           <Route path="/ui-foundation" element={<UiFoundationPreview />} />
+          <Route path={PILOT_APP_ROUTES.projects} element={<ProtectedProjectHome />} />
+          <Route path={`${PILOT_APP_ROUTES.app}/*`} element={<ProtectedFoundationApp />} />
           <Route path="*" element={<App />} />
         </Routes>
       </BrowserRouter>

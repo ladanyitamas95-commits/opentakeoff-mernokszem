@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import AppShell from "../src/components/AppShell.jsx";
+import AppShell, { FOUNDATION_NAV_TARGETS } from "../src/components/AppShell.jsx";
 import UiFoundationPreview from "../src/components/UiFoundationPreview.jsx";
 import {
   MEASUREMENT_STATUSES,
@@ -15,12 +15,21 @@ test("W01 shell exposes the required Hungarian navigation and context labels", (
   const html = renderToStaticMarkup(
     React.createElement(AppShell, null, React.createElement("div", null, "Munkaterület")),
   );
-  for (const label of ["Projekt", "Dokumentumok", "Mennyiségfelmérés", "BOQ", "Ellenőrzés", "Export"]) {
+  for (const label of ["Projekt", "Dokumentumok", "Mennyiségfelmérés", "Költségvetés", "Ellenőrzés", "Export"]) {
     assert.match(html, new RegExp(label));
   }
+  assert.doesNotMatch(html, />BOQ</);
   for (const label of ["Chat", "Megállapítások", "Kontextus"]) {
     assert.match(html, new RegExp(label));
   }
+});
+
+test("W01 shell wires only available foundation destinations", () => {
+  assert.deepEqual(FOUNDATION_NAV_TARGETS, {
+    project: "/app/projects",
+    documents: "/app",
+    takeoff: "/",
+  });
 });
 
 test("W01 measurement status enum matches the frozen domain contract exactly", () => {
@@ -67,4 +76,6 @@ test("W01 preview renders primitives without business logic", () => {
   assert.match(html, /UI foundation/);
   assert.match(html, /AI-javaslat ≠ elfogadott mérés/);
   assert.match(html, /Export blokkolva/);
+  assert.match(html, /Költségvetés/);
+  assert.doesNotMatch(html, />BOQ</);
 });

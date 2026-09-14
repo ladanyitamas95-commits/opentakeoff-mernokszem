@@ -7,15 +7,20 @@ import {
   SystemStatusBadge,
   Tabs,
 } from "./ui/index.js";
+import { PILOT_APP_ROUTES } from "../lib/pilotAccess.js";
 
 const NAV_ITEMS = [
-  { id: "project", label: "Projekt", icon: "P" },
-  { id: "documents", label: "Dokumentumok", icon: "D" },
-  { id: "takeoff", label: "Mennyiségfelmérés", icon: "M" },
-  { id: "boq", label: "BOQ", icon: "B" },
+  { id: "project", label: "Projekt", icon: "P", target: PILOT_APP_ROUTES.projects },
+  { id: "documents", label: "Dokumentumok", icon: "D", target: PILOT_APP_ROUTES.app },
+  { id: "takeoff", label: "Mennyiségfelmérés", icon: "M", target: PILOT_APP_ROUTES.local },
+  { id: "boq", label: "Költségvetés", icon: "K" },
   { id: "review", label: "Ellenőrzés", icon: "E" },
   { id: "export", label: "Export", icon: "X" },
 ];
+
+export const FOUNDATION_NAV_TARGETS = Object.freeze(Object.fromEntries(
+  NAV_ITEMS.filter((item) => item.target).map((item) => [item.id, item.target]),
+));
 
 const CONTEXT_TABS = [
   { id: "chat", label: "Chat" },
@@ -29,6 +34,7 @@ export default function AppShell({
   projectName = "MérnökSzem pilot projekt",
   status = "READY",
   rightPanelDefaultOpen = true,
+  onNavigate,
 }) {
   const [rightOpen, setRightOpen] = useState(rightPanelDefaultOpen);
   const [contextTab, setContextTab] = useState("chat");
@@ -52,6 +58,8 @@ export default function AppShell({
               type="button"
               className="ms-nav-item"
               aria-current={item.id === activeNav ? "page" : undefined}
+              aria-disabled={!item.target || !onNavigate}
+              onClick={item.target && onNavigate ? () => onNavigate(item.target) : undefined}
             >
               <span aria-hidden="true">{item.icon}</span>
               <span>{item.label}</span>

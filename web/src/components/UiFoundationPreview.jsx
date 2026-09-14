@@ -83,7 +83,7 @@ export default function UiFoundationPreview() {
               <Input label="Projekt neve" placeholder="Projekt neve" />
               <Select label="Dokumentumtípus" defaultValue="drawing">
                 <option value="drawing">Terv</option>
-                <option value="boq">BOQ</option>
+                <option value="boq">Költségvetés</option>
                 <option value="spec">Műszaki leírás</option>
               </Select>
               <Textarea label="Megjegyzés" placeholder="Rövid megjegyzés…" />
