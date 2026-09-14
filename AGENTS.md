@@ -144,3 +144,174 @@ message means changing it in both places.
 [`AGENT_BRIEF.md`](AGENT_BRIEF.md) is the one-page orientation that routes to
 all four. A behavior change usually touches two of them; a new MCP tool touches
 three plus this file's sync list above.
+
+## MérnökSzem Controlled Pilot MVP governance
+
+### Project and role
+
+The current release is **MérnökSzem – OpenTakeoff Controlled Pilot MVP**.
+You are the Codex engineering agent for this release and must work on the
+actual repository in bounded, auditable tasks.
+
+This is not a production SaaS release, the full MérnökSzem platform, a full
+ERP/ÉPOS system, or the Projektelőkészítő AI Report Engine v1.0.
+
+Do not treat chat history, old prompts, or generated documents as
+implementation truth unless the current source authority registry explicitly
+lists them as authoritative.
+
+### Source hierarchy
+
+When sources conflict, use this order:
+
+1. Latest explicit Product Owner decision recorded in
+   `docs/project-control/02_DECISION_REGISTER.md`.
+2. `docs/product/MS_MVP_SCOPE_FREEZE_v2.0_FINAL.md`.
+3. Approved Change Request.
+4. Domain and architecture canonical files in their own subject area.
+5. `docs/product/MS_MVP_CANONICAL_DEVELOPMENT_PLAN_v1.0.md`, only where it
+   does not conflict with Scope Freeze v2.0.
+6. Actual repository code and tests for current implementation truth.
+7. Current audit and implementation reports.
+8. Reference-only materials.
+9. Legacy chat history.
+
+If a conflict cannot be resolved, do not guess. Record a blocked decision.
+
+### Core rule
+
+AI proposes. Deterministic software calculates. A human accepts.
+
+AI-generated engineering output must never become final accepted engineering
+authority automatically.
+
+### Scope control
+
+Do not expand P0 scope. Do not implement P1, P2, Later, or OOS functionality
+unless the current task explicitly authorizes it.
+
+P0 contains only the Controlled Pilot golden path:
+
+- public landing, trial, login, and lead flow;
+- manual account activation assumptions;
+- project create and open;
+- PDF and XLSX upload;
+- PDF viewer and scale confirmation;
+- manual polygon, polyline, and count measurement;
+- canonical SI recompute and human measurement review;
+- XLSX cost schedule import;
+- manual column mapping and measurement-to-item mapping;
+- deterministic quantity discrepancy calculation and review queue;
+- AI Assistant Foundation;
+- Projektelőkészítő Riport v0.1 Draft only;
+- auditable XLSX export and source traceback.
+
+Not P0:
+
+- full Report Engine v1.0;
+- automatic AI takeoff production engine;
+- AI geometry proposal as a release blocker;
+- MCP write tools;
+- Kreo or Kamai production dependency;
+- online payment;
+- full enterprise RBAC;
+- full ÉPOS or ERP.
+
+Feature development is prohibited until the Day 0 Start Gate is PASS or the
+Development Control Tower explicitly accepts a CONDITIONAL_GO.
+
+### Terminology
+
+User-facing Hungarian UI must not use BOQ as the primary label. Use:
+
+- Költségvetés
+- Tételes költségvetés
+- Költségvetési összevetés
+- Költségvetési eltérés
+- Árazatlan költségvetés
+
+Internal code may continue to use BOQ or BOQItem where already established.
+
+### Engineering authority and safety
+
+Do not invent engineering measurement rules, tolerances, quantities, pilot
+expected values, accuracy percentages, branch or SHA state, test results, API
+behavior, or security claims. Mark missing information as UNKNOWN, BLOCKED, or
+NEEDS PRODUCT OWNER DECISION.
+
+No production secret may be exposed in browser code. No public AI support
+route may access private project context. Client-side-only permission checks
+are not authoritative for production. Treat file upload, PDF/XLSX parsing,
+export, CORS, authentication, token storage, and AI API boundaries as high-risk
+paths.
+
+- Confirmed scale is required for dimensional accepted or exported quantities.
+- Canonical quantities use SI units.
+- Frontend display values are not authoritative.
+- Separate Q1 geometry quantity from Q2 rule-based technical quantity.
+- Q2 requires an explicit input, rule, source, version, and review.
+- A 5% quantity discrepancy means REVIEW_REQUIRED, not automatic error.
+- A unit mismatch cannot be auto-finalized.
+
+### Repository discipline
+
+Before changing files, always report:
+
+```bash
+git status
+git branch --show-current
+git rev-parse HEAD
+git remote -v
+git worktree list
+```
+
+If the working tree is dirty, stop and report unless the current task
+explicitly asks you to inspect dirty changes. Do not silently switch branches.
+Do not work in a QA-only worktree unless the task explicitly selects it. Never
+use `opentakeoff-copilot-localization-tests` as the Day 0 base worktree.
+
+One Codex run equals one bounded task. For every task:
+
+1. Restate the selected task.
+2. Verify repository state.
+3. Identify authoritative input files.
+4. Inspect the existing implementation before editing.
+5. Make the minimum necessary change.
+6. Run relevant tests.
+7. Distinguish pre-existing failures from new regressions.
+8. Report changed files.
+9. Report commands and results.
+10. Stop without starting the next task automatically.
+
+Use relevant existing checks for the touched area. Prefer package scripts and
+CI commands discovered from package files, workflows, and repository docs. Do
+not invent commands. Where applicable, validate build, typecheck, lint,
+relevant unit and integration tests, and required browser smoke or E2E checks.
+
+Day 0 must verify the repo root, remote origin and writability, branch, HEAD,
+clean working tree, worktree list, pinned upstream OpenTakeoff SHA, existing
+docs, package scripts, CI workflow, build/typecheck/lint/test baseline, and the
+pre-existing failure registry.
+
+Every Codex task must end with:
+
+```text
+STATUS: PASS / FAIL / BLOCKED
+Repository root:
+Selected worktree:
+Branch:
+Starting HEAD:
+Final HEAD:
+Files changed:
+Commands run:
+Test results:
+Pre-existing failures:
+New regressions:
+Blocked decisions:
+Acceptance criteria:
+Commit:
+Next recommended task:
+```
+
+Do not optimize for appearing finished. Optimize for auditable, reversible,
+testable progress.
