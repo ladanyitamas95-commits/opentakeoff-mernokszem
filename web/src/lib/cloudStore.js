@@ -14,6 +14,10 @@
 // entangling per-project cloud state with browser-wide libraries.
 
 import { localStore, ANN_SCHEMA, emptyAnnotations } from "./store.js";
+import {
+  hydrateFoundationCollections,
+  prepareFoundationCollectionsForPersistence,
+} from "./foundationModel.js";
 
 const PDF_MIME = "application/pdf";
 const FOLDER_MIME = "application/vnd.google-apps.folder";
@@ -120,7 +124,8 @@ export function createCloudStore(folderId, drive, { local = localStore } = {}) {
         const child = await drive.findChild(sidecarId, ANN_NAME);
         if (child) return child.id;
         // create branch: migrate legacy loose content forward if present
-        const data = await seedFromLegacy(ANN_NAME, emptyAnnotations());
+        const legacy = await seedFromLegacy(ANN_NAME, emptyAnnotations());
+        const data = { ...prepareFoundationCollectionsForPersistence(legacy), schema: ANN_SCHEMA };
         const { id } = await drive.putJson({ folderId: sidecarId, name: ANN_NAME, data, existingId: null });
         return id;
       })().catch((e) => { annIdP = null; throw e; });
@@ -344,17 +349,18 @@ export function createCloudStore(folderId, drive, { local = localStore } = {}) {
       }
       // A file that parsed to null/falsy is treated as empty (localStore's `a ||`
       // guard) — a degenerate file, safe to replace on the next save.
-      return data || emptyAnnotations();
+      return hydrateFoundationCollections(data || emptyAnnotations());
     },
 
     async saveAnnotations(payload) {
+      const prepared = prepareFoundationCollectionsForPersistence(payload);
       const existingId = await ensureAnnId();
       // existingId is always truthy here, so putJson PATCHes by id and ignores
       // folderId — but target the SIDECAR folder anyway (both memoized, no extra
       // round-trip) so this never writes annotations loose into the project
       // folder if a future refactor makes existingId nullable.
       const sidecarId = await ensureSidecarId();
-      await drive.putJson({ folderId: sidecarId, name: ANN_NAME, data: { ...payload, schema: ANN_SCHEMA }, existingId });
+      await drive.putJson({ folderId: sidecarId, name: ANN_NAME, data: { ...prepared, schema: ANN_SCHEMA }, existingId });
     },
 
     // ── browser-global assets (delegated untouched) ──────────────────────────

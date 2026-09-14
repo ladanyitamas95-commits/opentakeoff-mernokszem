@@ -15,7 +15,9 @@ import {
   createDocumentVersion,
   createProject,
   createReviewItem,
+  hydrateFoundationCollections,
   normalizeFoundationState,
+  prepareFoundationCollectionsForPersistence,
   sanitizeAuditMetadata,
 } from "../src/lib/foundationModel.js";
 
@@ -234,6 +236,42 @@ test("normalizeFoundationState hydrates every missing or invalid collection", ()
   const normalized = normalizeFoundationState({ projects: {}, documents: "bad" });
   assert.deepEqual(normalized.projects, []);
   assert.deepEqual(normalized.documents, []);
+});
+
+test("annotation hydration is narrow and preserves unrelated legacy fields", () => {
+  const legacy = {
+    schema: "legacy-schema",
+    conditions: [{ id: "condition-1", nested: { exact: true } }],
+    shapes: [{ id: "shape-1", points: [[1, 2]] }],
+    custom_future_field: { keep: ["exact", 2] },
+  };
+  const before = structuredClone(legacy);
+  const hydrated = hydrateFoundationCollections(legacy);
+  assert.deepEqual(legacy, before);
+  assert.deepEqual(hydrated.conditions, legacy.conditions);
+  assert.deepEqual(hydrated.shapes, legacy.shapes);
+  assert.deepEqual(hydrated.custom_future_field, legacy.custom_future_field);
+  for (const key of ["projects", "documents", "document_versions", "review_items", "audit_events"]) {
+    assert.deepEqual(hydrated[key], []);
+  }
+});
+
+test("persistence preparation validates foundation records and sanitizes audit metadata only", () => {
+  const payload = {
+    conditions: [{ id: "legacy", providerError: "unrelated field remains exact" }],
+    projects: [createProject(projectInput())],
+    documents: [createDocument(documentInput())],
+    document_versions: [createDocumentVersion(versionInput())],
+    review_items: [createReviewItem(reviewInput())],
+    audit_events: [{ ...auditInput(), metadata: { token: "drop", safe: true } }],
+  };
+  const prepared = prepareFoundationCollectionsForPersistence(payload);
+  assert.deepEqual(prepared.conditions, payload.conditions);
+  assert.deepEqual(prepared.audit_events[0].metadata, { safe: true });
+  assert.throws(
+    () => prepareFoundationCollectionsForPersistence({ ...payload, audit_events: [{ id: "invalid" }] }),
+    /auditEvent\.actor/,
+  );
 });
 
 test("normalizeFoundationState drops unsafe values and preserves safe future fields", () => {

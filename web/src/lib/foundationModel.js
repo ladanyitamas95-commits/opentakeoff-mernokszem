@@ -285,6 +285,36 @@ export function createAuditEvent(input) {
   };
 }
 
+// Additive annotation-payload hydration. Deliberately narrow: unrelated
+// OpenTakeoff fields are copied verbatim and never pass through the general
+// foundation-state sanitizer.
+export function hydrateFoundationCollections(input) {
+  const source = isPlainObject(input) ? input : {};
+  return {
+    ...source,
+    projects: Array.isArray(source.projects) ? [...source.projects] : [],
+    documents: Array.isArray(source.documents) ? [...source.documents] : [],
+    document_versions: Array.isArray(source.document_versions) ? [...source.document_versions] : [],
+    review_items: Array.isArray(source.review_items) ? [...source.review_items] : [],
+    audit_events: Array.isArray(source.audit_events) ? [...source.audit_events] : [],
+  };
+}
+
+// Validate and sanitize only the additive foundation collections before the
+// existing annotation blob is written. Invalid foundation records fail the
+// whole save; unrelated legacy annotations retain their existing structure.
+export function prepareFoundationCollectionsForPersistence(input) {
+  const hydrated = hydrateFoundationCollections(input);
+  return {
+    ...hydrated,
+    projects: hydrated.projects.map(createProject),
+    documents: hydrated.documents.map(createDocument),
+    document_versions: hydrated.document_versions.map(createDocumentVersion),
+    review_items: hydrated.review_items.map(createReviewItem),
+    audit_events: hydrated.audit_events.map(createAuditEvent),
+  };
+}
+
 export function normalizeFoundationState(input) {
   const source = isPlainObject(input) ? input : {};
   const safe = sanitizePlainObject(source, {

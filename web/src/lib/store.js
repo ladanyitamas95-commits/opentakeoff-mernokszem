@@ -27,6 +27,10 @@
 import { sanitizeTemplates } from "./templates.js";
 import { sanitizeMaterialLibrary } from "./materials.js";
 import { sanitizeStampLibrary } from "./stamps.js";
+import {
+  hydrateFoundationCollections,
+  prepareFoundationCollectionsForPersistence,
+} from "./foundationModel.js";
 
 const DB_NAME = "opentakeoff";
 const DB_VERSION = 3;
@@ -66,7 +70,24 @@ export function emptyAnnotations() {
   // the MCP export or contribution wire (the estimator tool is human-only).
   // stitches (#161): match-line composite surfaces — additive, sanitize-gated
   // on hydrate (lib/stitches.ts), omitted from saves while empty.
-  return { schema: ANN_SCHEMA, conditions: [], shapes: [], markups: [], sheets: [], sheet_group: [], last_group: [], sheet_tabs: [], rules: [], approvals: [], stitches: [] };
+  return {
+    schema: ANN_SCHEMA,
+    conditions: [],
+    shapes: [],
+    markups: [],
+    sheets: [],
+    sheet_group: [],
+    last_group: [],
+    sheet_tabs: [],
+    rules: [],
+    approvals: [],
+    stitches: [],
+    projects: [],
+    documents: [],
+    document_versions: [],
+    review_items: [],
+    audit_events: [],
+  };
 }
 
 function openDB() {
@@ -282,11 +303,12 @@ export const localStore = {
 
   async loadAnnotations() {
     const a = await withDb((db) => tx(db, META_STORE, "readonly", (os) => os.get(ANN_KEY)));
-    return a || emptyAnnotations();
+    return hydrateFoundationCollections(a || emptyAnnotations());
   },
 
   async saveAnnotations(payload) {
-    await withDb((db) => tx(db, META_STORE, "readwrite", (os) => os.put({ ...payload, schema: ANN_SCHEMA }, ANN_KEY)));
+    const prepared = prepareFoundationCollectionsForPersistence(payload);
+    await withDb((db) => tx(db, META_STORE, "readwrite", (os) => os.put({ ...prepared, schema: ANN_SCHEMA }, ANN_KEY)));
   },
 
   async loadTemplates() {
@@ -433,10 +455,11 @@ export function createLocalStore(folderId = null) {
     ...localStore,
     async loadAnnotations() {
       const a = await withDb((db) => tx(db, META_STORE, "readonly", (os) => os.get(annKey)));
-      return a || emptyAnnotations();
+      return hydrateFoundationCollections(a || emptyAnnotations());
     },
     async saveAnnotations(payload) {
-      await withDb((db) => tx(db, META_STORE, "readwrite", (os) => os.put({ ...payload, schema: ANN_SCHEMA }, annKey)));
+      const prepared = prepareFoundationCollectionsForPersistence(payload);
+      await withDb((db) => tx(db, META_STORE, "readwrite", (os) => os.put({ ...prepared, schema: ANN_SCHEMA }, annKey)));
     },
   };
 }

@@ -7,8 +7,82 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createCloudStore } from "../src/lib/cloudStore.js";
 import { ANN_SCHEMA } from "../src/lib/store.js";
+import {
+  appendDocumentVersion,
+  createDocument,
+  createDocumentVersion,
+  createProject,
+  createReviewItem,
+} from "../src/lib/foundationModel.js";
 
 const PDF_MIME = "application/pdf";
+const EMPTY_FOUNDATION = {
+  projects: [],
+  documents: [],
+  document_versions: [],
+  review_items: [],
+  audit_events: [],
+};
+const FOUNDATION_NOW = "2026-09-14T12:00:00.000Z";
+
+function foundationPayload(suffix: string) {
+  const project = createProject({ id: `project-${suffix}`, name: `Project ${suffix}`, created_at: FOUNDATION_NOW });
+  const initialDocument = createDocument({
+    id: `document-${suffix}`,
+    project_id: project.id,
+    document_type: "drawing",
+    filename: `${suffix}.pdf`,
+    created_at: FOUNDATION_NOW,
+  });
+  const firstVersion = createDocumentVersion({
+    id: `version-${suffix}-1`,
+    document_id: initialDocument.id,
+    content_hash: `hash-${suffix}-1`,
+    mime_type: "application/pdf",
+    size_bytes: 100,
+    page_count: 1,
+    processing_status: "processed",
+    created_at: FOUNDATION_NOW,
+  });
+  const appended = appendDocumentVersion(initialDocument, [firstVersion], {
+    id: `version-${suffix}-2`,
+    document_id: initialDocument.id,
+    content_hash: `hash-${suffix}-2`,
+    mime_type: "application/pdf",
+    size_bytes: 120,
+    page_count: 2,
+    processing_status: "processed",
+    created_at: FOUNDATION_NOW,
+  });
+  return {
+    projects: [project],
+    documents: [appended.document],
+    document_versions: appended.versions,
+    review_items: [createReviewItem({
+      id: `review-${suffix}`,
+      project_id: project.id,
+      entity_type: "document",
+      entity_id: initialDocument.id,
+      review_reason: "missing_scale",
+      created_at: FOUNDATION_NOW,
+    })],
+    audit_events: [{
+      id: `audit-${suffix}`,
+      actor: "pilot@example.com",
+      action: "DOCUMENT_PROCESSED",
+      entity_type: "document",
+      entity_id: initialDocument.id,
+      timestamp: FOUNDATION_NOW,
+      correlation_id: `correlation-${suffix}`,
+      metadata: {
+        safe: suffix,
+        api_key: "drop",
+        pdfBytes: new Uint8Array([1, 2, 3]),
+        fileContent: "drop",
+      },
+    }],
+  };
+}
 
 // Fake Drive over a Map<id, record>. Records are
 // { id, name, mimeType, bytes, parent?, modifiedTime?, size? }.
@@ -280,6 +354,7 @@ test("loadAnnotations returns the localStore default shape when absent", async (
   const store = createCloudStore("folder1", drive as any, { local: fakeLocal() as any });
   assert.deepEqual(await store.loadAnnotations(), {
     schema: ANN_SCHEMA, conditions: [], shapes: [], markups: [], sheets: [], sheet_group: [], last_group: [], sheet_tabs: [], rules: [], approvals: [], stitches: [],
+    ...EMPTY_FOUNDATION,
   });
 });
 
@@ -289,7 +364,7 @@ test("saveAnnotations round-trips, stamps schema, and updates in place", async (
 
   const payload = { conditions: [{ id: "c1" }], shapes: [{ id: "s1" }], markups: [], sheets: [], sheet_group: [], last_group: [], sheet_tabs: [] };
   await store.saveAnnotations(payload);
-  assert.deepEqual(await store.loadAnnotations(), { ...payload, schema: ANN_SCHEMA });
+  assert.deepEqual(await store.loadAnnotations(), { ...payload, schema: ANN_SCHEMA, ...EMPTY_FOUNDATION });
 
   // second save must update the same file, not create a second annotations.json
   await store.saveAnnotations({ ...payload, conditions: [{ id: "c2" }] });
@@ -327,6 +402,59 @@ test("loadAnnotations falls back to the empty default when the file parses to nu
   const store = createCloudStore("folder1", drive as any, { local: fakeLocal() as any });
   assert.deepEqual((await store.loadAnnotations()).conditions, []);
   assert.equal((await store.loadAnnotations()).schema, ANN_SCHEMA);
+});
+
+test("foundation collections and version history round-trip in the existing cloud sidecar", async () => {
+  const drive = fakeDrive();
+  const store = createCloudStore("foundation-folder", drive as any, { local: fakeLocal() as any });
+  const foundation = foundationPayload("cloud");
+  const legacy = {
+    conditions: [{ id: "legacy-condition", providerError: "unrelated value stays" }],
+    shapes: [{ id: "legacy-shape" }],
+    custom_safe_future_field: { nested: ["preserve", 1] },
+  };
+  const firstBefore = structuredClone(foundation.document_versions[0]);
+
+  await store.saveAnnotations({ ...legacy, ...foundation });
+  const loaded = await store.loadAnnotations();
+  assert.deepEqual(loaded.conditions, legacy.conditions);
+  assert.deepEqual(loaded.shapes, legacy.shapes);
+  assert.deepEqual(loaded.custom_safe_future_field, legacy.custom_safe_future_field);
+  assert.deepEqual(loaded.projects, foundation.projects);
+  assert.deepEqual(loaded.documents, foundation.documents);
+  assert.deepEqual(loaded.document_versions, foundation.document_versions);
+  assert.deepEqual(loaded.document_versions[0], firstBefore);
+  assert.equal(loaded.documents[0].current_version_id, "version-cloud-2");
+  assert.deepEqual(loaded.audit_events[0].metadata, { safe: "cloud" });
+  assert.equal(loaded.schema, ANN_SCHEMA);
+
+  const files = [...drive._byId.values()].filter((record) => record.mimeType === "application/json");
+  assert.deepEqual(files.map((record) => record.name), ["annotations.json"]);
+  assert.equal(files[0].parent, sidecarIdOf(drive, "foundation-folder"));
+});
+
+test("cloud save rejects an invalid AuditEvent before creating a sidecar or annotation file", async () => {
+  const drive = fakeDrive();
+  const store = createCloudStore("invalid-audit-folder", drive as any, { local: fakeLocal() as any });
+  await assert.rejects(
+    store.saveAnnotations({ audit_events: [{ id: "invalid" }] }),
+    /auditEvent\.actor/,
+  );
+  assert.equal([...drive._byId.values()].some((record) => record.name === ".opentakeoff"), false);
+  assert.equal([...drive._byId.values()].some((record) => record.name === "annotations.json"), false);
+});
+
+test("separate fake Drive project folders isolate foundation annotation blobs", async () => {
+  const drive = fakeDrive();
+  const A = createCloudStore("foundation-A", drive as any, { local: fakeLocal() as any });
+  const B = createCloudStore("foundation-B", drive as any, { local: fakeLocal() as any });
+  await A.saveAnnotations(foundationPayload("A"));
+  await B.saveAnnotations(foundationPayload("B"));
+
+  assert.deepEqual((await A.loadAnnotations()).projects.map((item: any) => item.id), ["project-A"]);
+  assert.deepEqual((await B.loadAnnotations()).projects.map((item: any) => item.id), ["project-B"]);
+  assert.notEqual(sidecarIdOf(drive, "foundation-A"), sidecarIdOf(drive, "foundation-B"));
+  assert.equal([...drive._byId.values()].filter((record) => record.name === "annotations.json").length, 2);
 });
 
 test("concurrent saves on a fresh project create exactly one annotations.json (no dup race)", async () => {

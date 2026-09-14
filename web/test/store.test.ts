@@ -8,8 +8,83 @@ import "fake-indexeddb/auto";
 import { IDBFactory } from "fake-indexeddb";
 import { test, beforeEach } from "node:test";
 import assert from "node:assert/strict";
-import { store, localStore, createLocalStore, metaGet, metaPut, metaDelete, isStaleTabError, ANN_SCHEMA, STALE_TAB_MESSAGE, friendlyStoreError } from "../src/lib/store.js";
+import { store, localStore, createLocalStore, emptyAnnotations, metaGet, metaPut, metaDelete, isStaleTabError, ANN_SCHEMA, STALE_TAB_MESSAGE, friendlyStoreError } from "../src/lib/store.js";
 import { createCloudStore } from "../src/lib/cloudStore.js";
+import {
+  appendDocumentVersion,
+  createDocument,
+  createDocumentVersion,
+  createProject,
+  createReviewItem,
+} from "../src/lib/foundationModel.js";
+
+const EMPTY_FOUNDATION = {
+  projects: [],
+  documents: [],
+  document_versions: [],
+  review_items: [],
+  audit_events: [],
+};
+const FOUNDATION_NOW = "2026-09-14T12:00:00.000Z";
+
+function foundationPayload(suffix: string) {
+  const project = createProject({ id: `project-${suffix}`, name: `Project ${suffix}`, created_at: FOUNDATION_NOW });
+  const initialDocument = createDocument({
+    id: `document-${suffix}`,
+    project_id: project.id,
+    document_type: "drawing",
+    filename: `${suffix}.pdf`,
+    created_at: FOUNDATION_NOW,
+  });
+  const firstVersion = createDocumentVersion({
+    id: `version-${suffix}-1`,
+    document_id: initialDocument.id,
+    content_hash: `hash-${suffix}-1`,
+    mime_type: "application/pdf",
+    size_bytes: 100,
+    page_count: 1,
+    processing_status: "processed",
+    created_at: FOUNDATION_NOW,
+  });
+  const appended = appendDocumentVersion(initialDocument, [firstVersion], {
+    id: `version-${suffix}-2`,
+    document_id: initialDocument.id,
+    content_hash: `hash-${suffix}-2`,
+    mime_type: "application/pdf",
+    size_bytes: 120,
+    page_count: 2,
+    processing_status: "processed",
+    created_at: FOUNDATION_NOW,
+  });
+  return {
+    projects: [project],
+    documents: [appended.document],
+    document_versions: appended.versions,
+    review_items: [createReviewItem({
+      id: `review-${suffix}`,
+      project_id: project.id,
+      entity_type: "document",
+      entity_id: initialDocument.id,
+      review_reason: "missing_scale",
+      created_at: FOUNDATION_NOW,
+    })],
+    audit_events: [{
+      id: `audit-${suffix}`,
+      actor: "pilot@example.com",
+      action: "DOCUMENT_PROCESSED",
+      entity_type: "document",
+      entity_id: initialDocument.id,
+      timestamp: FOUNDATION_NOW,
+      correlation_id: `correlation-${suffix}`,
+      metadata: {
+        safe: suffix,
+        accessToken: "drop",
+        rawFile: { name: `${suffix}.pdf`, bytes: [1, 2, 3] },
+        providerError: { message: "drop" },
+      },
+    }],
+  };
+}
 
 beforeEach(() => {
   (globalThis as any).indexedDB = new IDBFactory();
@@ -219,6 +294,85 @@ test("createLocalStore(folderId) scopes annotations per project and isolates the
   assert.equal((await A.loadAnnotations() as any).schema, ANN_SCHEMA);
 });
 
+test("foundation-enabled empty annotations add five collections without a DB migration", () => {
+  assert.deepEqual(emptyAnnotations(), {
+    schema: ANN_SCHEMA,
+    conditions: [],
+    shapes: [],
+    markups: [],
+    sheets: [],
+    sheet_group: [],
+    last_group: [],
+    sheet_tabs: [],
+    rules: [],
+    approvals: [],
+    stitches: [],
+    ...EMPTY_FOUNDATION,
+  });
+});
+
+test("legacy local annotations hydrate narrowly without losing established or future fields", async () => {
+  const legacy = {
+    schema: ANN_SCHEMA,
+    conditions: [{ id: "condition-legacy", providerError: "unrelated value stays" }],
+    shapes: [{ id: "shape-legacy", points: [[1, 2]] }],
+    markups: [{ id: "markup-legacy" }],
+    sheets: [{ id: "sheet-legacy" }],
+    sheet_group: ["sheet-legacy"],
+    last_group: ["sheet-legacy"],
+    sheet_tabs: ["legacy.pdf"],
+    rules: [{ id: "rule-legacy" }],
+    approvals: [{ id: "approval-legacy" }],
+    stitches: [{ id: "stitch-legacy" }],
+    custom_safe_future_field: { nested: ["preserve", 1] },
+  };
+  await metaPut("annotations", legacy);
+  const loaded = await localStore.loadAnnotations();
+  for (const [key, value] of Object.entries(legacy)) assert.deepEqual(loaded[key], value);
+  for (const [key, value] of Object.entries(EMPTY_FOUNDATION)) assert.deepEqual(loaded[key], value);
+});
+
+test("local foundation payload and DocumentVersion history round-trip with sanitized audit metadata", async () => {
+  const foundation = foundationPayload("local");
+  const firstBefore = structuredClone(foundation.document_versions[0]);
+  await localStore.saveAnnotations({ conditions: [{ id: "legacy-condition" }], ...foundation });
+  const loaded = await localStore.loadAnnotations();
+
+  assert.deepEqual(loaded.conditions, [{ id: "legacy-condition" }]);
+  assert.deepEqual(loaded.projects, foundation.projects);
+  assert.deepEqual(loaded.documents, foundation.documents);
+  assert.deepEqual(loaded.document_versions, foundation.document_versions);
+  assert.deepEqual(loaded.review_items, foundation.review_items);
+  assert.deepEqual(loaded.document_versions[0], firstBefore);
+  assert.equal(loaded.document_versions.length, 2);
+  assert.equal(loaded.documents[0].current_version_id, "version-local-2");
+  assert.deepEqual(loaded.audit_events[0].metadata, { safe: "local" });
+  assert.equal(loaded.schema, ANN_SCHEMA);
+});
+
+test("local save rejects an invalid AuditEvent without replacing the previous annotation blob", async () => {
+  await localStore.saveAnnotations({ conditions: [{ id: "before" }] });
+  await assert.rejects(
+    localStore.saveAnnotations({ conditions: [{ id: "after" }], audit_events: [{ id: "invalid" }] }),
+    /auditEvent\.actor/,
+  );
+  const loaded = await localStore.loadAnnotations();
+  assert.deepEqual(loaded.conditions, [{ id: "before" }]);
+  assert.deepEqual(loaded.audit_events, []);
+});
+
+test("scoped local foundation blobs A/B and anonymous state remain isolated", async () => {
+  const A = createLocalStore("foundation-A");
+  const B = createLocalStore("foundation-B");
+  await A.saveAnnotations(foundationPayload("A"));
+  await B.saveAnnotations(foundationPayload("B"));
+  await localStore.saveAnnotations(foundationPayload("anonymous"));
+
+  assert.deepEqual((await A.loadAnnotations()).projects.map((item: any) => item.id), ["project-A"]);
+  assert.deepEqual((await B.loadAnnotations()).projects.map((item: any) => item.id), ["project-B"]);
+  assert.deepEqual((await localStore.loadAnnotations()).projects.map((item: any) => item.id), ["project-anonymous"]);
+});
+
 test("meta KV: round-trips values, misses read undefined, delete removes, keys are independent", async () => {
   // miss → undefined (not a throw, not null)
   assert.equal(await metaGet("sync:A:synced_rev"), undefined);
@@ -288,7 +442,7 @@ test("v1->v3 upgrade preserves pdfs + annotations, and snapshots work after", as
   // Store methods open at DB_VERSION 3 — onupgradeneeded contains-guards
   // must add only the missing stores (snapshots, pdf_revs) and leave v1 data intact.
   assert.deepEqual(await store.listSheets(), [{ name: "plan-a.pdf" }]);
-  assert.deepEqual(await store.loadAnnotations(), ann);
+  assert.deepEqual(await store.loadAnnotations(), { ...ann, ...EMPTY_FOUNDATION });
   assert.deepEqual(await store.loadPdfData("plan-a.pdf"), new Uint8Array([37, 80, 68, 70, 45]));
 
   const { id } = await store.saveSnapshot("post-upgrade", { shapes: [{ id: "s1" }] });
@@ -376,7 +530,7 @@ test("annotations round-trip still works against the v2 database (regression)", 
 
   const payload = { conditions: [{ id: "c9", name: "LVP" }], shapes: [{ id: "s9", points: [{ x: 1, y: 2 }] }], markups: [], sheets: [], sheet_group: [], last_group: [], sheet_tabs: [] };
   await store.saveAnnotations(payload);
-  assert.deepEqual(await store.loadAnnotations(), { ...payload, schema: ANN_SCHEMA });
+  assert.deepEqual(await store.loadAnnotations(), { ...payload, schema: ANN_SCHEMA, ...EMPTY_FOUNDATION });
 });
 
 // ── CO-1: sheet revisions at addPdf ─────────────────────────────────────────
