@@ -3,7 +3,7 @@
 **Projekt:** MérnökSzem – Product & Development OS
 **Dokumentumtípus:** Project Control File / Live Development State
 **Verzió:** 1.0
-**Snapshot dátum:** 2026-09-14 02:32 CEST
+**Snapshot dátum:** 2026-09-14 (Day 0 blocker closure)
 **Státusz:** ACTIVE / DYNAMIC
 **Frissítési felelős:** Development Control Tower
 **Alapelv:** ami nincs bizonyítva, az `UNKNOWN` vagy `UNVERIFIED`. Régi chatből nem szabad aktuális Git/repo állapotot feltételezni.
@@ -17,9 +17,9 @@
 | Product | MérnökSzem |
 | Release | **Controlled Pilot MVP** |
 | Scope | **FROZEN v2.0 FINAL – Product Owner validálta** |
-| Current program stage | **DAY 0 / START-GATE PREPARATION** |
-| Feature development authorization | **NOT YET AUTHORIZED** |
-| Day 0 result | **NOT PROVIDED / NOT VERIFIED** |
+| Current program stage | **DAY 0 CLOSED / NEXT TASK AWAITING AUTHORIZATION** |
+| Feature development authorization | **GO at Start Gate; separate next-task authorization required** |
+| Day 0 result | **PASS** |
 | Feature freeze | NOT ACTIVE – planned end of Day 12 |
 | Staging | NOT STARTED / UNVERIFIED |
 | Pilot | NOT STARTED |
@@ -35,23 +35,23 @@ A feature-fejlesztés csak Start Gate PASS után indulhat.
 | Gate | Requirement | Current status | Evidence / action |
 |---|---|---|---|
 | START-GATE-001 | Scope Freeze v2.0 FINAL accepted | **PASS** | Product Owner explicit validáció |
-| START-GATE-002 | Writable GitHub remote exists | **UNVERIFIED** | Day 0 repo precheck szükséges |
-| START-GATE-003 | Canonical base SHA recorded | **UNVERIFIED** | Day 0 repo precheck szükséges |
-| START-GATE-004 | Upstream OpenTakeoff SHA frozen | **UNVERIFIED** | Day 0 repo precheck szükséges |
-| START-GATE-005 | Current repo builds or failures documented | **UNVERIFIED CURRENTLY** | korábbi baseline történeti adat, újraellenőrzendő |
-| START-GATE-006 | Pre-existing failure registry exists | **NOT VERIFIED FOR DAY 0** | Day 0 report/failure registry szükséges |
-| START-GATE-007 | 3 pilot project packages selected | **PENDING** | konkrét A/B/C csomag kijelölendő |
-| START-GATE-008 | API/cost cap defined | **PARTIAL** | kb. 150k Ft/hó planning envelope ismert; runtime API hard cap rögzítendő |
-| START-GATE-009 | No unresolved P0 contradiction remains | **CONDITIONALLY PASS** | Scope Freeze v2.0 oldotta a fő scope konfliktusokat; Day 0 dokumentumaudit szükséges |
+| START-GATE-002 | Writable GitHub remote exists | **PASS_WITH_FORK** | `origin` = writable MérnökSzem fork; Product Owner successful-push evidence |
+| START-GATE-003 | Canonical base SHA recorded | **PASS** | Day 0 baseline and blocker-closure reports |
+| START-GATE-004 | Upstream OpenTakeoff SHA frozen | **PASS** | `37b7f1cbcb229476a9c50c5e1cbd927af5eb589f` (`mcp-v0.9.77`) |
+| START-GATE-005 | Current repo builds or failures documented | **PASS** | Day 0 report and baseline failure registry |
+| START-GATE-006 | Pre-existing failure registry exists | **PASS** | `MS-MVP-DAY00-BASELINE-FAILURE-REGISTRY.md` |
+| START-GATE-007 | 3 pilot project packages selected | **PASS_WITH_RESERVED_SLOTS** | Pilot A/B/C slots and objectives approved; attachments and ground truth required before pilot execution |
+| START-GATE-008 | API/cost cap defined | **PASS** | OpenAI primary; 15,000 HUF/month hard cap; 300 HUF/project report soft cap; fallback frozen |
+| START-GATE-009 | No unresolved P0 contradiction remains | **PASS** | Day 0 documentation audit |
 | START-GATE-010 | Product Owner approved Controlled Pilot framing | **PASS** | explicit validáció |
 
 ### Current start decision
 
 ```text
-NO FEATURE DEVELOPMENT YET
+DAY 0 PASS — GO
 ```
 
-Az aktuális helyes feladat a Day 0 Start Gate lezárása.
+A Day 1 munka csak külön Product Owner-feladattal indulhat; ez a státusz nem indít automatikusan feature-fejlesztést.
 
 ---
 
@@ -61,28 +61,29 @@ Az aktuális helyes feladat a Day 0 Start Gate lezárása.
 |---|---|
 | `MS_MVP_SCOPE_FREEZE_v2.0_FINAL.md` | CREATED + PRODUCT OWNER VALIDATED |
 | `CODEX_PROMPT_MS_MVP_DAY00_START_GATE_v1.0.md` | CREATED |
-| `MS-MVP-DAY00-START-GATE-REPORT.md` | NOT YET PROVIDED |
-| `MS-MVP-DAY00-BASELINE-FAILURE-REGISTRY.md` | NOT YET PROVIDED |
-| `MS-MVP-DAY00-REPO-INVENTORY.md` | NOT YET PROVIDED / OPTIONAL PER PROMPT |
+| `MS-MVP-DAY00-START-GATE-REPORT.md` | PROVIDED + UPDATED TO PASS |
+| `MS-MVP-DAY00-BASELINE-FAILURE-REGISTRY.md` | PROVIDED |
+| `MS-MVP-DAY00-REPO-INVENTORY.md` | PROVIDED |
+| `MS-MVP-DAY00-BLOCKER-CLOSURE-REPORT.md` | PROVIDED |
 
 ---
 
 # 4. Repository state
 
-**FIGYELEM:** az alábbi current-state mezők szándékosan nem vesznek át régi chatből SHA-t.
+Az alábbi értékek a Day 0 riportból és a blocker-closure friss remote precheckjéből származnak.
 
 | Mező | Current verified value |
 |---|---|
-| Repository root | UNKNOWN |
-| Remote origin | UNKNOWN |
-| Writable remote | UNKNOWN |
+| Repository root | Remote-authoritative GitHub repository; no MacBook-local path dependency |
+| Remote origin | `https://github.com/ladanyitamas95-commits/opentakeoff-mernokszem.git` |
+| Writable remote | `PASS_WITH_FORK` |
 | Default branch | UNKNOWN |
-| Canonical development branch | UNKNOWN |
-| Canonical HEAD SHA | UNKNOWN |
-| Upstream OpenTakeoff pinned SHA | UNKNOWN |
-| Working tree status | UNKNOWN |
-| Active worktrees | UNKNOWN |
-| Remote branches synced | UNKNOWN |
+| Canonical development branch | `codex/w01-ui-foundation` |
+| Canonical HEAD SHA | `945ef5015533a2dcdfea8a4426c1622285a32905` at blocker-closure start; final closure SHA in closure report/task output |
+| Upstream OpenTakeoff pinned SHA | `37b7f1cbcb229476a9c50c5e1cbd927af5eb589f` (`mcp-v0.9.77`) |
+| Working tree status | Clean at blocker-closure start |
+| Active worktrees | Not applicable to remote-only closure |
+| Remote branches synced | `codex/w01-ui-foundation` matched `origin/codex/w01-ui-foundation` at blocker-closure start |
 
 ### Historical evidence – NOT CURRENT AUTHORITY
 
@@ -100,21 +101,14 @@ Ezek **nem tekinthetők jelenlegi canonical állapotnak új Git evidence nélkü
 
 ### Current verified baseline
 
-```text
-UNKNOWN UNTIL DAY 0 RE-RUN
-```
+- web typecheck, lint, benchmark és build: PASS;
+- web test: 1,705 pass, 49 documented pre-existing failures, 3 skip;
+- MCP typecheck, tool count, build és dist smoke: PASS;
+- MCP test: 224 pass, 2 documented pre-existing failures;
+- server test: 11 pass;
+- docs link check és capture selftest: PASS.
 
-### Historical evidence only
-
-Korábbi riport szerint:
-- build PASS;
-- typecheck PASS;
-- lint PASS;
-- full web suite-ben 49 pre-existing localization/golden failure maradt;
-- a W01 UI foundation nem adott új failure countot.
-
-Ez történeti adat.
-A Day 0 futásnak újra kell mérnie és failure registry-ben rögzítenie.
+Részletes evidence: `MS-MVP-DAY00-START-GATE-REPORT.md` és `MS-MVP-DAY00-BASELINE-FAILURE-REGISTRY.md`. A blocker-closure task alkalmazásteszteket nem futtatott újra.
 
 ### Rule
 
@@ -133,9 +127,10 @@ amíg explicit újra nem osztályozzák.
 
 | Task ID | Agent | Scope | Branch/worktree | Status |
 |---|---|---|---|---|
-| MS-MVP-DAY00-START-GATE | Codex planned | repo/start-gate baseline, docs only | UNKNOWN until precheck | **PROMPT READY / RESULT NOT PROVIDED** |
+| MS-MVP-DAY00-START-GATE | Codex | repo/start-gate baseline, docs only | `codex/w01-ui-foundation` | **COMPLETE** |
+| MS-MVP-DAY00-BLOCKER-CLOSURE | Codex | blocker decisions and audit closure, docs only | `codex/w01-ui-foundation` | **COMPLETE** |
 | Claude Code first task | Claude Code | must wait for Start Gate | N/A | **NOT STARTED** |
-| Controlled Pilot feature task | any | prohibited before Start Gate PASS | N/A | **BLOCKED BY START GATE** |
+| Controlled Pilot feature task | any | requires a separately authorized task | N/A | **NOT STARTED** |
 
 ---
 
@@ -213,17 +208,17 @@ Required structure:
 
 | Pilot | Requirement | Concrete package |
 |---|---|---|
-| A | simple / clean golden path | **TBD** |
-| B | medium / realistic | **TBD** |
-| C | problematic / incomplete / edge case | **TBD** |
+| A | simple / clean golden path | **PILOT_SLOT_RESERVED** — files `TO_BE_ATTACHED_LATER`, ground truth `TO_BE_DEFINED` |
+| B | Mosonszolnok / hígtrágya jellegű agrár/technológiai tervpilot | **PILOT_SLOT_RESERVED** — files `TO_BE_ATTACHED_LATER`, ground truth `TO_BE_DEFINED` |
+| C | Gorzsa kerékmosó / ÉNGY jellegű import- és eltéréskezelési pilot | **PILOT_SLOT_RESERVED** — files `TO_BE_ATTACHED_LATER`, ground truth `TO_BE_DEFINED` |
 
 Current status:
 
 ```text
-PILOT PACKAGES NOT FORMALLY SELECTED
+PILOT SLOTS RESERVED — EXECUTION INPUTS PENDING
 ```
 
-Potential historical project materials exist, but they must not be auto-selected without Product Owner approval and legal/professional usability check.
+Pilot execution may not begin until the files are attached and ground truth is defined. This is an execution prerequisite, not a Day 0 blocker.
 
 ---
 
@@ -237,35 +232,35 @@ Technology development envelope: approx. 150,000 HUF / month
 
 This is a planning ceiling, not a release proof.
 
-### Still required before runtime-heavy development
+### Frozen runtime AI controls
 
 ```text
-RUNTIME_AI_API_HARD_CAP = TBD
-PER_REPORT_COST_ALERT = TBD
-RUNAWAY_REQUEST_PROTECTION = REQUIRED
+RUNTIME_AI_PROVIDER = OPENAI_API_PRIMARY
+RUNTIME_AI_API_HARD_CAP = 15,000 HUF NET EQUIVALENT / MONTH
+PER_PROJECT_AI_REPORT_DRAFT_SOFT_CAP = 300 HUF ESTIMATED EQUIVALENT
+CAP_REACHED_FALLBACK = DISABLE_OR_QUEUE_AI_REPORT_AND_ASSISTANT_CALLS
+AUTOMATIC_OVERAGE = FORBIDDEN_WITHOUT_PRODUCT_OWNER_APPROVAL
 ```
 
 No new paid tool becomes mandatory without blocker/value justification.
+
+Required user-facing message:
+
+> Az AI használati keret elérte a beállított limitet. A funkció átmenetileg szünetel, manuális review szükséges.
 
 ---
 
 # 12. Current blockers
 
-## BLOCKER-001 — Day 0 not closed
+No remaining Day 0 blockers.
 
-No verified:
-- writable remote;
-- canonical SHA;
-- pinned upstream SHA;
-- current build/test baseline.
+Resolved by `MS-MVP-DAY00-BLOCKER-CLOSURE`:
 
-## BLOCKER-002 — Pilot packages not formally selected
+- `BLOCKER-001`: writable fork and canonical remote state verified;
+- `BLOCKER-002`: Pilot A/B/C slots and objectives approved;
+- `BLOCKER-003`: provider, hard cap, soft cap and fallback policy frozen.
 
-3 categories defined, concrete files/packages TBD.
-
-## BLOCKER-003 — API hard cap not explicitly frozen
-
-Monthly envelope exists; runtime cap needs explicit value.
+Non-blocking prerequisite: attach Pilot A/B/C files and define ground truth before pilot execution.
 
 ---
 
@@ -274,19 +269,11 @@ Monthly envelope exists; runtime cap needs explicit value.
 The next development action is:
 
 ```text
-RUN / COMPLETE
-MS-MVP-DAY00-START-GATE
+PRODUCT OWNER AUTHORIZATION
+FOR THE EXISTING DAY 1-3 FOUNDATION WORKSTREAM
 ```
 
-Then ingest the result into this file.
-
-Do **not** start feature development before the Control Tower audits the Day 0 result and issues:
-
-```text
-GO
-or
-CONDITIONAL_GO with explicit non-blocking conditions
-```
+This blocker-closure task does not itself start Day 1 or modify runtime code.
 
 ---
 
@@ -320,6 +307,7 @@ Never replace `UNKNOWN` with a guessed value.
 | Date | Change |
 |---|---|
 | 2026-09-14 | v1.0 created from validated Scope Freeze v2.0 and current conversation state. Current Git/repo values intentionally left UNVERIFIED pending Day 0. |
+| 2026-09-14 | Day 0 blocker closure: writable fork, pilot slots and runtime AI cost controls validated; Start Gate updated to GO. |
 
 ---
 

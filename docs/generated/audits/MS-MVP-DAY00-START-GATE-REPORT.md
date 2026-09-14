@@ -2,22 +2,22 @@
 
 Date: 2026-09-14
 Task: `MS-MVP-DAY00-START-GATE`
-Status: BLOCKED
-Recommendation: NO-GO
+Status: PASS
+Recommendation: GO
 
 ## Repository State
 
 | Field | Value |
 |---|---|
-| Repository root | `/Users/Tomi/Documents/Codex/2026-09-09/feladat-1-opentakeoff-frontend-felm-r/work/opentakeoff-w01-ui-foundation` |
-| Selected worktree | Same as repository root |
+| Repository root | Remote-authoritative `ladanyitamas95-commits/opentakeoff-mernokszem` |
+| Selected worktree | Not used for blocker closure; executed from a fresh ephemeral clone of the remote branch |
 | Branch | `codex/w01-ui-foundation` |
-| Starting HEAD | `4d6d26bf0e806f0a6aafda0cd0d1971573eccd8f` |
-| Final HEAD | Day 0 documentation commit containing this report; exact SHA is recorded in the task's final output |
+| Starting HEAD | Original Day 0: `4d6d26bf0e806f0a6aafda0cd0d1971573eccd8f`; blocker closure: `945ef5015533a2dcdfea8a4426c1622285a32905` |
+| Final HEAD | Blocker-closure documentation commit containing this update; exact SHA is recorded in the task's final output |
 | Initial working tree | Clean; no staged, unstaged, or untracked files |
-| Remote origin | `https://github.com/Kentucky-ai/opentakeoff.git` |
-| Remote readable | PASS; `git ls-remote --symref origin HEAD` returned `refs/heads/main` at `d8a5b5aa305f81e0f0d391275fb16bfd6de3270f` |
-| Remote writable | UNPROVEN; `git push --dry-run` failed before authorization with `could not read Username for https://github.com` |
+| Remote origin | `https://github.com/ladanyitamas95-commits/opentakeoff-mernokszem.git` |
+| Upstream reference | `https://github.com/Kentucky-ai/opentakeoff.git` |
+| Remote writable | `PASS_WITH_FORK`; Product Owner supplied successful push evidence for `codex/w01-ui-foundation`, and the blocker-closure task verified the remote branch at `945ef5015533a2dcdfea8a4426c1622285a32905` |
 | Canonical base SHA | `4d6d26bf0e806f0a6aafda0cd0d1971573eccd8f` |
 | Pinned upstream OpenTakeoff SHA | `37b7f1cbcb229476a9c50c5e1cbd927af5eb589f` (`mcp-v0.9.77`) |
 
@@ -35,13 +35,13 @@ Recommendation: NO-GO
 | Gate | Requirement | Status | Evidence |
 |---|---|---|---|
 | START-GATE-001 | Scope Freeze v2.0 FINAL accepted | PASS | `DEC-002` and `03_DEVELOPMENT_STATE.md` record explicit Product Owner validation; canonical file is now in repo |
-| START-GATE-002 | Writable GitHub remote exists | FAIL | Remote is readable and a push URL exists, but dry-run push lacks HTTPS credentials; `REMOTE_WRITABLE = UNPROVEN` |
+| START-GATE-002 | Writable GitHub remote exists | PASS_WITH_FORK | Writable `origin` is `ladanyitamas95-commits/opentakeoff-mernokszem`; Product Owner supplied successful push evidence for this branch. Kentucky-ai remains the upstream reference only |
 | START-GATE-003 | Canonical base SHA recorded | PASS | Product Owner selected this worktree/branch; Day 0 starting SHA is recorded above |
 | START-GATE-004 | Upstream OpenTakeoff SHA frozen | PASS | Merge-base is `37b7f1c…`, locally tagged `mcp-v0.9.77`; no upstream merge performed |
 | START-GATE-005 | Current repo builds or failures documented | PASS | Web and MCP builds pass; failing test baselines are recorded in the failure registry |
 | START-GATE-006 | Pre-existing failure registry exists | PASS | `MS-MVP-DAY00-BASELINE-FAILURE-REGISTRY.md` created |
-| START-GATE-007 | 3 pilot project packages selected | FAIL | A/B/C profiles are defined, but concrete packages remain `OPEN-002` / not formally selected |
-| START-GATE-008 | API/cost cap defined | FAIL | Approximate HUF 150,000/month envelope is not a runtime hard cap; provider, per-report cap and fallback remain undefined |
+| START-GATE-007 | 3 pilot project packages selected | PASS_WITH_RESERVED_SLOTS | Product Owner reserved and defined Pilot A/B/C slots. Files remain `TO_BE_ATTACHED_LATER` and ground truth `TO_BE_DEFINED` before pilot execution |
+| START-GATE-008 | API/cost cap defined | PASS | OpenAI API primary; runtime hard cap 15,000 HUF net equivalent/month; report-draft soft cap 300 HUF/project; cap-reached fallback and Hungarian message frozen |
 | START-GATE-009 | No unresolved P0 contradiction remains | PASS | Scope Freeze v2.0 explicitly supersedes earlier scope locks; no unresolved scope contradiction was found in the audited hierarchy |
 | START-GATE-010 | Product Owner approved controlled pilot framing | PASS | `DEC-001` is VALIDATED and the accepted bootstrap state names the Controlled Pilot MVP |
 
@@ -101,27 +101,26 @@ All runtime failures are classified in `MS-MVP-DAY00-BASELINE-FAILURE-REGISTRY.m
 
 ## Development Recommendation
 
-**NO-GO**
+**GO**
 
-The Scope Freeze rule requires all ten start gates to pass. Three gates fail, so feature development remains prohibited.
+All Day 0 start gates are closed at documentation/control/audit level. Controlled development may begin only through a separately authorized next task. Pilot execution remains conditional on attaching the reserved packages and defining their ground truth.
 
 ## Required Human Actions
 
-1. Configure or provide authenticated GitHub write access and repeat a non-mutating write authorization check.
-2. Formally select and document complete Pilot A, Pilot B and Pilot C project packages.
-3. Freeze the runtime AI provider, monthly hard cap, maximum report-generation cost per project, and cap-reached fallback behavior.
-4. After those decisions are recorded, rerun the failed gates and issue an updated GO/NO-GO decision.
+1. Before pilot execution, attach the files for Pilot A/B/C and define ground truth for each package.
+2. Start Day 1 only under a separate Product Owner-authorized task.
 
 ## Blockers
 
-- `START-GATE-002`: remote writability unproven.
-- `START-GATE-007`: three concrete pilot packages not selected.
-- `START-GATE-008`: runtime API/cost hard cap not defined.
+- No remaining Day 0 blocker.
+- Non-blocking pilot-execution prerequisite: Pilot A/B/C files and ground truth must be provided before the corresponding pilot runs.
 
 ## Required next task
 
-Recommended next task ID: `MS-MVP-DAY00-BLOCKER-CLOSURE`
+Recommended next task: Product Owner authorization of the existing Day 1-3 Foundation workstream.
 
 Recommended branch: `codex/w01-ui-foundation`
 
-Recommended worktree: `/Users/Tomi/Documents/Codex/2026-09-09/feladat-1-opentakeoff-frontend-felm-r/work/opentakeoff-w01-ui-foundation`
+Authoritative repository: `ladanyitamas95-commits/opentakeoff-mernokszem`
+
+Execution branch: `codex/w01-ui-foundation`

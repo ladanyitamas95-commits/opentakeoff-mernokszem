@@ -337,24 +337,61 @@ Régi részletes dokumentum nem emelhet vissza P0-ba később kivett funkciót.
 
 ---
 
-## 3. Nyitott / még nem validált döntések
+### DEC-022 — Writable development fork
 
-Ebbe a részbe csak valóban nyitott döntés kerül.
+**Státusz:** VALIDATED
+**Döntés:** A writable development remote a `ladanyitamas95-commits/opentakeoff-mernokszem` fork, az authoritative branch `codex/w01-ui-foundation`.
+
+A `Kentucky-ai/opentakeoff` repository az eredeti upstream referencia; oda ebből a munkafolyamatból push tilos.
+
+**Forrás:** Product Owner update, 2026-09-14; sikeres `git push -u origin codex/w01-ui-foundation` evidence.
+
+---
+
+### DEC-023 — Controlled Pilot A/B/C slots
+
+**Státusz:** VALIDATED
+**Döntés:** A három pilot slot kijelölve:
+
+- **Pilot A:** egyszerű kontrollált golden path; PDF feltöltés, skála, kézi poligon/polivonal/db mérés, XLSX költségvetés import, manuális mapping, eltéréskimutatás, Review Queue és XLSX export.
+- **Pilot B:** valós agrár/technológiai tervpilot, Mosonszolnok / hígtrágya jellegű projekt; valós tervalapú mennyiségi ellenőrzés és auditálhatóság.
+- **Pilot C:** valós költségvetési import és eltéréskezelési pilot, Gorzsa kerékmosó / ÉNGY jellegű projekt; sorazonosítás, mennyiség-összevetés és a `>5% = REVIEW_REQUIRED` szabály.
+
+Mindhárom státusza `PILOT_SLOT_RESERVED`; a fájlok `TO_BE_ATTACHED_LATER`, a ground truth `TO_BE_DEFINED`. Ezek pilot-execution prerequisites, nem Day 0 dokumentációs blocker-ek.
+
+---
+
+### DEC-024 — Runtime AI provider and cost controls
+
+**Státusz:** VALIDATED
+**Döntés:** Az elsődleges runtime szolgáltató OpenAI API. Claude API nem P0; Gemini API opcionális későbbi fallback, nem P0 blocker.
+
+- havi runtime AI hard cap: **15 000 HUF net equivalent**;
+- projektenkénti AI report draft soft cap: **300 HUF estimated equivalent**;
+- automatikus overage nincs Product Owner jóváhagyás nélkül;
+- limitnél az AI riportgenerálás és AI Assistant hívások letiltandók vagy sorba állítandók;
+- kötelező felhasználói üzenet: „Az AI használati keret elérte a beállított limitet. A funkció átmenetileg szünetel, manuális review szükséges.”
+
+---
+
+## 3. Lezárt korábbi nyitott döntések
+
+A Day 0 blocker closure során lezárt korábbi nyitott rekordok auditnyomként megmaradnak. Aktív nyitott Day 0 döntés nincs.
 
 ### OPEN-001 — Aktuális canonical repository state
 
-**Státusz:** PENDING / TECHNICAL EVIDENCE REQUIRED
-A jelenlegi branch, HEAD SHA, writable remote és upstream pinned SHA Day 0 Start Gate-ben újraellenőrzendő.
+**Státusz:** SUPERSEDED by `DEC-022` and Day 0 evidence
+A writable fork, az authoritative branch, a Day 0 HEAD és az upstream reference dokumentálva.
 
 ### OPEN-002 — Három konkrét pilotcsomag kijelölése
 
-**Státusz:** PENDING
-A Pilot A/B/C kategória validált, de a konkrét fájlcsomagok kijelölése még technikailag/dokumentáltan lezárandó.
+**Státusz:** SUPERSEDED by `DEC-023`
+A három pilot slot és cél kijelölve. A fájlcsatolás és ground truth meghatározás pilot-execution prerequisite.
 
 ### OPEN-003 — API hard cap pontos értéke
 
-**Státusz:** PENDING
-A teljes technológiai tervezési keret körülbelül 150 000 Ft/hó szinten lett modellezve, de a runtime AI API konkrét hard cap értékét Day 0 előtt explicit rögzíteni kell.
+**Státusz:** SUPERSEDED by `DEC-024`
+Az elsődleges provider, havi hard cap, projektenkénti soft cap, fallback és overage policy explicit rögzítve.
 
 ---
 
