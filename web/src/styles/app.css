@@ -186,6 +186,61 @@ select { font-family: var(--f-body); }
   gap: 12px;
 }
 
+.ms-section-heading,
+.ms-project-row,
+.ms-project-row-actions,
+.ms-inline-form {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+}
+
+.ms-section-heading,
+.ms-project-row {
+  justify-content: space-between;
+}
+
+.ms-inline-form {
+  align-items: end;
+}
+
+.ms-project-row {
+  padding: var(--sp-3);
+  border: 1px solid var(--ms-border);
+  background: var(--ms-surface);
+}
+
+.ms-project-row-actions {
+  flex-wrap: wrap;
+  justify-content: end;
+}
+
+.ms-eyebrow {
+  margin: 0;
+  color: var(--ms-text-secondary);
+  font-family: var(--f-mono);
+  font-size: var(--fs-xs);
+  letter-spacing: 0.08em;
+}
+
+.ms-status-badge,
+.ms-error-state {
+  padding: var(--sp-2) var(--sp-3);
+  font-family: var(--f-mono);
+  font-size: var(--fs-xs);
+}
+
+.ms-status-badge {
+  border: 1px solid var(--ms-border);
+  color: var(--ms-text-secondary);
+  text-transform: uppercase;
+}
+
+.ms-error-state {
+  border: 1px solid var(--c-danger);
+  color: var(--c-danger);
+}
+
 .ms-ui-row {
   display: flex;
   gap: 8px;
