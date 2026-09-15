@@ -693,6 +693,10 @@ So take the takeoff out of the browser: **Sheet → Export takeoff…** writes `
 
 If a saved project fails to load, autosave **pauses itself** and a banner says so—a load failure never overwrites your saved work with an empty canvas. And if OpenTakeoff updates in another tab, the stale tab asks for a reload instead of writing over the newer one.
 
+### MérnökSzem pilot: Projektek
+
+In the protected pilot app, open **Projektek** to create or reopen a project. Enter an **Új projekt neve**, then select **Új projekt**. The list shows the persisted project name, status, **Létrehozva** date and **Utolsó módosítás** date; use **Lista frissítése** to reload it. A successful create opens that project's workspace. Empty names and persistence errors remain visible on the page and do not open a workspace. Successful creation records the authenticated pilot user in the project audit trail.
+
 ### Optional: projects on Drive
 
 Team deployments can wire a Google Drive "Projects" root. Then a **project is a Drive folder**: sign in from the opening screen, choose the folder, and the plan PDFs live in it while OpenTakeoff keeps its own sidecars (the takeoff JSON and the working-set manifest) in a hidden `.opentakeoff` subfolder. The gallery grows a **Browse Drive** mode that lists the folder's PDFs—nothing downloads until you add it, so spec books and as-builts stay unopened. Revision snapshots stay in your browser but scope per project; condition and material libraries, stamps, and report preferences stay local to your browser either way. Run OpenTakeoff without signing in and none of this exists.
