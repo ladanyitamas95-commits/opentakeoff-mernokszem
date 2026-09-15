@@ -1,0 +1,170 @@
+name: C5 Evidence Validation
+
+on:
+  push:
+    branches: [qa/c5-evidence-validation]
+
+permissions:
+  contents: read
+
+env:
+  BASE_SHA: 392b37abbaf1d622e7c11146cbbcf35a0ddde6b7
+  TARGET_SHA: 563f1fc65fdf0faaa1cb357a8be07565180f8e10
+  TARGET_REF: refs/pull/1/merge
+
+jobs:
+  base-suite:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with: {ref: '${{ env.BASE_SHA }}', fetch-depth: 0}
+      - name: Prove base SHA
+        run: |
+          test "$(git rev-parse HEAD)" = "$BASE_SHA"
+          git rev-parse HEAD | tee base-sha.txt
+          git status --short | tee base-status.txt
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: node --version && npm --version
+      - run: npm --prefix web ci
+      - uses: actions/cache@v4
+        with:
+          path: web/public/models
+          key: voice-model-${{ hashFiles('web/scripts/fetch-voice-model.mjs') }}
+      - run: node scripts/fetch-voice-model.mjs
+        working-directory: web
+      - name: Write structured reporter
+        run: |
+          cat > "$RUNNER_TEMP/evidence-reporter.mjs" <<'EOF'
+          function err(e){ const x=e?.cause||e; return x?{name:x.name||null,message:x.message||null,code:x.code||null,failureType:x.failureType||null,stack:x.stack||null}:null }
+          export default async function* reporter(source){
+            for await (const event of source) if(event.type==='test:fail'||event.type==='test:summary'){
+              const d=event.data||{};
+              yield JSON.stringify({type:event.type,file:d.file??null,name:d.name??null,line:d.line??null,column:d.column??null,testType:d.details?.type??null,error:err(d.details?.error),counts:d.counts??null,success:d.success??null})+'\n';
+            }
+          }
+          EOF
+      - name: Run base suite without suppressing evidence
+        run: |
+          set +e
+          mkdir -p evidence/base
+          cd web
+          node --import tsx --test --test-reporter=spec --test-reporter="$RUNNER_TEMP/evidence-reporter.mjs" --test-reporter-destination="$GITHUB_WORKSPACE/evidence/base/raw.log" --test-reporter-destination="$GITHUB_WORKSPACE/evidence/base/events.jsonl" test/*.test.ts
+          code=$?
+          cd "$GITHUB_WORKSPACE"
+          echo "$code" > evidence/base/exit-code.txt
+          exit 0
+      - name: Normalize base failures
+        run: |
+          node <<'EOF'
+          const fs=require('fs'); const p='evidence/base/events.jsonl'; const es=fs.readFileSync(p,'utf8').trim().split(/\n+/).filter(Boolean).map(JSON.parse); const s=es.filter(e=>e.type==='test:summary').at(-1); const f=es.filter(e=>e.type==='test:fail'&&e.testType!=='suite').map(e=>({file:e.file,name:e.name,line:e.line,column:e.column,errorSignature:[e.error?.name,e.error?.code,e.error?.failureType,e.error?.message].filter(Boolean).join(' | '),stack:e.error?.stack||null})); fs.writeFileSync('evidence/base/summary.json',JSON.stringify(s,null,2)); fs.writeFileSync('evidence/base/failures.json',JSON.stringify(f,null,2)); if(!s?.counts) process.exit(2); if(f.length!==s.counts.failed){console.error(`identity count ${f.length} != failed ${s.counts.failed}`);process.exit(3)} console.log(JSON.stringify({counts:s.counts,identities:f.length},null,2));
+          EOF
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: {name: c5-base-evidence, path: 'evidence/base\nbase-sha.txt\nbase-status.txt', if-no-files-found: error}
+
+  target-suite:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with: {ref: '${{ env.TARGET_REF }}', fetch-depth: 0}
+      - name: Prove target SHA
+        run: |
+          test "$(git rev-parse HEAD)" = "$TARGET_SHA"
+          git rev-parse HEAD | tee target-sha.txt
+          git show -s --format='%H %P %s' HEAD | tee target-merge-proof.txt
+          git status --short | tee target-status.txt
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: node --version && npm --version
+      - run: npm --prefix web ci
+      - uses: actions/cache@v4
+        with:
+          path: web/public/models
+          key: voice-model-${{ hashFiles('web/scripts/fetch-voice-model.mjs') }}
+      - run: node scripts/fetch-voice-model.mjs
+        working-directory: web
+      - name: Write structured reporter
+        run: |
+          cat > "$RUNNER_TEMP/evidence-reporter.mjs" <<'EOF'
+          function err(e){ const x=e?.cause||e; return x?{name:x.name||null,message:x.message||null,code:x.code||null,failureType:x.failureType||null,stack:x.stack||null}:null }
+          export default async function* reporter(source){
+            for await (const event of source) if(event.type==='test:fail'||event.type==='test:summary'){
+              const d=event.data||{};
+              yield JSON.stringify({type:event.type,file:d.file??null,name:d.name??null,line:d.line??null,column:d.column??null,testType:d.details?.type??null,error:err(d.details?.error),counts:d.counts??null,success:d.success??null})+'\n';
+            }
+          }
+          EOF
+      - name: Run target suite without suppressing evidence
+        run: |
+          set +e
+          mkdir -p evidence/target
+          cd web
+          node --import tsx --test --test-reporter=spec --test-reporter="$RUNNER_TEMP/evidence-reporter.mjs" --test-reporter-destination="$GITHUB_WORKSPACE/evidence/target/raw.log" --test-reporter-destination="$GITHUB_WORKSPACE/evidence/target/events.jsonl" test/*.test.ts
+          code=$?
+          cd "$GITHUB_WORKSPACE"
+          echo "$code" > evidence/target/exit-code.txt
+          exit 0
+      - name: Normalize target failures
+        run: |
+          node <<'EOF'
+          const fs=require('fs'); const p='evidence/target/events.jsonl'; const es=fs.readFileSync(p,'utf8').trim().split(/\n+/).filter(Boolean).map(JSON.parse); const s=es.filter(e=>e.type==='test:summary').at(-1); const f=es.filter(e=>e.type==='test:fail'&&e.testType!=='suite').map(e=>({file:e.file,name:e.name,line:e.line,column:e.column,errorSignature:[e.error?.name,e.error?.code,e.error?.failureType,e.error?.message].filter(Boolean).join(' | '),stack:e.error?.stack||null})); fs.writeFileSync('evidence/target/summary.json',JSON.stringify(s,null,2)); fs.writeFileSync('evidence/target/failures.json',JSON.stringify(f,null,2)); if(!s?.counts) process.exit(2); if(f.length!==s.counts.failed){console.error(`identity count ${f.length} != failed ${s.counts.failed}`);process.exit(3)} console.log(JSON.stringify({counts:s.counts,identities:f.length},null,2));
+          EOF
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: {name: c5-target-evidence, path: 'evidence/target\ntarget-sha.txt\ntarget-merge-proof.txt\ntarget-status.txt', if-no-files-found: error}
+
+  compare:
+    runs-on: ubuntu-latest
+    needs: [base-suite, target-suite]
+    steps:
+      - uses: actions/download-artifact@v4
+        with: {name: c5-base-evidence, path: downloaded/base}
+      - uses: actions/download-artifact@v4
+        with: {name: c5-target-evidence, path: downloaded/target}
+      - name: Exact identity delta
+        run: |
+          mkdir -p evidence/compare
+          node <<'EOF'
+          const fs=require('fs'); const b=JSON.parse(fs.readFileSync('downloaded/base/evidence/base/failures.json')); const t=JSON.parse(fs.readFileSync('downloaded/target/evidence/target/failures.json')); const bs=JSON.parse(fs.readFileSync('downloaded/base/evidence/base/summary.json')); const ts=JSON.parse(fs.readFileSync('downloaded/target/evidence/target/summary.json')); const tuple=x=>`${x.file}::${x.name}`; const group=a=>{const m=new Map;for(const x of a){const k=tuple(x);if(!m.has(k))m.set(k,[]);m.get(k).push(x)}return m}; const bg=group(b),tg=group(t); const dup=new Set([...new Set([...bg.keys(),...tg.keys()])].filter(k=>(bg.get(k)?.length||0)>1||(tg.get(k)?.length||0)>1)); const key=x=>dup.has(tuple(x))?`${tuple(x)}::${x.errorSignature||'<no-error-signature>'}`:tuple(x); const B=new Set(b.map(key)),T=new Set(t.map(key)); const add=[...T].filter(x=>!B.has(x)).sort(),resolved=[...B].filter(x=>!T.has(x)).sort(),common=[...T].filter(x=>B.has(x)).sort(); const r={baseCounts:bs.counts,targetCounts:ts.counts,baseFailureIdentityCount:B.size,targetFailureIdentityCount:T.size,commonFailureIdentityCount:common.length,newFailureIdentities:add,resolvedBaselineFailureIdentities:resolved,newWebFailures:add.length}; fs.writeFileSync('evidence/compare/report.json',JSON.stringify(r,null,2)); console.log(JSON.stringify(r,null,2));
+          EOF
+      - uses: actions/upload-artifact@v4
+        with: {name: c5-comparison-evidence, path: evidence/compare, if-no-files-found: error}
+
+  target-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with: {ref: '${{ env.TARGET_REF }}', fetch-depth: 0}
+      - name: Prove build SHA
+        run: |
+          test "$(git rev-parse HEAD)" = "$TARGET_SHA"
+          git rev-parse HEAD | tee build-sha.txt
+          git show -s --format='%H %P %s' HEAD | tee build-merge-proof.txt
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: node --version && npm --version
+      - run: npm --prefix web ci
+      - name: Independent target build
+        run: |
+          set +e
+          npm --prefix web run build > build.log 2>&1
+          code=$?
+          echo "$code" > build-exit-code.txt
+          cat build.log
+          exit "$code"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: {name: c5-build-evidence, path: 'build.log\nbuild-exit-code.txt\nbuild-sha.txt\nbuild-merge-proof.txt', if-no-files-found: warn}
