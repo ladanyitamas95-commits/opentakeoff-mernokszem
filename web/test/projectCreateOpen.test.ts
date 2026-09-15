@@ -38,7 +38,7 @@ test("fresh Project Home list has a valid empty state", async () => {
 test("empty project name is rejected before a folder is created", async () => {
   const drive = fakeDrive();
   await assert.rejects(
-    createFoundationProject({ drive, rootFolderId: "root", createStore: () => fakeStore(), name: "  ", now: () => NOW }),
+    createFoundationProject({ drive, rootFolderId: "root", createStore: () => fakeStore(), name: "  ", actor: { email: "pilot@example.com" }, now: () => NOW, mintId: () => "empty-name" }),
     /projekt neve kötelező/i,
   );
   assert.deepEqual(drive.folders, []);
@@ -51,7 +51,7 @@ test("valid project creation produces a valid persisted foundation Project recor
     if (!stores.has(id)) stores.set(id, fakeStore());
     return stores.get(id);
   };
-  const result = await createFoundationProject({ drive, rootFolderId: "root", createStore, name: "  Irodaház A  ", actor: { email: "pilot@example.com" }, now: () => NOW });
+  const result = await createFoundationProject({ drive, rootFolderId: "root", createStore, name: "  Irodaház A  ", actor: { email: "pilot@example.com" }, now: () => NOW, mintId: () => "project-create" });
   assert.deepEqual(result.project, {
     id: "project-1", name: "Irodaház A", status: "active", created_at: NOW, updated_at: NOW,
   });
