@@ -96,7 +96,7 @@ second use is not a side effect; see [the data layer](#the-data-layer--why-this-
 
 ## MérnökSzem controlled pilot foundation
 
-The protected pilot application now provides a **Projektek** home: create a named **Új projekt**, see its active status and timestamps, refresh the persisted list, and open its protected workspace. The project record stays in the existing project-scoped annotations payload; document upload remains a separate P0 step.
+The protected pilot application now provides a **Projektek** home: create a named **Új projekt**, see its active status and timestamps, refresh the persisted list, and open its protected workspace. The project record and its `PROJECT_CREATED` audit event stay in the existing project-scoped annotations payload; document upload remains a separate P0 step.
 
 ## Recently shipped
 

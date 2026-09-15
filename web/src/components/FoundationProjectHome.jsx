@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import AppShell from "./AppShell.jsx";
 import { Button, EmptyState, Input } from "./ui/index.js";
 import { getAccessToken } from "../lib/google/auth.js";
+import { useGoogleAuth } from "../lib/google/AuthContext.jsx";
 import { projectHomeFolderId } from "../lib/projectHome.js";
 import {
   createFoundationProject,
@@ -25,6 +26,7 @@ function formatDate(value) {
 
 export default function FoundationProjectHome() {
   const navigate = useNavigate();
+  const { user } = useGoogleAuth();
   const [projects, setProjects] = useState([]);
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(true);
@@ -32,7 +34,7 @@ export default function FoundationProjectHome() {
   const [error, setError] = useState("");
   const rootFolderId = projectHomeFolderId();
 
-  const refresh = async () => {
+  const refresh = useCallback(async () => {
     setLoading(true);
     setError("");
     try {
@@ -44,9 +46,9 @@ export default function FoundationProjectHome() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [rootFolderId]);
 
-  useEffect(() => { refresh(); }, []); // initial list load only
+  useEffect(() => { refresh(); }, [refresh]);
 
   const create = async (event) => {
     event.preventDefault();
@@ -54,7 +56,7 @@ export default function FoundationProjectHome() {
     setError("");
     try {
       const { drive, createStore } = await createProjectDrive();
-      const created = await createFoundationProject({ drive, rootFolderId, createStore, name });
+      const created = await createFoundationProject({ drive, rootFolderId, createStore, name, actor: user });
       setName("");
       openFoundationProject(created.project, navigate);
     } catch (cause) {

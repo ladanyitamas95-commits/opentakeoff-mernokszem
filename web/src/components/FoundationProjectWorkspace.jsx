@@ -13,6 +13,8 @@ export default function FoundationProjectWorkspace() {
 
   useEffect(() => {
     let live = true;
+    setProject(null);
+    setError("");
     (async () => {
       try {
         const [{ createDrive }, { createCloudStore }] = await Promise.all([
@@ -22,10 +24,12 @@ export default function FoundationProjectWorkspace() {
         if (!live) return;
         const store = createCloudStore(projectId, createDrive({ getToken: getAccessToken }));
         const annotations = await store.loadAnnotations();
+        if (!live) return;
         const found = (annotations.projects || []).find((item) => item?.id === projectId);
         if (!found) throw new Error("A projekt nem található.");
+        if (!live) return;
         setActiveStore(store);
-        if (live) setProject(found);
+        setProject(found);
       } catch (cause) {
         if (live) setError(`A projekt nem nyitható meg: ${cause?.message || cause}`);
       }

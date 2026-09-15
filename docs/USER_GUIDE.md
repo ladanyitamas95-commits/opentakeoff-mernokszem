@@ -695,7 +695,7 @@ If a saved project fails to load, autosave **pauses itself** and a banner says s
 
 ### MérnökSzem pilot: Projektek
 
-In the protected pilot app, open **Projektek** to create or reopen a project. Enter an **Új projekt neve**, then select **Új projekt**. The list shows the persisted project name, status, **Létrehozva** date and **Utolsó módosítás** date; use **Lista frissítése** to reload it. A successful create opens that project's workspace. Empty names and persistence errors remain visible on the page and do not open a workspace.
+In the protected pilot app, open **Projektek** to create or reopen a project. Enter an **Új projekt neve**, then select **Új projekt**. The list shows the persisted project name, status, **Létrehozva** date and **Utolsó módosítás** date; use **Lista frissítése** to reload it. A successful create opens that project's workspace. Empty names and persistence errors remain visible on the page and do not open a workspace. Successful creation records the authenticated pilot user in the project audit trail.
 
 ### Optional: projects on Drive
 

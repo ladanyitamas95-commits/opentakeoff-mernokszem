@@ -1,4 +1,5 @@
-import { createProject } from "./foundationModel.js";
+import { createAuditEvent, createProject } from "./foundationModel.js";
+import { mintUuid } from "./provenance.js";
 
 export const PROJECT_WORKSPACE_PATH = "/app/projects";
 
@@ -9,6 +10,16 @@ function requiredProjectName(value) {
   return value.trim();
 }
 
+export function auditActorFromUser(user) {
+  const actor = typeof user?.email === "string" && user.email.trim()
+    ? user.email.trim()
+    : typeof user?.sub === "string" && user.sub.trim()
+      ? user.sub.trim()
+      : "";
+  if (!actor) throw new Error("A hitelesített pilot felhasználó azonosítója hiányzik.");
+  return actor;
+}
+
 function projectPath(id) {
   return `${PROJECT_WORKSPACE_PATH}/${encodeURIComponent(id)}`;
 }
@@ -17,15 +28,31 @@ function projectPath(id) {
  * Creates the one foundation Project record for an already-created project
  * folder. The existing annotations payload remains the persistence boundary.
  */
-export async function persistProjectRecord({ store, id, name, now = () => new Date().toISOString() }) {
+export async function persistProjectRecord({ store, id, name, actor, now = () => new Date().toISOString(), mintId = mintUuid }) {
   const projectName = requiredProjectName(name);
+  const auditActor = auditActorFromUser(actor);
   const current = await store.loadAnnotations();
-  const project = createProject({ id, name: projectName, created_at: now() });
+  const timestamp = now();
+  const project = createProject({ id, name: projectName, created_at: timestamp });
+  const auditEvent = createAuditEvent({
+    id: `audit-${mintId()}`,
+    actor: auditActor,
+    action: "PROJECT_CREATED",
+    entity_type: "project",
+    entity_id: project.id,
+    timestamp,
+    correlation_id: `project-create-${mintId()}`,
+  });
   const projects = Array.isArray(current.projects) ? current.projects : [];
   if (projects.some((item) => item?.id === project.id)) {
     throw new Error("Ez a projekt már létezik.");
   }
-  await store.saveAnnotations({ ...current, projects: [...projects, project] });
+  const auditEvents = Array.isArray(current.audit_events) ? current.audit_events : [];
+  await store.saveAnnotations({
+    ...current,
+    projects: [...projects, project],
+    audit_events: [...auditEvents, auditEvent],
+  });
   return project;
 }
 
@@ -34,11 +61,11 @@ export async function persistProjectRecord({ store, id, name, now = () => new Da
  * existing cloud annotations store. A failed persistence is deliberately
  * surfaced to the caller; it is never hidden behind a partial in-memory row.
  */
-export async function createFoundationProject({ drive, rootFolderId, createStore, name, now }) {
+export async function createFoundationProject({ drive, rootFolderId, createStore, name, actor, now, mintId }) {
   const projectName = requiredProjectName(name);
   const folder = await drive.createFolder(rootFolderId, projectName);
   const project = await persistProjectRecord({
-    store: createStore(folder.id), id: folder.id, name: projectName, now,
+    store: createStore(folder.id), id: folder.id, name: projectName, actor, now, mintId,
   });
   return { folder, project, path: projectPath(project.id) };
 }
