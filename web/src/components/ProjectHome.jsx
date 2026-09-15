@@ -11,22 +11,37 @@
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import AuthChip from "./AuthChip.jsx";
-import { projectHomeFolderId, listProjectFolders, createRecents, browserStorage } from "../lib/projectHome.js";
-import { getAccessToken } from "../lib/google/auth.js";
+import {
+  browserStorage,
+  createProjectWithFoundationAndOpen,
+  createRecents,
+  hasVisibleProjectNameDuplicate,
+  listProjectFolders,
+  projectHomeFolderId,
+  projectHomeOpenUrl,
+} from "../lib/projectHome.js";
+import { getAccessToken, getUser } from "../lib/google/auth.js";
 
 const rowBase = { display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", borderBottom: "1px solid var(--ink-faint)", background: "var(--paper-bright)" };
 const sectionHead = { padding: "10px 18px 6px", fontFamily: "var(--f-mono)", fontSize: 10.5, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--ink-muted)" };
 const openBtn = { padding: "5px 10px", border: "1px solid var(--ink-faint)", background: "transparent", color: "var(--cobalt)", cursor: "pointer", fontSize: 12, fontWeight: 600, lineHeight: 1, whiteSpace: "nowrap" };
+const createInput = { minWidth: 220, flex: "1 1 260px", padding: "7px 9px", border: "1px solid var(--ink-faint)", background: "var(--paper-bright)", color: "var(--ink)", fontSize: 13 };
+const createBtn = { padding: "7px 12px", border: "1px solid var(--ink)", background: "var(--ink)", color: "var(--paper-bright)", cursor: "pointer", fontSize: 12.5, fontWeight: 700 };
 
 export default function ProjectHome() {
   const navigate = useNavigate();
   const [folders, setFolders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
+  const [projectName, setProjectName] = useState("");
+  const [creating, setCreating] = useState(false);
+  const [createErr, setCreateErr] = useState("");
   const [attempt, setAttempt] = useState(0);   // Retry bumps this to re-run the load
   // Recents are read once on mount — this screen is the only writer, and every
   // write immediately navigates away, so the snapshot can't go stale under us.
   const [recents] = useState(() => createRecents(browserStorage()).list());
+  const trimmedProjectName = projectName.trim();
+  const duplicateProjectName = hasVisibleProjectNameDuplicate(projectName, folders);
 
   useEffect(() => {
     // live flag (copied from PlanNavigator): StrictMode double-invokes effects, so
@@ -49,7 +64,35 @@ export default function ProjectHome() {
     // self-heals in recents when opened from the list; a recents-row open
     // re-remembers its stored name and only bumps the ordering.
     createRecents(browserStorage()).remember({ id, name });
-    navigate(`/?project=${encodeURIComponent(id)}`);
+    navigate(projectHomeOpenUrl(id));
+  };
+
+  const createProject = async (event) => {
+    event.preventDefault();
+    if (creating) return;
+    setCreateErr("");
+    setCreating(true);
+    try {
+      const [{ createDrive }, { createCloudStore }] = await Promise.all([
+        import("../lib/google/drive.js"),
+        import("../lib/cloudStore.js"),
+      ]);
+      const drive = createDrive({ getToken: getAccessToken });
+      const user = getUser();
+      await createProjectWithFoundationAndOpen({
+        drive,
+        rootFolderId: projectHomeFolderId(),
+        projectName,
+        visibleProjects: folders,
+        actor: user?.email || user?.sub || "signed-in-user",
+        createStore: createCloudStore,
+        remember: (project) => createRecents(browserStorage()).remember(project),
+        navigate,
+      });
+    } catch (e) {
+      setCreateErr(String(e?.message || e));
+      setCreating(false);
+    }
   };
 
   return (
@@ -69,6 +112,33 @@ export default function ProjectHome() {
         <div style={{ flex: 1 }} />
         <AuthChip />
       </div>
+
+      <form onSubmit={createProject}
+        style={{ display: "flex", alignItems: "center", gap: 8, padding: "12px 18px", borderBottom: "1px solid var(--ink-faint)", background: "var(--paper-bright)", flexWrap: "wrap" }}>
+        <strong style={{ fontFamily: "var(--f-body)", fontSize: 13.5, color: "var(--ink)" }}>Új projekt létrehozása</strong>
+        <input
+          type="text"
+          value={projectName}
+          onChange={(e) => { setProjectName(e.target.value); setCreateErr(""); }}
+          placeholder="Projekt neve"
+          aria-label="Projekt neve"
+          disabled={creating}
+          style={createInput}
+        />
+        <button
+          type="submit"
+          disabled={creating || !trimmedProjectName || duplicateProjectName}
+          style={{ ...createBtn, opacity: creating || !trimmedProjectName || duplicateProjectName ? 0.55 : 1, cursor: creating || !trimmedProjectName || duplicateProjectName ? "not-allowed" : "pointer" }}
+        >
+          {creating ? "Létrehozás…" : "Létrehozás"}
+        </button>
+        {duplicateProjectName && (
+          <span style={{ color: "var(--c-danger)", fontSize: 12.5 }}>Ilyen nevű projekt már szerepel a listában.</span>
+        )}
+        {createErr && (
+          <span role="alert" style={{ color: "var(--c-danger)", fontSize: 12.5 }}>{createErr}</span>
+        )}
+      </form>
 
       {/* recently opened — this browser only; hidden entirely when empty */}
       {recents.length > 0 && (
