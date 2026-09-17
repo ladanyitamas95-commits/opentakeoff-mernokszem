@@ -12,7 +12,7 @@ All notable changes to OpenTakeoff. Dates are release/merge dates on `main`.
 ## Unreleased — Project home create/open hardening
 
 ### Changed
-- **Drive project creation now waits for the authoritative project list, and browser-local recents are reconciled against it before they render.** The Google Drive project browser already created and opened project folders through the existing `/?project=` gate; now **Létrehozás** stays disabled while the visible folder list is still loading or failed, so a fast click cannot bypass duplicate-name checking with an empty list. The browser-local recents strip also drops stale or inaccessible entries and refreshes a renamed folder to Drive's current name before showing it, so a shared browser does not keep advertising private project names that are no longer visible. Web only, no MCP change.
+- **Drive project creation and open now validate real project foundation state instead of assuming success.** The Google Drive project browser now requires a real authenticated `email` or `sub` before it will create or re-initialize anything — there is no fallback actor. Initialization loads and preserves the folder's existing annotations, appends exactly one matching `Project` and one `PROJECT_CREATED` event, and retries a partial failure on that same folder id instead of creating a second Drive folder. On refresh each child folder is classified as initialized, recoverable incomplete, or corrupt/unreadable; incomplete rows offer **Inicializálás újra**, corrupt rows stay blocked with an error, and listed/recent opens re-read the scoped annotations before they remember or navigate. Web only, no MCP change.
 
 ## Unreleased — Microsoft 365 sync: the real-tenant corners, hardened ahead of the live proof (#315)
 

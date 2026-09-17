@@ -3,7 +3,7 @@
 Date: 2026-09-17
 Task: `MS-MVP-DAY01-COMMIT05-WIP-HARDENING`
 Status: PASS
-Recommendation: STOP — wait for a separately authorized next task
+Recommendation: STOP — do not merge until PR review accepts the corrected Commit 5 evidence
 
 ## Repository verification
 
@@ -11,36 +11,25 @@ Recommendation: STOP — wait for a separately authorized next task
 |---|---|
 | Repository | `https://github.com/ladanyitamas95-commits/opentakeoff-mernokszem` |
 | Branch | `copilot/ms-mvp-day01-commit05-wip-hardening` |
-| Starting HEAD | `740e3fdc02abc977d70eeb2adbc4f5901031bc69` |
-| Required base SHA match | PASS |
+| Required current base HEAD | `0cec2273412dc8c6b936402e5d625c428924aceb` |
+| Required current base match | PASS |
 | Initial working tree | Clean |
 | `origin` | Writable fork: `http://localhost:26831/ladanyitamas95-commits/opentakeoff-mernokszem` |
 | Selected worktree | `/home/runner/work/opentakeoff-mernokszem/opentakeoff-mernokszem` |
 | Final HEAD | Recorded in the task final output |
 
-No branch comparison was repeated. The task proceeded only because the checked-out HEAD exactly matched the required canonical Commit 5 base SHA.
-
-## Authoritative sources read
-
-- `AGENTS.md`
-- `docs/project-control/02_DECISION_REGISTER.md`
-- `docs/product/MS_MVP_SCOPE_FREEZE_v2.0_FINAL.md`
-- `docs/project-control/03_DEVELOPMENT_STATE.md`
-- `docs/generated/plans/MS-MVP-DAY01-DAY03-FOUNDATION-WORKSTREAM-PLAN.md`
+The follow-up ran on the existing branch and started exactly from the required current head.
 
 ## Scope guard
 
-This task modified only the existing Project Create/Open path and the required audit/state/docs surfaces. It did **not** add or replace:
+This follow-up fixed the actual Commit 5 acceptance gaps without changing the constrained architecture. It did **not** add or replace:
 
-- `ProjectHome`
-- `/projects`, `/app/projects`, or `/?project=`
-- router structure
-- persistence abstraction
-- project JSON format
-- database
-- dependency set
-- auth system
-- `TakeoffCanvas`
+- a second `ProjectHome`
+- a new route
+- a new persistence abstraction
+- a project JSON/database layer
+- a `TakeoffCanvas` change
+- Draft PR #1 architecture
 
 ## Files changed
 
@@ -53,64 +42,87 @@ This task modified only the existing Project Create/Open path and the required a
 - `docs/project-control/03_DEVELOPMENT_STATE.md`
 - `docs/generated/audits/MS-MVP-DAY01-COMMIT05-WIP-HARDENING-REPORT.md`
 
-## Hardened behavior
+## Corrected acceptance gaps
 
-### 1. Create waits for the authoritative visible project list
+### 1. No invented actor fallback
 
-The existing create path already trimmed names, rejected blank input and blocked obvious duplicates against the currently visible folder list. The hardening gap was timing: while the Drive list was still loading, that visible list was empty, so a fast user could submit before duplicate protection had authoritative data.
+Project creation and retry initialization now require a real authenticated actor derived from `user.email` or `user.sub` in `ProjectHome.jsx`. `projectHome.js` rejects a blank actor before any `Drive.createFolder()` call and before any annotation load/save path. The previous `signed-in-user` fallback was removed.
 
-`ProjectHome.jsx` now disables **Létrehozás** while the project list is still loading or failed, and `projectHome.js` exposes a pure `createProjectDisabledReason()` helper so the UI and tests share the same rule. If the list failed, the create path stays closed and shows a Hungarian retry message instead of creating against an incomplete view.
+### 2. Existing annotations are preserved
 
-### 2. Browser-local recents are reconciled against the live visible list
+Initialization no longer writes a fresh empty payload. It reopens the scoped store for the target folder, loads the current annotations, preserves unrelated fields verbatim, and appends only the missing foundation pieces:
 
-Browser-local recents were previously rendered from localStorage before the live Drive folder list arrived. That could leave stale or no-longer-visible project names on screen. The task added `reconcileVisibleRecentProjects()` and a narrow `replace()` write on the existing recents store.
+- exactly one matching `Project` record
+- exactly one matching `PROJECT_CREATED` audit event
 
-After a successful list load, the screen now:
+Existing unrelated fields such as `conditions`, `shapes`, custom safe data and non-foundation fields remain intact.
 
-- keeps only recents whose folder ids are still visible in the current Projects root;
-- refreshes their display names from Drive if the folder was renamed;
-- drops malformed or duplicate stored recents before rendering;
-- persists that reconciled subset back to browser storage.
+### 3. Same-folder retry after partial failure is idempotent
 
-### 3. Existing open/navigation contract is unchanged
+If the Drive folder exists but foundation persistence failed, retry now targets that same folder id. The retry path skips `Drive.createFolder()`, reuses the existing folder id, and writes no duplicate Project or duplicate `PROJECT_CREATED` audit event. The follow-up added explicit tests proving the root project-folder creation count stays at one.
 
-Listed projects, reconciled recents and newly created projects still use the same encoded `/?project=<id>` contract through `projectHomeOpenUrl()`. The task did not introduce a second open path or a second project-home component.
+### 4. Child folders are classified on refresh
+
+The folder refresh path now reopens each folder's scoped store and classifies it as:
+
+- `initialized`
+- `recoverable_incomplete`
+- `corrupt_unreadable`
+
+Recoverable incomplete rows are visibly not successful and offer **Inicializálás újra** on that same folder. Corrupt or unreadable annotations surface an error message and do not open as an empty success state.
+
+### 5. Open is verified before recents or navigation
+
+Before a listed or recent project is remembered or navigated, the project browser reopens the scoped store and verifies the matching foundation Project record. Missing, corrupt or foreign project state now blocks both recents creation and navigation.
 
 ## Tests and exact results
 
 | Check | Result |
 |---|---|
-| `cd web && node --import tsx --test test/projectHome.test.ts` | PASS — 22/22 |
+| `cd web && node --import tsx --test test/projectHome.test.ts` | PASS — 26/26 |
 | `cd web && npm run typecheck` | PASS |
 | `cd web && npm run lint` | PASS |
 | `cd web && npm run build` | PASS — non-blocking chunk-size warning only |
-| `cd web && npm test` | Baseline retained — 1753 pass, 49 fail, 3 skip |
+| `cd web && npm test` | Baseline retained — 1757 pass, 49 fail, 3 skip |
+
+### Targeted coverage added
+
+The corrected targeted suite now explicitly covers:
+
+- missing actor preflight with zero Drive calls
+- preservation of unrelated existing annotations
+- same-folder retry after partial failure
+- no second root folder create
+- no duplicate Project record
+- no duplicate `PROJECT_CREATED` event
+- initialized / incomplete / corrupt folder classification
+- no false recents or navigation on missing / corrupt / foreign project state
 
 ## Known pre-existing failures
 
-- The full web suite still contains the accepted 49 baseline failures.
-- Those failures remain outside the touched ProjectHome scope and were not changed or reclassified here.
+The full web suite still contains the accepted 49 baseline failures. The failure identities remained unchanged in this task.
 
 ## New regressions
 
-None detected. The targeted ProjectHome suite gained new coverage, and the full web suite retained exactly the registered 49 failures and 3 skips.
-
-## Browser/runtime evidence
-
-- `npm run build` passed with the touched JSX path present, which verifies the new helpers are imported and referenced correctly in the production bundle.
-- A post-edit identifier grep confirmed the new `createProjectDisabledReason`, `reconcileVisibleRecentProjects` and `recentsStore` references are present only on the intended ProjectHome path.
+None detected. The full web suite retained the same 49 failures and 3 skips while the targeted `projectHome` suite increased from 22 to 26 passing tests.
 
 ## Acceptance summary
 
-| ID | Status | Evidence |
+| Gap | Status | Evidence |
 |---|---|---|
-| AC-FND-006 | PASS | create is disabled until list load completes; blank/duplicate tests still pass |
-| AC-FND-007 | PASS | existing create path still records one Project and one `PROJECT_CREATED` event and navigates by returned folder id |
-| AC-FND-008 | PASS | listed, recent and newly created projects still share `projectHomeOpenUrl()` |
-| AC-FND-021 | PASS | no new secret-bearing config, storage key or URL surface was introduced |
-| AC-FND-022 | PASS | targeted tests, typecheck, lint and build pass; full suite adds zero failures |
-| AC-FND-023 | PASS | this report records scope, files, commands, baseline comparison and outcome |
+| Missing actor fallback removal | PASS | targeted missing-actor test; no Drive/save calls |
+| Preserve existing annotations | PASS | targeted preserved-fields test; real `createCloudStore` recovery test |
+| Same-folder retry / no second folder | PASS | targeted retry test; exactly one root `createFolder` call |
+| Incomplete/corrupt classification | PASS | targeted folder classification test |
+| Guarded open / no false recents | PASS | targeted verify/open tests |
+| Architecture constraints preserved | PASS | changed-file set limited to existing ProjectHome path + required docs |
+
+## Remaining limitations
+
+- Folder classification currently treats duplicate or foreign project foundation records as corrupt and blocked; it does not attempt automatic repair.
+- No browser smoke/E2E harness exists in this task scope; runtime evidence is from the production build plus the targeted/unit coverage above.
+- The full-suite baseline remains noisy because the accepted 49 failures are still present outside the touched area.
 
 ## Stop condition
 
-This bounded task is complete. Do not begin upload integration, canvas/viewer work, XLSX import, review queue work, AI/report work or any broader foundation task without separate authorization.
+This bounded follow-up is complete. Do not start Commit 6 or any broader foundation task without separate authorization.
