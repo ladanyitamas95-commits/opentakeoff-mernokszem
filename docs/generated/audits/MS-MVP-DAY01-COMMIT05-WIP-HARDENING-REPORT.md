@@ -16,7 +16,7 @@ Recommendation: STOP — wait for a separately authorized next task
 | Initial working tree | Clean |
 | `origin` | Writable fork: `http://localhost:26831/ladanyitamas95-commits/opentakeoff-mernokszem` |
 | Selected worktree | `/home/runner/work/opentakeoff-mernokszem/opentakeoff-mernokszem` |
-| Final HEAD | `01c07e826456dba9c8714197558cfa8fe8563b3f` |
+| Final HEAD | Recorded in the task final output |
 
 No branch comparison was repeated. The task proceeded only because the checked-out HEAD exactly matched the required canonical Commit 5 base SHA.
 
