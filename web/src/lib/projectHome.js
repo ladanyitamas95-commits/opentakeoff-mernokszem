@@ -43,12 +43,51 @@ function comparableProjectName(value) {
   return trimProjectName(value).toLocaleLowerCase();
 }
 
+function isProjectEntry(entry) {
+  return entry && typeof entry.id === "string" && typeof entry.name === "string";
+}
+
+function normalizeProjectEntries(entries, { refreshNameById = null } = {}) {
+  const seen = new Set();
+  return (Array.isArray(entries) ? entries : [])
+    .filter(isProjectEntry)
+    .map((entry) => {
+      const replacement = refreshNameById?.get(entry.id);
+      return replacement ? { id: replacement.id, name: replacement.name } : { id: entry.id, name: entry.name };
+    })
+    .filter((entry) => {
+      if (seen.has(entry.id)) return false;
+      seen.add(entry.id);
+      return true;
+    });
+}
+
 export function hasVisibleProjectNameDuplicate(projectName, visibleProjects = []) {
   const wanted = comparableProjectName(projectName);
   if (!wanted) return false;
   return (Array.isArray(visibleProjects) ? visibleProjects : []).some((project) =>
     comparableProjectName(project?.name) === wanted,
   );
+}
+
+export function createProjectDisabledReason({
+  projectName,
+  visibleProjects = [],
+  loading = false,
+  loadError = "",
+} = {}) {
+  if (loading) return "loading";
+  if (trimProjectName(loadError)) return "projects_unavailable";
+  if (!trimProjectName(projectName)) return "blank_name";
+  if (hasVisibleProjectNameDuplicate(projectName, visibleProjects)) return "duplicate_name";
+  return "";
+}
+
+export function reconcileVisibleRecentProjects(recentProjects = [], visibleProjects = []) {
+  const visibleById = new Map(normalizeProjectEntries(visibleProjects).map((project) => [project.id, project]));
+  return normalizeProjectEntries(recentProjects, { refreshNameById: visibleById })
+    .filter((entry) => visibleById.has(entry.id))
+    .slice(0, RECENTS_MAX);
 }
 
 function defaultIdFactory(kind) {
@@ -166,6 +205,12 @@ const RECENTS_MAX = 12;
  * @param {{ getItem(key: string): string | null, setItem(key: string, value: string): void }} storage
  */
 export function createRecents(storage) {
+  function persist(entries) {
+    try {
+      storage.setItem(RECENTS_KEY, JSON.stringify(normalizeProjectEntries(entries).slice(0, RECENTS_MAX)));
+    } catch { /* noop */ }
+  }
+
   return {
     /** @returns {{ id: string, name: string }[]} most-recent-first */
     list() {
@@ -178,9 +223,7 @@ export function createRecents(storage) {
       if (!Array.isArray(parsed)) return [];
       // Only well-formed { id, name } entries survive — anything else under our
       // key (older shapes, hand edits) is dropped rather than crashing the UI.
-      return parsed
-        .filter((e) => e && typeof e.id === "string" && typeof e.name === "string")
-        .map((e) => ({ id: e.id, name: e.name }));
+      return normalizeProjectEntries(parsed);
     },
     /** @param {{ id: string, name: string }} entry */
     remember({ id, name }) {
@@ -189,7 +232,10 @@ export function createRecents(storage) {
       const next = [{ id, name }, ...rest].slice(0, RECENTS_MAX);
       // Best-effort: setItem can throw (Safari private mode, quota) and losing
       // a recency bump must never break opening the project.
-      try { storage.setItem(RECENTS_KEY, JSON.stringify(next)); } catch { /* noop */ }
+      persist(next);
+    },
+    replace(entries) {
+      persist(entries);
     },
   };
 }

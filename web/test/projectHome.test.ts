@@ -6,6 +6,7 @@ import assert from "node:assert/strict";
 import { createCloudStore } from "../src/lib/cloudStore.js";
 import {
   browserStorage,
+  createProjectDisabledReason,
   createProjectWithFoundation,
   createProjectWithFoundationAndOpen,
   createRecents,
@@ -13,6 +14,7 @@ import {
   listProjectFolders,
   projectHomeFolderId,
   projectHomeOpenUrl,
+  reconcileVisibleRecentProjects,
 } from "../src/lib/projectHome.js";
 
 const FOLDER_MIME = "application/vnd.google-apps.folder";
@@ -77,6 +79,26 @@ test("hasVisibleProjectNameDuplicate matches trimmed visible folder names before
   assert.equal(hasVisibleProjectNameDuplicate("mintaprojekt", visible), true);
   assert.equal(hasVisibleProjectNameDuplicate(" Másik projekt ", visible), false);
   assert.equal(hasVisibleProjectNameDuplicate(" ", visible), false);
+});
+
+test("createProjectDisabledReason blocks creation until the visible project list is authoritative", () => {
+  assert.equal(createProjectDisabledReason({ projectName: "Minta", loading: true }), "loading");
+  assert.equal(createProjectDisabledReason({ projectName: "Minta", loadError: "boom" }), "projects_unavailable");
+  assert.equal(createProjectDisabledReason({ projectName: "   " }), "blank_name");
+  assert.equal(
+    createProjectDisabledReason({
+      projectName: " Minta projekt ",
+      visibleProjects: [{ id: "existing", name: "Minta Projekt" }],
+    }),
+    "duplicate_name",
+  );
+  assert.equal(
+    createProjectDisabledReason({
+      projectName: "Minta projekt",
+      visibleProjects: [{ id: "existing", name: "Másik projekt" }],
+    }),
+    "",
+  );
 });
 
 test("createProjectWithFoundation rejects an empty project name before Drive or annotation save", async () => {
@@ -291,6 +313,23 @@ test("createProjectWithFoundationAndOpen does not remember or navigate when foun
   assert.deepEqual(navigated, []);
 });
 
+test("reconcileVisibleRecentProjects keeps only currently visible projects and refreshes their current names", () => {
+  const recent = [
+    { id: "p2", name: "Régi név" },
+    { id: "gone", name: "Nem látható" },
+    { id: "p2", name: "dupe" },
+    { id: "p1", name: "Másik régi név" },
+  ];
+  const visible = [
+    { id: "p1", name: "Alpha projekt" },
+    { id: "p2", name: "Béta projekt" },
+  ];
+  assert.deepEqual(reconcileVisibleRecentProjects(recent, visible), [
+    { id: "p2", name: "Béta projekt" },
+    { id: "p1", name: "Alpha projekt" },
+  ]);
+});
+
 // Web-Storage-like fake over a Map — just getItem/setItem, which is all the
 // recents store may use (prod passes window.localStorage).
 function fakeStorage(seed: Record<string, string> = {}) {
@@ -314,6 +353,19 @@ test("recents: remember persists the entry under the shared key and list returns
   // storage (under the stable key) and not module memory
   assert.deepEqual(createRecents(storage).list(), [{ id: "p1", name: "Acme HQ" }]);
   assert.deepEqual(JSON.parse(storage._map.get("opentakeoff_recent_projects")!), [{ id: "p1", name: "Acme HQ" }]);
+});
+
+test("recents: replace persists a reconciled visible subset", () => {
+  const storage = fakeStorage();
+  createRecents(storage).replace([
+    { id: "p2", name: "Second" },
+    { id: "p2", name: "Duplicate" },
+    { id: "p1", name: "First" },
+  ] as any);
+  assert.deepEqual(createRecents(storage).list(), [
+    { id: "p2", name: "Second" },
+    { id: "p1", name: "First" },
+  ]);
 });
 
 test("recents: list is most-recent-first", () => {
@@ -371,6 +423,7 @@ test("recents: malformed entries in the stored array are filtered out of list", 
     { id: "p3", name: 3 },             // non-string name
     null,                              // not even an object
     "junk",
+    { id: "p1", name: "duplicate" },
     { id: "p4", name: "Also good" },
   ];
   const recents = createRecents(fakeStorage({ opentakeoff_recent_projects: JSON.stringify(stored) }));

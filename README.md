@@ -430,9 +430,12 @@ Everything above is the default and it's unchanged: open the page and you're an 
 local-only user. A team on Google Workspace can *optionally* sign in to unlock a shared mode
 instead: projects live as folders in the team's own Google **Drive**, the project list is
 deep-linked from an existing **Glide** app, and material costs come from a synced
-`pricing.json`. It's strictly additive—set nothing and it doesn't exist. The security posture
-stays honest: still a plain static site, **no secrets in the bundle**, team-only because the
-Google OAuth app is **Internal** to your domain, and the data sits in **your own Drive**. See
+`pricing.json`. The project browser can also create a new project folder itself, but only after
+it has loaded the live visible list, so a stale browser-local recent or a half-loaded list can't
+open or duplicate a private project name. It's strictly additive—set nothing and it doesn't
+exist. The security posture stays honest: still a plain static site, **no secrets in the
+bundle**, team-only because the Google OAuth app is **Internal** to your domain, and the data
+sits in **your own Drive**. See
 [`docs/GOOGLE_SETUP.md`](docs/GOOGLE_SETUP.md) and
 [`docs/GLIDE_INTEGRATION.md`](docs/GLIDE_INTEGRATION.md). A cloud deployment can also opt into
 **local-first sync** (`VITE_CLOUD_SYNC=1`): annotations stay canonical in the browser and sync

@@ -13,12 +13,14 @@ import { Link, useNavigate } from "react-router";
 import AuthChip from "./AuthChip.jsx";
 import {
   browserStorage,
+  createProjectDisabledReason,
   createProjectWithFoundationAndOpen,
   createRecents,
   hasVisibleProjectNameDuplicate,
   listProjectFolders,
   projectHomeFolderId,
   projectHomeOpenUrl,
+  reconcileVisibleRecentProjects,
 } from "../lib/projectHome.js";
 import { getAccessToken, getUser } from "../lib/google/auth.js";
 
@@ -37,11 +39,16 @@ export default function ProjectHome() {
   const [creating, setCreating] = useState(false);
   const [createErr, setCreateErr] = useState("");
   const [attempt, setAttempt] = useState(0);   // Retry bumps this to re-run the load
-  // Recents are read once on mount — this screen is the only writer, and every
-  // write immediately navigates away, so the snapshot can't go stale under us.
-  const [recents] = useState(() => createRecents(browserStorage()).list());
-  const trimmedProjectName = projectName.trim();
-  const duplicateProjectName = hasVisibleProjectNameDuplicate(projectName, folders);
+  const [recentsStore] = useState(() => createRecents(browserStorage()));
+  const [recents, setRecents] = useState([]);
+  const createDisabledReason = createProjectDisabledReason({
+    projectName,
+    visibleProjects: folders,
+    loading,
+    loadError: err,
+  });
+  const duplicateProjectName = createDisabledReason === "duplicate_name";
+  const createDisabled = creating || !!createDisabledReason;
 
   useEffect(() => {
     // live flag (copied from PlanNavigator): StrictMode double-invokes effects, so
@@ -59,6 +66,13 @@ export default function ProjectHome() {
     return () => { live = false; };
   }, [attempt]);
 
+  useEffect(() => {
+    if (loading || err) { setRecents([]); return; }
+    const next = reconcileVisibleRecentProjects(recentsStore.list(), folders);
+    recentsStore.replace(next);
+    setRecents(next);
+  }, [folders, loading, err, recentsStore]);
+
   const open = ({ id, name }) => {
     // A project row passes the name Drive reports RIGHT NOW, so a renamed folder
     // self-heals in recents when opened from the list; a recents-row open
@@ -70,6 +84,12 @@ export default function ProjectHome() {
   const createProject = async (event) => {
     event.preventDefault();
     if (creating) return;
+    if (createDisabledReason === "loading") return;
+    if (createDisabledReason === "projects_unavailable") {
+      setCreateErr("A projektlista nélkül nem biztonságos új projektet létrehozni. Töltsd be újra a listát, majd próbáld újra.");
+      return;
+    }
+    if (createDisabledReason) return;
     setCreateErr("");
     setCreating(true);
     try {
@@ -127,11 +147,17 @@ export default function ProjectHome() {
         />
         <button
           type="submit"
-          disabled={creating || !trimmedProjectName || duplicateProjectName}
-          style={{ ...createBtn, opacity: creating || !trimmedProjectName || duplicateProjectName ? 0.55 : 1, cursor: creating || !trimmedProjectName || duplicateProjectName ? "not-allowed" : "pointer" }}
+          disabled={createDisabled}
+          style={{ ...createBtn, opacity: createDisabled ? 0.55 : 1, cursor: createDisabled ? "not-allowed" : "pointer" }}
         >
           {creating ? "Létrehozás…" : "Létrehozás"}
         </button>
+        {createDisabledReason === "loading" && (
+          <span style={{ color: "var(--ink-muted)", fontSize: 12.5 }}>A létrehozás a projektlista beolvasása után érhető el.</span>
+        )}
+        {createDisabledReason === "projects_unavailable" && (
+          <span style={{ color: "var(--c-danger)", fontSize: 12.5 }}>A létrehozás addig nem érhető el, amíg a projektlista nem tölthető be.</span>
+        )}
         {duplicateProjectName && (
           <span style={{ color: "var(--c-danger)", fontSize: 12.5 }}>Ilyen nevű projekt már szerepel a listában.</span>
         )}
@@ -175,7 +201,7 @@ export default function ProjectHome() {
           </div>
         ) : folders.length === 0 ? (
           <div style={{ padding: 40, textAlign: "center", color: "var(--ink-muted)", fontSize: 13 }}>
-            Még nincs projekt — hozz létre egy mappát a Projektek tárhelyen.
+            Még nincs projekt — hozd létre fent az elsőt.
           </div>
         ) : (
           folders.map((f) => (
