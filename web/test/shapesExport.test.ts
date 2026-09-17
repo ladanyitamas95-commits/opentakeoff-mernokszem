@@ -90,7 +90,7 @@ test("shapesToCsv: empty project — semantics line + header only", () => {
   const csv = shapesToCsv(shapesDetail(conds, []));
   const lines = csv.split("\n");
   assert.ok(lines[0].startsWith("# Per-shape measured quantities"));
-  assert.equal(lines[1], "Shape,Sheet,Sheet ID,Finish,Role,Area SF,LF,EA,Height ft,Height override,Origin");
+  assert.equal(lines[1], "Alakzat,Tervlap,Tervlapazonosító,Tétel,Szerep,Terület SF,Hossz LF,Darabszám,Magasság ft,Egyedi magasság,Forrás");
   assert.equal(lines[2], "");
   assert.equal(lines.length, 3);
 });
@@ -111,7 +111,7 @@ test("shapesToCsv: title, semantics line, exact header, quoting, negative deduct
   const lines = csv.split("\n");
   assert.equal(lines[0], "# Job 42 — OpenTakeoff shapes");
   assert.equal(lines[1], "# Per-shape measured quantities — no multiplier or waste; deducts negative; LF on floor/deduct/surface rows is trace reference only (incl. openings) — linear rows alone sum to condition LF");
-  assert.equal(lines[2], "Shape,Sheet,Sheet ID,Finish,Role,Area SF,LF,EA,Height ft,Height override,Origin");
+  assert.equal(lines[2], "Alakzat,Tervlap,Tervlapazonosító,Tétel,Szerep,Terület SF,Hossz LF,Darabszám,Magasság ft,Egyedi magasság,Forrás");
   assert.ok(lines[3].includes('"CT-1, honed"'));
   // full-line equality: the -12.5 deduct is a NUMBER cell — a type-blind
   // formula guard would emit '-12.5 and includes("-12.5") would still pass

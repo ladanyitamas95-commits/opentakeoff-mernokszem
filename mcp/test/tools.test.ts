@@ -2704,7 +2704,7 @@ test("RFIs: delete is a tombstone — the number is never reissued and the marke
   const doc = await openPdf(pdf.data.path);
   const schedule = positionedText(await doc.page(2)).map((t) => t.str).join(" ");
   await doc.destroy();
-  assert.match(schedule, /RFI SCHEDULE/);
+  assert.match(schedule, /RFI-KIMUTATÁS/);
   assert.match(schedule, /3 RFIs/);
   for (const n of ["RFI-001", "RFI-002", "RFI-004"]) assert.match(schedule, new RegExp(n));
   assert.doesNotMatch(schedule, /RFI-003/);
@@ -2775,7 +2775,7 @@ test("RFIs in the marked set: an agent-raised RFI prints exactly like a panel-ra
   };
   const agentRows = await pageText(agentPdf.data.path, 2);
   const panelRows = await pageText(panelPdf.data.path, 2);
-  assert.ok(agentRows.some((t) => /RFI SCHEDULE/.test(t)), "page 2 is the schedule");
+  assert.ok(agentRows.some((t) => /RFI-KIMUTATÁS/.test(t)), "page 2 is the schedule");
   assert.ok(agentRows.some((t) => t === "RFI-001"), "the number prints as its own run");
   assert.ok(agentRows.some((t) => t.includes(subject)));
   assert.ok(agentRows.some((t) => t.includes("1 linked markup")), "the link count derives from markup.rfi_id, both ways");
