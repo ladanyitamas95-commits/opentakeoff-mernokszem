@@ -142,7 +142,7 @@ amíg explicit újra nem osztályozzák.
 | Agent | Codex |
 | Branch | `copilot/ms-mvp-day01-commit05-wip-hardening` |
 | Starting SHA | `740e3fdc02abc977d70eeb2adbc4f5901031bc69` |
-| Final SHA | Recorded in the accepted task output and audit report for this task |
+| Final SHA | `01c07e826456dba9c8714197558cfa8fe8563b3f` |
 | Test status | Targeted `projectHome` tests PASS; `npm --prefix web run typecheck` PASS; `npm --prefix web run lint` PASS; `npm --prefix web run build` PASS; full `npm --prefix web test` retained the baseline 49 failures and 3 skips |
 | New blockers | None |
 | Resolved blockers | None |
