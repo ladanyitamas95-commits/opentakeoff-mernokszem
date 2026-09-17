@@ -8,8 +8,7 @@
 // non-goal: two tabs remembering projects at once race on the single storage
 // key and the last write wins; losing one recency bump is harmless.
 
-import { createAuditEvent, createProject } from "./foundationModel.js";
-import { emptyAnnotations } from "./store.js";
+import { createAuditEvent, createProject, hydrateFoundationCollections } from "./foundationModel.js";
 
 export function projectHomeFolderId() {
   // Vite inlines this at build; empty string = project home off. Guarded read
@@ -18,6 +17,11 @@ export function projectHomeFolderId() {
 }
 
 const FOLDER_MIME = "application/vnd.google-apps.folder";
+export const PROJECT_HOME_FOLDER_STATES = Object.freeze({
+  INITIALIZED: "initialized",
+  RECOVERABLE_INCOMPLETE: "recoverable_incomplete",
+  CORRUPT_UNREADABLE: "corrupt_unreadable",
+});
 
 /**
  * List the project folders inside the Projects root, name-sorted. The mimeType
@@ -26,13 +30,30 @@ const FOLDER_MIME = "application/vnd.google-apps.folder";
  * shortcut mimeType, consistent with cloudStore.listFolder.
  * @param {ReturnType<import('./google/drive.js').createDrive>} drive
  * @param {string} folderId
- * @returns {Promise<{ id: string, name: string }[]>}
+ * @returns {Promise<{ id: string, name: string, state: string, detail: string, message: string }[]>}
  */
-export async function listProjectFolders(drive, folderId) {
+export async function listProjectFolders(drive, folderId, { createStore } = {}) {
   const children = await drive.listChildren(folderId, { mimeType: FOLDER_MIME });
-  return children
+  const folders = children
     .map((c) => ({ id: c.id, name: c.name }))
     .sort((a, b) => a.name.localeCompare(b.name));
+  if (typeof createStore !== "function") {
+   return folders.map((folder) => ({
+     ...folder,
+     state: PROJECT_HOME_FOLDER_STATES.INITIALIZED,
+     detail: "unchecked",
+     message: "",
+   }));
+  }
+  return Promise.all(folders.map(async (folder) => {
+   const inspection = await inspectProjectFolder({ folderId: folder.id, drive, createStore });
+   return {
+     ...folder,
+     state: inspection.state,
+     detail: inspection.detail,
+     message: inspection.message,
+   };
+  }));
 }
 
 function trimProjectName(value) {
@@ -41,6 +62,10 @@ function trimProjectName(value) {
 
 function comparableProjectName(value) {
   return trimProjectName(value).toLocaleLowerCase();
+}
+
+function projectHomeError(message, code, extra = {}) {
+  return Object.assign(new Error(message), { code, ...extra });
 }
 
 function isProjectEntry(entry) {
@@ -62,12 +87,16 @@ function normalizeProjectEntries(entries, { refreshNameById = null } = {}) {
     });
 }
 
-export function hasVisibleProjectNameDuplicate(projectName, visibleProjects = []) {
+function findVisibleProjectByName(projectName, visibleProjects = []) {
   const wanted = comparableProjectName(projectName);
-  if (!wanted) return false;
-  return (Array.isArray(visibleProjects) ? visibleProjects : []).some((project) =>
+  if (!wanted) return null;
+  return (Array.isArray(visibleProjects) ? visibleProjects : []).find((project) =>
     comparableProjectName(project?.name) === wanted,
-  );
+  ) || null;
+}
+
+export function hasVisibleProjectNameDuplicate(projectName, visibleProjects = []) {
+  return !!findVisibleProjectByName(projectName, visibleProjects);
 }
 
 /**
@@ -93,7 +122,12 @@ export function createProjectDisabledReason({
  * @returns {{ id: string, name: string }[]}
  */
 export function reconcileVisibleRecentProjects(recentProjects = [], visibleProjects = []) {
-  const visibleById = new Map(normalizeProjectEntries(visibleProjects).map((project) => [project.id, project]));
+  const visibleById = new Map(
+    normalizeProjectEntries(
+      (Array.isArray(visibleProjects) ? visibleProjects : [])
+        .filter((project) => project?.state === PROJECT_HOME_FOLDER_STATES.INITIALIZED),
+    ).map((project) => [project.id, project]),
+  );
   return normalizeProjectEntries(recentProjects, { refreshNameById: visibleById })
     .filter((entry) => visibleById.has(entry.id))
     .slice(0, RECENTS_MAX);
@@ -115,59 +149,175 @@ function errorMessage(e) {
   return e?.message || String(e);
 }
 
-export function projectHomeOpenUrl(projectId) {
-  return `/?project=${encodeURIComponent(projectId)}`;
+function requireProjectActor(actor) {
+  const value = trimProjectName(actor);
+  if (!value) throw projectHomeError("A hitelesített felhasználó azonosítója hiányzik.", "missing_actor");
+  return value;
 }
 
-/**
- * @param {{
- *   drive: { createFolder(parentId: string, name: string): Promise<{ id: string, name?: string }> },
- *   rootFolderId: string,
- *   projectName: string,
- *   visibleProjects?: { id: string, name: string }[],
- *   actor?: string,
- *   createStore: Function,
- *   idFactory?: (kind: string) => string,
- *   now?: () => string | Date,
- *   auditMetadata?: Record<string, unknown>,
- * }} options
- */
-export async function createProjectWithFoundation({
-  drive,
-  rootFolderId,
-  projectName,
-  visibleProjects = [],
-  actor = "signed-in-user",
-  createStore,
-  idFactory = defaultIdFactory,
-  now = defaultNow,
-  auditMetadata = {},
-}) {
-  const name = trimProjectName(projectName);
-  if (!name) throw new Error("A projekt neve nem lehet üres.");
-  if (!trimProjectName(rootFolderId)) throw new Error("A Projektek gyökérmappa nincs beállítva.");
-  if (hasVisibleProjectNameDuplicate(name, visibleProjects)) {
-    throw new Error("Ilyen nevű projekt már szerepel a listában.");
+function creationAuditMessage(detail) {
+  if (detail === "missing_project") {
+    return "A projektmappa még nincs inicializálva — az alap Projekt rekord hiányzik.";
   }
-  if (!drive || typeof drive.createFolder !== "function") {
-    throw new Error("A Drive projektmappa létrehozása nem elérhető.");
+  if (detail === "missing_audit") {
+    return "A projektmappa részben inicializált — a PROJECT_CREATED audit esemény hiányzik.";
   }
-  if (typeof createStore !== "function") {
-    throw new Error("A projekt foundation mentése nem elérhető.");
+  if (detail === "missing_project_and_audit") {
+    return "A projektmappa létrejött, de az inicializálás nem fejeződött be.";
+  }
+  return "A projektmappa inicializálása hiányos.";
+}
+
+function inspectProjectFolderAnnotations(folderId, input) {
+  const annotations = hydrateFoundationCollections(input);
+  const rawProjects = Array.isArray(annotations.projects) ? annotations.projects : [];
+  const rawAuditEvents = Array.isArray(annotations.audit_events) ? annotations.audit_events : [];
+  const matchingProjects = [];
+  let sawForeignProject = false;
+
+  for (const rawProject of rawProjects) {
+    let project;
+    try {
+      project = createProject(rawProject);
+    } catch {
+      return {
+        state: PROJECT_HOME_FOLDER_STATES.CORRUPT_UNREADABLE,
+        detail: "invalid_project",
+        message: "A projekt foundation rekordja sérült.",
+        annotations,
+      };
+    }
+    if (project.id === folderId) matchingProjects.push(project);
+    else sawForeignProject = true;
+  }
+  if (matchingProjects.length > 1) {
+    return {
+      state: PROJECT_HOME_FOLDER_STATES.CORRUPT_UNREADABLE,
+      detail: "duplicate_project",
+      message: "A projektmappához több Project rekord tartozik.",
+      annotations,
+    };
+  }
+  if (!matchingProjects.length && sawForeignProject) {
+    return {
+      state: PROJECT_HOME_FOLDER_STATES.CORRUPT_UNREADABLE,
+      detail: "foreign_project",
+      message: "A projektmappa mentett foundation rekordja más projektazonosítót tartalmaz.",
+      annotations,
+    };
   }
 
-  const folder = await drive.createFolder(rootFolderId, name);
-  const timestamp = asIsoTimestamp(now());
-  const project = createProject({
+  const matchingAuditEvents = [];
+  let sawForeignProjectCreated = false;
+  for (const rawEvent of rawAuditEvents) {
+    if (!rawEvent || rawEvent.action !== "PROJECT_CREATED" || rawEvent.entity_type !== "project") continue;
+    let event;
+    try {
+      event = createAuditEvent(rawEvent);
+    } catch {
+      return {
+        state: PROJECT_HOME_FOLDER_STATES.CORRUPT_UNREADABLE,
+        detail: "invalid_project_created_audit",
+        message: "A projekt létrehozási audit eseménye sérült.",
+        annotations,
+      };
+    }
+    if (event.entity_id === folderId) matchingAuditEvents.push(event);
+    else sawForeignProjectCreated = true;
+  }
+  if (matchingAuditEvents.length > 1) {
+    return {
+      state: PROJECT_HOME_FOLDER_STATES.CORRUPT_UNREADABLE,
+      detail: "duplicate_project_created_audit",
+      message: "A projektmappához több PROJECT_CREATED audit esemény tartozik.",
+      annotations,
+    };
+  }
+  if (!matchingProjects.length && sawForeignProjectCreated) {
+    return {
+      state: PROJECT_HOME_FOLDER_STATES.CORRUPT_UNREADABLE,
+      detail: "foreign_project_created_audit",
+      message: "A projektmappa létrehozási auditja más projektazonosítóra mutat.",
+      annotations,
+    };
+  }
+
+  const project = matchingProjects[0] || null;
+  const auditEvent = matchingAuditEvents[0] || null;
+  if (project && auditEvent) {
+    return {
+      state: PROJECT_HOME_FOLDER_STATES.INITIALIZED,
+      detail: "ready",
+      message: "",
+      annotations,
+      project,
+      auditEvent,
+    };
+  }
+  const detail = !project && !auditEvent
+    ? "missing_project_and_audit"
+    : !project
+      ? "missing_project"
+      : "missing_audit";
+  return {
+    state: PROJECT_HOME_FOLDER_STATES.RECOVERABLE_INCOMPLETE,
+    detail,
+    message: creationAuditMessage(detail),
+    annotations,
+    project,
+    auditEvent,
+  };
+}
+
+function openProjectStore(folderId, drive, createStore) {
+  if (typeof createStore !== "function") {
+    throw projectHomeError("A projekt foundation mentése nem elérhető.", "missing_store_factory");
+  }
+  const store = createStore(folderId, drive);
+  if (!store || typeof store.loadAnnotations !== "function" || typeof store.saveAnnotations !== "function") {
+    throw projectHomeError("A projekt tárolója nem teljes.", "invalid_store");
+  }
+  return store;
+}
+
+async function inspectProjectFolder({ folderId, drive, createStore }) {
+  const store = openProjectStore(folderId, drive, createStore);
+  try {
+    const loaded = await store.loadAnnotations();
+    return { ...inspectProjectFolderAnnotations(folderId, loaded), store };
+  } catch (e) {
+    return {
+      state: PROJECT_HOME_FOLDER_STATES.CORRUPT_UNREADABLE,
+      detail: e?.name === "CloudLoadError" ? "cloud_load_error" : "load_error",
+      message: `A projekt mentett adatai nem olvashatók: ${errorMessage(e)}`,
+      store,
+    };
+  }
+}
+
+function buildProjectInitializationPayload({
+  annotations,
+  folder,
+  rootFolderId,
+  actor,
+  idFactory,
+  timestamp,
+  auditMetadata,
+}) {
+  const inspection = inspectProjectFolderAnnotations(folder.id, annotations);
+  if (inspection.state === PROJECT_HOME_FOLDER_STATES.CORRUPT_UNREADABLE) {
+    throw projectHomeError(inspection.message, inspection.detail);
+  }
+  const nextProject = inspection.project || createProject({
     id: folder.id,
     name: folder.name,
     status: "active",
     created_at: timestamp,
     updated_at: timestamp,
   });
-  const auditEvent = createAuditEvent({
+  const nextAuditEvent = inspection.auditEvent || createAuditEvent({
     id: idFactory("audit_event"),
-    actor: trimProjectName(actor) || "signed-in-user",
+    actor,
     action: "PROJECT_CREATED",
     entity_type: "project",
     entity_id: folder.id,
@@ -182,22 +332,119 @@ export async function createProjectWithFoundation({
       ...auditMetadata,
     },
   });
-  const payload = {
-    ...emptyAnnotations(),
-    projects: [project],
-    documents: [],
-    document_versions: [],
-    review_items: [],
-    audit_events: [auditEvent],
+
+  return {
+    ...inspection.annotations,
+    projects: inspection.project ? inspection.annotations.projects : [...inspection.annotations.projects, nextProject],
+    audit_events: inspection.auditEvent ? inspection.annotations.audit_events : [...inspection.annotations.audit_events, nextAuditEvent],
   };
+}
 
-  try {
-    await createStore(folder.id, drive).saveAnnotations(payload);
-  } catch (e) {
-    throw new Error(`A projektmappa létrejött, de az inicializálás nem sikerült: ${errorMessage(e)}`);
-  }
+export function projectHomeOpenUrl(projectId) {
+  return `/?project=${encodeURIComponent(projectId)}`;
+}
 
-  return { id: folder.id, name: folder.name };
+/**
+ * @param {{
+ *   drive: { createFolder(parentId: string, name: string): Promise<{ id: string, name?: string }> },
+ *   rootFolderId: string,
+ *   projectName: string,
+ *   folderId?: string,
+ *   visibleProjects?: { id: string, name: string }[],
+ *   actor?: string,
+ *   createStore: Function,
+ *   idFactory?: (kind: string) => string,
+ *   now?: () => string | Date,
+ *   auditMetadata?: Record<string, unknown>,
+ * }} options
+ */
+export async function createProjectWithFoundation({
+  drive,
+  rootFolderId,
+  projectName,
+ folderId = "",
+ visibleProjects = [],
+ actor,
+ createStore,
+ idFactory = defaultIdFactory,
+ now = defaultNow,
+ auditMetadata = {},
+}) {
+ const name = trimProjectName(projectName);
+ const existingFolderId = trimProjectName(folderId);
+ const resolvedActor = requireProjectActor(actor);
+ if (!name) throw new Error("A projekt neve nem lehet üres.");
+ if (!trimProjectName(rootFolderId)) throw new Error("A Projektek gyökérmappa nincs beállítva.");
+ const duplicate = findVisibleProjectByName(name, visibleProjects);
+ if (duplicate && duplicate.id !== existingFolderId) {
+   throw new Error("Ilyen nevű projekt már szerepel a listában.");
+ }
+ if (!drive || typeof drive.createFolder !== "function") {
+   throw new Error("A Drive projektmappa létrehozása nem elérhető.");
+ }
+ const folder = existingFolderId
+   ? { id: existingFolderId, name: duplicate?.name || name }
+   : await drive.createFolder(rootFolderId, name);
+ const timestamp = asIsoTimestamp(now());
+ const store = openProjectStore(folder.id, drive, createStore);
+
+ try {
+   const existingAnnotations = await store.loadAnnotations();
+   const payload = buildProjectInitializationPayload({
+     annotations: existingAnnotations,
+     folder,
+     rootFolderId,
+     actor: resolvedActor,
+     idFactory,
+     timestamp,
+     auditMetadata,
+   });
+   await store.saveAnnotations(payload);
+ } catch (e) {
+   if (!existingFolderId) {
+     throw projectHomeError(
+       `A projektmappa létrejött, de az inicializálás nem sikerült: ${errorMessage(e)}`,
+       "project_initialization_failed",
+       { folder },
+     );
+   }
+   throw new Error(`A projektmappa inicializálása nem sikerült: ${errorMessage(e)}`);
+ }
+
+ return { id: folder.id, name: folder.name };
+}
+
+/**
+ * @param {{ folderId: string, projectName: string, drive: any, createStore: Function }} options
+ */
+export async function verifyProjectFolderBeforeOpen({ folderId, projectName, drive, createStore }) {
+ const inspection = await inspectProjectFolder({
+   folderId: trimProjectName(folderId),
+   drive,
+   createStore,
+ });
+ if (inspection.state !== PROJECT_HOME_FOLDER_STATES.INITIALIZED) {
+   throw new Error(inspection.message || `A projekt nem nyitható meg: ${projectName}`);
+ }
+ return inspection.project;
+}
+
+/**
+ * @param {{ folderId: string, projectName: string, drive: any, createStore: Function, remember(project: { id: string, name: string }): void, navigate(url: string): void }} options
+ */
+export async function openProjectWithVerification({
+ folderId,
+ projectName,
+ drive,
+ createStore,
+ remember,
+ navigate,
+}) {
+ await verifyProjectFolderBeforeOpen({ folderId, projectName, drive, createStore });
+ const project = { id: trimProjectName(folderId), name: projectName };
+ remember(project);
+ navigate(projectHomeOpenUrl(project.id));
+ return project;
 }
 
 /**
@@ -208,9 +455,14 @@ export async function createProjectWithFoundation({
  */
 export async function createProjectWithFoundationAndOpen(options) {
   const project = await createProjectWithFoundation(options);
-  options.remember(project);
-  options.navigate(projectHomeOpenUrl(project.id));
-  return project;
+  return openProjectWithVerification({
+    folderId: project.id,
+    projectName: project.name,
+    drive: options.drive,
+    createStore: options.createStore,
+    remember: options.remember,
+    navigate: options.navigate,
+  });
 }
 
 // The storage to hand createRecents in a browser. Not just a null-check:
