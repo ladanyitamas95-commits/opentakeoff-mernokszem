@@ -70,6 +70,10 @@ export function hasVisibleProjectNameDuplicate(projectName, visibleProjects = []
   );
 }
 
+/**
+ * @param {{ projectName?: string, visibleProjects?: { id: string, name: string }[], loading?: boolean, loadError?: string }} [options]
+ * @returns {"" | "loading" | "projects_unavailable" | "blank_name" | "duplicate_name"}
+ */
 export function createProjectDisabledReason({
   projectName,
   visibleProjects = [],
@@ -83,6 +87,11 @@ export function createProjectDisabledReason({
   return "";
 }
 
+/**
+ * @param {{ id: string, name: string }[]} recentProjects
+ * @param {{ id: string, name: string }[]} visibleProjects
+ * @returns {{ id: string, name: string }[]}
+ */
 export function reconcileVisibleRecentProjects(recentProjects = [], visibleProjects = []) {
   const visibleById = new Map(normalizeProjectEntries(visibleProjects).map((project) => [project.id, project]));
   return normalizeProjectEntries(recentProjects, { refreshNameById: visibleById })
@@ -110,6 +119,19 @@ export function projectHomeOpenUrl(projectId) {
   return `/?project=${encodeURIComponent(projectId)}`;
 }
 
+/**
+ * @param {{
+ *   drive: { createFolder(parentId: string, name: string): Promise<{ id: string, name?: string }> },
+ *   rootFolderId: string,
+ *   projectName: string,
+ *   visibleProjects?: { id: string, name: string }[],
+ *   actor?: string,
+ *   createStore: Function,
+ *   idFactory?: (kind: string) => string,
+ *   now?: () => string | Date,
+ *   auditMetadata?: Record<string, unknown>,
+ * }} options
+ */
 export async function createProjectWithFoundation({
   drive,
   rootFolderId,
@@ -178,6 +200,12 @@ export async function createProjectWithFoundation({
   return { id: folder.id, name: folder.name };
 }
 
+/**
+ * @param {Parameters<typeof createProjectWithFoundation>[0] & {
+ *   remember(project: { id: string, name: string }): void,
+ *   navigate(url: string): void,
+ * }} options
+ */
 export async function createProjectWithFoundationAndOpen(options) {
   const project = await createProjectWithFoundation(options);
   options.remember(project);
@@ -234,6 +262,7 @@ export function createRecents(storage) {
       // a recency bump must never break opening the project.
       persist(next);
     },
+    /** @param {{ id: string, name: string }[]} entries */
     replace(entries) {
       persist(entries);
     },

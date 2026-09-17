@@ -16,7 +16,6 @@ import {
   createProjectDisabledReason,
   createProjectWithFoundationAndOpen,
   createRecents,
-  hasVisibleProjectNameDuplicate,
   listProjectFolders,
   projectHomeFolderId,
   projectHomeOpenUrl,
