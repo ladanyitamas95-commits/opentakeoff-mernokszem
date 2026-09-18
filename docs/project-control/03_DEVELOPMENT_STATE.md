@@ -3,7 +3,7 @@
 **Projekt:** MérnökSzem – Product & Development OS
 **Dokumentumtípus:** Project Control File / Live Development State
 **Verzió:** 1.0
-**Snapshot dátum:** 2026-09-14 (Day 0 blocker closure)
+**Snapshot dátum:** 2026-09-17 (Commit 5 audit follow-up update)
 **Státusz:** ACTIVE / DYNAMIC
 **Frissítési felelős:** Development Control Tower
 **Alapelv:** ami nincs bizonyítva, az `UNKNOWN` vagy `UNVERIFIED`. Régi chatből nem szabad aktuális Git/repo állapotot feltételezni.
@@ -17,8 +17,8 @@
 | Product | MérnökSzem |
 | Release | **Controlled Pilot MVP** |
 | Scope | **FROZEN v2.0 FINAL – Product Owner validálta** |
-| Current program stage | **DAY 0 CLOSED / NEXT TASK AWAITING AUTHORIZATION** |
-| Feature development authorization | **GO at Start Gate; separate next-task authorization required** |
+| Current program stage | **DAY 1 / COMMIT 5 CORRECTED — NEXT TASK AWAITING AUTHORIZATION** |
+| Feature development authorization | **GO at Start Gate; corrected Commit 5 completed; separate next-task authorization required** |
 | Day 0 result | **PASS** |
 | Feature freeze | NOT ACTIVE – planned end of Day 12 |
 | Staging | NOT STARTED / UNVERIFIED |
@@ -129,8 +129,24 @@ amíg explicit újra nem osztályozzák.
 |---|---|---|---|---|
 | MS-MVP-DAY00-START-GATE | Codex | repo/start-gate baseline, docs only | `codex/w01-ui-foundation` | **COMPLETE** |
 | MS-MVP-DAY00-BLOCKER-CLOSURE | Codex | blocker decisions and audit closure, docs only | `codex/w01-ui-foundation` | **COMPLETE** |
+| MS-MVP-DAY01-COMMIT05-WIP-HARDENING | Codex | existing ProjectHome create/open hardening only; no new route, auth, persistence abstraction or canvas path | `copilot/ms-mvp-day01-commit05-wip-hardening` | **COMPLETE** |
 | Claude Code first task | Claude Code | must wait for Start Gate | N/A | **NOT STARTED** |
 | Controlled Pilot feature task | any | requires a separately authorized task | N/A | **NOT STARTED** |
+
+### Latest accepted task update
+
+| Field | Value |
+|---|---|
+| Date/time | 2026-09-17T22:17:57Z |
+| Task ID | `MS-MVP-DAY01-COMMIT05-WIP-HARDENING` |
+| Agent | Codex |
+| Branch | `copilot/ms-mvp-day01-commit05-wip-hardening` |
+| Starting SHA | `740e3fdc02abc977d70eeb2adbc4f5901031bc69` |
+| Final SHA | Recorded in the accepted task output for this task |
+| Test status | Targeted `projectHome` tests PASS; `npm --prefix web run typecheck` PASS; `npm --prefix web run lint` PASS; `npm --prefix web run build` PASS; full `npm --prefix web test` retained the baseline 49 failures and 3 skips while the targeted passing count increased |
+| New blockers | None |
+| Resolved blockers | None |
+| Next gate | Separate Product Owner authorization for the next bounded task |
 
 ---
 
@@ -270,10 +286,10 @@ The next development action is:
 
 ```text
 PRODUCT OWNER AUTHORIZATION
-FOR THE EXISTING DAY 1-3 FOUNDATION WORKSTREAM
+FOR THE NEXT BOUNDED FOUNDATION TASK
 ```
 
-This blocker-closure task does not itself start Day 1 or modify runtime code.
+Commit 5 completed a bounded corrective hardening change in the existing ProjectHome create/open path only. No follow-on feature task may start without separate authorization.
 
 ---
 
@@ -308,6 +324,8 @@ Never replace `UNKNOWN` with a guessed value.
 |---|---|
 | 2026-09-14 | v1.0 created from validated Scope Freeze v2.0 and current conversation state. Current Git/repo values intentionally left UNVERIFIED pending Day 0. |
 | 2026-09-14 | Day 0 blocker closure: writable fork, pilot slots and runtime AI cost controls validated; Start Gate updated to GO. |
+| 2026-09-17 | Commit 5 hardening update: existing ProjectHome create/open path completed on `copilot/ms-mvp-day01-commit05-wip-hardening`; next bounded task again requires separate authorization. |
+| 2026-09-17 | Commit 5 audit follow-up: actor preflight, same-folder recovery, annotation preservation, folder-state classification and guarded open verification corrected on the same branch. |
 
 ---
 
