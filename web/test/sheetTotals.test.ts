@@ -187,7 +187,7 @@ test("bySheet null/empty keeps totalsToCsv byte-identical to the pre-change outp
   const base = totalsToCsv(rows, goldenName);
   assert.equal(totalsToCsv(rows, goldenName, null), base);
   assert.equal(totalsToCsv(rows, goldenName, []), base);
-  assert.ok(!base.includes("Sheet,Sheet ID"));                       // no by-sheet header
+  assert.ok(!base.includes("Tervlap,Tervlapazonosító"));             // no by-sheet header
   assert.equal(base.split("\n").length, 21);                         // 20 lines + trailing \n
   // and the (now-extended) golden file starts with exactly this output — the
   // by-sheet section was a pure append.
@@ -201,7 +201,7 @@ test("by-sheet CSV: label fallback to raw id, ×N finish mark, and the x-multipl
   const rows = conditionTotals(conds, shapes);
   const csv = totalsToCsv(rows, "", sheetTotals(conds, shapes), null);
   const lines = csv.trimEnd().split("\n");
-  assert.equal(lines.at(-3), "Sheet,Sheet ID,Finish,Floor SF,Wall SF,Border SF,LF,EA");
+  assert.equal(lines.at(-3), "Tervlap,Tervlapazonosító,Tétel,Padló SF,Fal SF,Szegély SF,LF,db");
   assert.equal(lines.at(-2), "plan.pdf,plan.pdf,LVT-2 ×3,10.01,0,0,0,0");  // raw-id label, round2 at serialization
   assert.equal(lines.at(-1), "# By-sheet rows show measured (base) quantities; xN multipliers apply at condition level");
 });

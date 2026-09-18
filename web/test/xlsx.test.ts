@@ -106,7 +106,7 @@ test("reportWorkbook: five tabs, Conditions mirrors the CSV columns and numbers"
   assert.deepEqual(cTab.rows[0], cols.map((c: any) => c.header));
   const idx = (h: string) => cols.findIndex((c: any) => c.header === h);
   const r1 = cTab.rows[1]; // c1: 100 SF, 10% waste
-  assert.equal(r1[idx("Finish")], NASTY);
+  assert.equal(r1[idx("Tétel")], NASTY);
   assert.equal(r1[idx("Total SF")], 100);            // measured — no waste
   assert.equal(r1[idx("Total SF w/Waste")], 110); // waste only on the w/Waste qty
   const r2 = cTab.rows[2]; // c2: linear 25 LF ×2 multiplier
@@ -158,7 +158,7 @@ test("reportWorkbook: read-only spec columns in cols — header, per-row value, 
   const spec = specColProfile([
     { id: "c1", spec: { manufacturer: "Vendor A", color: "Slate 5" } },  // both fields present
   ] as any);
-  assert.deepEqual(spec.map((c: any) => c.header), ["Manufacturer", "Spec Color"]); // only populated fields
+  assert.deepEqual(spec.map((c: any) => c.header), ["Gyártó", "Termékszín"]); // only populated fields
   const tabs = reportWorkbook({
     ...workbookArgs(),
     cols: [...cols, ...spec],
@@ -166,8 +166,8 @@ test("reportWorkbook: read-only spec columns in cols — header, per-row value, 
   });
   const cTab = tabs[0];
   const mi = cols.length;          // Manufacturer appended after the CSV columns
-  assert.equal(cTab.rows[0][mi], "Manufacturer");
-  assert.equal(cTab.rows[0][mi + 1], "Spec Color");
+  assert.equal(cTab.rows[0][mi], "Gyártó");
+  assert.equal(cTab.rows[0][mi + 1], "Termékszín");
   assert.equal(cTab.rows[1][mi], "Vendor A");         // c1 spec'd
   assert.equal(cTab.rows[1][mi + 1], "Slate 5");
   assert.equal(cTab.rows[2][mi], "");             // c2 has no spec → cell skipped in the XML
@@ -205,7 +205,7 @@ test("reportWorkbook: floor × room tab — one row per (floor, room, finish), o
   assert.deepEqual(body.map((r: any[]) => [r[1], r[2], r[3]]), [
     ["plan.pdf#1", "101", NASTY],
     ["plan.pdf#1", "102", NASTY],
-    ["plan.pdf#2", "Unlabeled", "VCT-1"],   // an unlabeled floor still rolls up, so its rooms reconcile
+    ["plan.pdf#2", "Címke nélkül", "VCT-1"],   // an unlabeled floor still rolls up, so its rooms reconcile
   ]);
   assert.equal(body[0][4], 60);
   assert.equal(body[0][10], 66, "10% waste applied per slice, like the report's grouped views");
