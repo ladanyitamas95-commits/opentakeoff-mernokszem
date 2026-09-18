@@ -48,7 +48,7 @@ test("nullish input yields the empty string; control chars are replaced", () => 
   assert.equal(winAnsiSafe("a\tb\nc"), "a?b?c");          // drawn strings are single-line by construction
 });
 
-// ── authorTallyLine (#314) — the cover's "Marks by:" line ────────────────────
+// ── authorTallyLine (#314) — the cover's author tally line ──────────────────
 
 test("authorTallyLine: null when no shape carries an author (export stays byte-identical)", () => {
   assert.equal(authorTallyLine([]), null);
@@ -57,5 +57,5 @@ test("authorTallyLine: null when no shape carries an author (export stays byte-i
 
 test("authorTallyLine: named authors sorted with counts, unattributed counted last", () => {
   const line = authorTallyLine([{ author: "Michael" }, { author: "Aaron" }, { author: "Michael" }, {}]);
-  assert.equal(line, "Marks by: Aaron (1) · Michael (2) · unattributed (1)");
+  assert.equal(line, "Jelölte: Aaron (1) · Michael (2) · unattributed (1)");
 });

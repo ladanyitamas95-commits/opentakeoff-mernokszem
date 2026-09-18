@@ -16,24 +16,24 @@ const render = (rfis: any[]) => renderToStaticMarkup(
 test("RfiPanel: an agent-raised pending RFI is badged and offers Accept; a panel-raised one is not", () => {
   const agent = render([{ ...base, id: "rfi-a", origin: { actor: "agent", reviewed: false } }]);
   assert.match(agent, /RFI-001/);
-  assert.match(agent, /agent · pending/);
-  assert.match(agent, />Accept</);
+  assert.match(agent, /AI · függőben/);
+  assert.match(agent, />Elfogadás</);
   const panel = render([{ ...base, id: "rfi-p" }]);
   assert.match(panel, /RFI-001/);
-  assert.doesNotMatch(panel, /agent/);
-  assert.doesNotMatch(panel, />Accept</);
+  assert.doesNotMatch(panel, /AI/);
+  assert.doesNotMatch(panel, />Elfogadás</);
 });
 
 test("RfiPanel: an accepted agent RFI keeps the agent badge and loses the Accept button", () => {
   const html = render([{ ...base, id: "rfi-a", origin: { actor: "agent", reviewed: true } }]);
-  assert.match(html, />agent</);
-  assert.doesNotMatch(html, /pending/);
-  assert.doesNotMatch(html, />Accept</);
+  assert.match(html, />AI</);
+  assert.doesNotMatch(html, /függőben/);
+  assert.doesNotMatch(html, />Elfogadás</);
 });
 
 test("RfiPanel: a withdrawn RFI (tombstone) never lists, and the counts skip it", () => {
   const html = render([{ ...base, id: "rfi-a" }, { ...base, id: "rfi-b", number: "RFI-002", status: "void", deleted: true }]);
-  assert.match(html, /All 1</);
+  assert.match(html, /Összes 1</);
   assert.match(html, /RFI-001/);
   assert.doesNotMatch(html, /RFI-002/);
 });
