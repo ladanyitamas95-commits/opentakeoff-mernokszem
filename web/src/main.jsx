@@ -6,6 +6,8 @@ import "./styles/app.css";
 import "./styles/print.css";   // OT-only print block — kept out of app.css so tokens/app stay byte-synced with Spline
 import TakeoffCanvas from "./pages/TakeoffCanvas.jsx";
 import ProjectHome from "./components/ProjectHome.jsx";
+import FoundationProjectHome from "./components/FoundationProjectHome.jsx";
+import FoundationProjectWorkspace from "./components/FoundationProjectWorkspace.jsx";
 import UiFoundationPreview from "./components/UiFoundationPreview.jsx";
 import AppShell from "./components/AppShell.jsx";
 import PilotAccessBoundary from "./components/PilotAccessBoundary.jsx";
@@ -207,7 +209,11 @@ function ProtectedFoundationApp() {
 }
 
 function ProtectedProjectHome() {
-  return <PilotAccessBoundary><ProjectHome /></PilotAccessBoundary>;
+  return <PilotAccessBoundary><FoundationProjectHome /></PilotAccessBoundary>;
+}
+
+function ProtectedProjectWorkspace() {
+  return <PilotAccessBoundary><FoundationProjectWorkspace /></PilotAccessBoundary>;
 }
 
 // Folder-synced workspace (#316): when a folder link is persisted, wrap the
@@ -523,6 +529,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(
         <Routes>
           <Route path="/projects" element={<ProjectHomeGate />} />
           <Route path="/ui-foundation" element={<UiFoundationPreview />} />
+          <Route path={`${PILOT_APP_ROUTES.projects}/:projectId`} element={<ProtectedProjectWorkspace />} />
           <Route path={PILOT_APP_ROUTES.projects} element={<ProtectedProjectHome />} />
           <Route path={`${PILOT_APP_ROUTES.app}/*`} element={<ProtectedFoundationApp />} />
           <Route path="*" element={<App />} />
