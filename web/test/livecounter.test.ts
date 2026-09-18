@@ -44,10 +44,10 @@ test("counterRows: the active flag follows the id", () => {
 });
 
 // ── fmtQty ──────────────────────────────────────────────────────────────────
-test("fmtQty: thousands separators, ≤2 decimals, trailing zeros trimmed", () => {
-  assert.equal(fmtQty(1234.5), "1,234.5");
-  assert.equal(fmtQty(1000), "1,000");
-  assert.equal(fmtQty(84.256), "84.26");
+test("fmtQty: Hungarian decimal separator, ≤2 decimals, trailing zeros trimmed", () => {
+  assert.equal(fmtQty(1234.5), "1234,5");
+  assert.equal(fmtQty(1000), "1000");
+  assert.equal(fmtQty(84.256), "84,26");
   assert.equal(fmtQty(undefined), "0");
 });
 

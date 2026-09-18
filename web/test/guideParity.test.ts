@@ -16,7 +16,8 @@
 //
 // Normalization (both sides funnel through the same canonicalizer):
 // lowercase, backticks stripped, parentheticals dropped, "wheel" → "scroll"
-// (§15 says `⇧`+wheel where the overlay says ⇧ scroll — same gesture),
+// (§15 says `⇧`+wheel where the overlay says ⇧ scroll/görgetés — same gesture;
+// the overlay's "két ujj" is the same trackpad scroll row),
 // en-dash splits ranges (`1`–`9` → 1, 9), and glyph runs split from letters
 // (the overlay stores ["⇧","D"], the markdown writes `⇧D`). Tokens are then
 // partitioned into KEY tokens (single glyphs/letters/digits + the named keys)
@@ -47,6 +48,8 @@ function canonize(raw: string): Combo {
     .replace(/`/g, "")
     .replace(/\([^)]*\)/g, " ") // parentheticals are commentary, not keys
     .replace(/\bwheel\b/g, "scroll")
+    .replace(/\bgörgetés\b/g, "scroll")
+    .replace(/\bkét\s+ujj\b/g, "two finger trackpad scroll")
     .replace(/[–—]/g, " ") // en-dash range separator → token break
     .replace(/[+\-/]/g, " ")
     // split glyph runs from letters/digits: "⇧d" → "⇧ d"

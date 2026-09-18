@@ -25,7 +25,7 @@ test("nextRfiNumber: past 999 keeps counting (padStart only floors width)", () =
 });
 
 test("rfiStatus: known ids resolve; blank/unknown falls back to Open", () => {
-  assert.equal(rfiStatus("answered").label, "Answered");
+  assert.equal(rfiStatus("answered").label, "Megválaszolva");
   assert.equal(rfiStatus("void").color, "#b03a26");
   assert.equal(rfiStatus("nope").id, "open");
   assert.equal(rfiStatus(undefined).id, "open");
@@ -58,9 +58,9 @@ test("rfisToCsv: title, semantics line, exact header, derived counts + sheets", 
   const lines = csv.split("\n");
   assert.equal(lines[0], "# Job 42 — OpenTakeoff RFI log");
   assert.equal(lines[1], "# RFI log — one row per RFI; linked markups/sheets derived from markup.rfi_id");
-  assert.equal(lines[2], "Number,Subject,Status,Ball in court,Priority,Cost impact,Schedule impact,Date,Question,Response,Response date,Linked markups,Linked sheets");
-  // Status renders the label, cost flag "yes"/blank, 2 linked markups, both sheets joined
-  assert.equal(lines[3], 'RFI-001,Slab crack,Open,GC,high,yes,,7/8,Repair spec?,,,2,Sheet sh1; Sheet sh2');
+  assert.equal(lines[2], "Azonosító,Tárgy,Állapot,Felelős,Prioritás,Költséghatás,Határidőhatás,Dátum,Kérdés,Válasz,Válasz dátuma,Kapcsolt jelölések,Kapcsolt tervlapok");
+  // Status renders the label, cost flag "igen"/blank, 2 linked markups, both sheets joined
+  assert.equal(lines[3], 'RFI-001,Slab crack,Nyitott,GC,high,igen,,7/8,Repair spec?,,,2,Sheet sh1; Sheet sh2');
   assert.ok(csv.endsWith("\n"));
 });
 
@@ -68,7 +68,7 @@ test("rfisToCsv: no title line without a project name; empty list is header only
   const csv = rfisToCsv([], [], "");
   const lines = csv.split("\n");
   assert.ok(lines[0].startsWith("# RFI log"));
-  assert.equal(lines[1], "Number,Subject,Status,Ball in court,Priority,Cost impact,Schedule impact,Date,Question,Response,Response date,Linked markups,Linked sheets");
+  assert.equal(lines[1], "Azonosító,Tárgy,Állapot,Felelős,Prioritás,Költséghatás,Határidőhatás,Dátum,Kérdés,Válasz,Válasz dátuma,Kapcsolt jelölések,Kapcsolt tervlapok");
   assert.equal(lines[2], "");
   assert.equal(lines.length, 3);
 });

@@ -19,7 +19,7 @@ test("default mode → OpenTakeoff, no company, no credit, prefixed cover title"
   assert.equal(b.company, null);
   assert.equal(b.brandName, OT_NAME);
   assert.equal(b.credit, null);
-  assert.equal(b.coverTitle, "OpenTakeoff · Marked Set");
+  assert.equal(b.coverTitle, "MérnökSzem TakeOff · Jelölt tervcsomag");
 });
 
 test("clear-label with a valid profile → that trade name brands the doc", () => {
@@ -28,7 +28,7 @@ test("clear-label with a valid profile → that trade name brands the doc", () =
   assert.deepEqual(b.company, { name: "Fin Workspaces", address: "2 B St", logo: undefined });
   assert.equal(b.brandName, "Fin Workspaces");
   assert.equal(b.credit, OT_CREDIT);
-  assert.equal(b.coverTitle, "Marked Set");
+  assert.equal(b.coverTitle, "Jelölt tervcsomag");
 });
 
 test("clear-label carries the logo when the profile has one", () => {
@@ -40,7 +40,7 @@ test("clear-label with no profiles falls back to default (nothing to brand as)",
   const b = resolveBranding({ mode: "clearlabel", profileId: "a", profiles: [] });
   assert.equal(b.clear, false);
   assert.equal(b.brandName, OT_NAME);
-  assert.equal(b.coverTitle, "OpenTakeoff · Marked Set");
+  assert.equal(b.coverTitle, "MérnökSzem TakeOff · Jelölt tervcsomag");
 });
 
 test("clear-label with a stale profileId falls back to the first profile", () => {

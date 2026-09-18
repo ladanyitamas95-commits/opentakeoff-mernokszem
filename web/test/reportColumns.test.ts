@@ -106,7 +106,7 @@ test("CSV with opt-ins: appended at the end, base 13 untouched, TOTAL blank unde
   const ct1 = lines[2].split(",");
   assert.deepEqual(ct1.slice(-3).map(Number), [54.69, 0, 134.52]);
   // TOTAL row: derived waste feet present, perimeter_ref blank (reference only)
-  const totalLine = lines.find((l) => l.startsWith("TOTAL"))!;
+  const totalLine = lines.find((l) => l.startsWith("ÖSSZESEN"))!;
   const totalCells = totalLine.split(",");
   assert.equal(totalCells.length, 16);
   assert.equal(Number(totalCells[13]), round2(1373.76 - 1316.91));
@@ -158,7 +158,7 @@ test("CSV with custom columns: hostile headers escaped, values per row, TOTAL bl
   assert.equal(lines[2], goldenLines[2] + ",09 68 00,");
   assert.deepEqual(lines[3].split(",").slice(-2), ["09 65 00", "'=HYPERLINK"]);
   // TOTAL row: custom keys absent from grandTotals → both cells blank
-  const totalCells = lines.find((l) => l.startsWith("TOTAL"))!.split(",");
+  const totalCells = lines.find((l) => l.startsWith("ÖSSZESEN"))!.split(",");
   assert.equal(totalCells.length, 15);
   assert.deepEqual(totalCells.slice(-2), ["", ""]);
 });
@@ -185,7 +185,7 @@ test("partitionRowsBy: vocabulary order first, ad-hoc sorted after, Unassigned l
   // vocabulary order (NOT assignment order: 09 68 00 before 09 65 00), then
   // ad-hoc sorted, then null last; "09 30 00" (no rows) dropped
   assert.deepEqual(groups.map((g: any) => g.value), ["09 68 00", "09 65 00", "aa removed", "zz removed", null]);
-  assert.deepEqual(groups.map((g: any) => g.label), ["09 68 00", "09 65 00", "aa removed", "zz removed", "Unassigned"]);
+  assert.deepEqual(groups.map((g: any) => g.label), ["09 68 00", "09 65 00", "aa removed", "zz removed", "Nincs besorolva"]);
   assert.deepEqual(groups.map((g: any) => g.rows.map((r: any) => r.id)), [["rb1"], ["ct1"], ["wt1"], ["lvt2"], ["cnt"]]);
 });
 
@@ -203,7 +203,7 @@ test("partitionRowsBy: '' and non-string attrs fold into the null group — neve
   // (ReportPanel suppresses all group chrome on length === 1)
   assert.equal(groups.length, 1);
   assert.equal(groups[0].value, null);
-  assert.equal(groups[0].label, "Unassigned");
+  assert.equal(groups[0].label, "Nincs besorolva");
   assert.equal(groups[0].rows.length, rows.length);
   // no attrsByCond at all → same single Unassigned group
   assert.equal(partitionRowsBy(rows, col, undefined).length, 1);
@@ -213,7 +213,7 @@ test("partitionRowsBy: a vocabulary value literally named 'Unassigned' stays sep
   const col = { id: "d", name: "X", values: ["Unassigned"] };
   const attrs = new Map([["ct1", { d: "Unassigned" }]]);
   const groups = partitionRowsBy(rows, col, attrs);
-  assert.deepEqual(groups.map((g: any) => [g.value, g.label]), [["Unassigned", "Unassigned"], [null, "Unassigned"]]);
+  assert.deepEqual(groups.map((g: any) => [g.value, g.label]), [["Unassigned", "Unassigned"], [null, "Nincs besorolva"]]);
   assert.deepEqual(groups[0].rows.map((r: any) => r.id), ["ct1"]);
   assert.equal(groups[1].rows.length, rows.length - 1);
 });
@@ -296,17 +296,17 @@ test("specColProfile: a field-column appears only when some condition carries th
   const cols = specColProfile(withSpec);
   // every field is present across the set → all four columns, in schedule order
   assert.deepEqual(cols.map((c: any) => [c.key, c.header, c.defaultVisible, c.spec]), [
-    ["spec:manufacturer", "Manufacturer", true, true],
-    ["spec:style", "Style", true, true],
-    ["spec:color", "Spec Color", true, true],   // "Spec Color", never "Color"
-    ["spec:size", "Size", true, true],
+    ["spec:manufacturer", "Gyártó", true, true],
+    ["spec:style", "Típus", true, true],
+    ["spec:color", "Termékszín", true, true],
+    ["spec:size", "Méret", true, true],
   ]);
   // only manufacturer populated anywhere → exactly one column
   const one = specColProfile([{ id: "a", spec: { manufacturer: "Vendor A" } }] as any);
   assert.deepEqual(one.map((c: any) => c.key), ["spec:manufacturer"]);
   // headers cover every SPEC_FIELD, and none collides with the appearance "Color".
   // "Description" is appended last so shipped spec-column order is preserved.
-  assert.deepEqual(SPEC_FIELDS.map((f: any) => f.header), ["Manufacturer", "Style", "Spec Color", "Size", "Description"]);
+  assert.deepEqual(SPEC_FIELDS.map((f: any) => f.header), ["Gyártó", "Típus", "Termékszín", "Méret", "Leírás"]);
 });
 
 test("specColProfile: description is a spec column, appended after size, only when populated", () => {
@@ -315,7 +315,7 @@ test("specColProfile: description is a spec column, appended after size, only wh
     { id: "wp1", spec: { manufacturer: "Vendor A", description: "WOOD WALL PANEL" } },
   ] as any);
   assert.deepEqual(withDesc.map((c: any) => c.key), ["spec:manufacturer", "spec:description"]);
-  assert.equal(withDesc[1].header, "Description");
+  assert.equal(withDesc[1].header, "Leírás");
   // empty/absent description → no column (empty-gate), so legacy 4-field specs
   // produce byte-identical output
   const noDesc = specColProfile([{ id: "a", spec: { manufacturer: "Vendor A", size: "12x24" } }] as any);
@@ -342,7 +342,7 @@ test("CSV with spec columns: appended after the frozen 13, values per row, unspe
   const lines = csv.split("\n");
   const goldenLines = golden.split("\n");
   // frozen 13 header cells byte-identical; spec headers appended, schedule order
-  assert.equal(lines[1], goldenLines[1] + ",Manufacturer,Style,Spec Color,Size");
+  assert.equal(lines[1], goldenLines[1] + ",Gyártó,Típus,Termékszín,Méret");
   // CT-1 body row = golden row + its four spec cells (comma value quoted)
   assert.equal(lines[2], goldenLines[2] + ',Vendor A,"Grand, Deluxe",Slate 5,"24""x24"""');
   // LVT-2: formula-shaped manufacturer guarded, empty style blank
@@ -350,7 +350,7 @@ test("CSV with spec columns: appended after the frozen 13, values per row, unspe
   // RB-1: no spec entry → all four cells blank
   assert.deepEqual(lines[4].split(",").slice(-4), ["", "", "", ""]);
   // TOTAL row: spec keys absent from grandTotals → all four cells blank
-  const totalCells = lines.find((l) => l.startsWith("TOTAL"))!.split(",");
+  const totalCells = lines.find((l) => l.startsWith("ÖSSZESEN"))!.split(",");
   assert.equal(totalCells.length, 17);   // 13 frozen + 4 spec
   assert.deepEqual(totalCells.slice(-4), ["", "", "", ""]);
 });
