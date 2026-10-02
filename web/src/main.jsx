@@ -473,12 +473,12 @@ function WorkspaceGate() {
 }
 
 function App() {
-  if (m0DemoEnabled()) return <M0DemoShell />;
   // Subscribe to navigation: react-router bails out of re-rendering the same
   // element on navigate(), so App must watch the location itself. The store.js
   // URL helpers read window.location, which history has already updated by the
   // time this re-render runs — useLocation() is purely the re-render trigger.
   useLocation();
+  if (m0DemoEnabled()) return <M0DemoShell />;
   const projectId = projectIdFromUrl();
   // ?project= deep link → the cloud project.
   if (projectId && isGoogleConfigured()) return <ProjectGate projectId={projectId} />;
