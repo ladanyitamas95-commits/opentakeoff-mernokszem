@@ -1,0 +1,17 @@
+FROM node:24-bookworm-slim
+
+WORKDIR /app
+
+COPY web/package.json web/package-lock.json ./
+RUN npm ci
+
+COPY web/ ./
+
+ENV VITE_M0_DEMO=1
+ENV VITE_MERNOKSZEM_URL=https://mernokszem-tender-cloud-demo-production.up.railway.app/
+
+RUN npm run build
+
+EXPOSE 4173
+
+CMD ["npm","run","preview","--","--host","0.0.0.0","--port","4173"]
