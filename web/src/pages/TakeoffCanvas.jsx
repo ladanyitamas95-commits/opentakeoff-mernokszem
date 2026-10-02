@@ -177,6 +177,7 @@ import { applyApprovalCommand, sanitizeApprovals, approvalInk, APPROVAL_R } from
 import { findCutoutParent, subtractCutout, recomposeCutouts, cutRunsAcross } from "../lib/cutout.js";
 import { normalizeAgentReview } from "../lib/reviewState.js";
 import { oneClickEnabled, ONE_CLICK_GATE_MESSAGE, commandBoxEnabled } from "../lib/gate.js";
+import { m0DemoEnabled } from "../lib/m0Demo.js";
 import { computeShapeMetrics, needsMetrics, recalibrateShapes } from "../lib/shapeMetrics.js";
 import { fmtCheckLen, parseLenInput, checkVerdict, M_PER_FT, areaVal, areaUnit, lenVal, lenUnit, calInputToFeet, heightVal, heightUnit, heightInputToFeet, heightStep, dimInputStr, dimLabel } from "../lib/units";
 import * as panelGeom from "../lib/panelGeometry.js";
@@ -450,7 +451,7 @@ export default function TakeoffCanvas() {
   // ONLY: all stored takeoff math stays feet (lib/units contract), so toggling
   // never rewrites a shape, a scale, or a coverage rate. Browser default via
   // localStorage; a project that saved a units field overrides on hydrate.
-  const [units, setUnits] = useState(() => { try { return localStorage.getItem("opentakeoff_units") === "metric" ? "metric" : "imperial"; } catch { return "imperial"; } });
+  const [units, setUnits] = useState(() => { if (m0DemoEnabled()) return "metric"; try { return localStorage.getItem("opentakeoff_units") === "metric" ? "metric" : "imperial"; } catch { return "imperial"; } });
   useEffect(() => { try { localStorage.setItem("opentakeoff_units", units); } catch { /* private mode */ } }, [units]);
   const [check, setCheck] = useState([]);             // Check tool: 0–2 stage-px points along a printed dimension
   const [checkStated, setCheckStated] = useState(""); // what the drawing says that dimension is
@@ -1648,7 +1649,7 @@ export default function TakeoffCanvas() {
     setScaleUnconfirmed(unconf);
     // display units ride the payload (additive) — a metric project opens metric
     // on any machine; payloads without the field keep this browser's toggle
-    if (a.units === "metric" || a.units === "imperial") setUnits(a.units);
+    if (!m0DemoEnabled() && (a.units === "metric" || a.units === "imperial")) setUnits(a.units);
   };
   useEffect(() => {
     let off = false;
@@ -8078,11 +8079,11 @@ export default function TakeoffCanvas() {
         <div style={{ flex: 1 }} />
         {cluster(`Scale — ${labelFor(focusPanel)}`,
           <>
-            <button onClick={() => setUnits((u) => (u === "metric" ? "imperial" : "metric"))}
+            {!m0DemoEnabled() && (<button onClick={() => setUnits((u) => (u === "metric" ? "imperial" : "metric"))}
               title={units === "metric" ? "Metric display (m² / m) — click for imperial. Calibrate in meters; 1:50-style scales in the list. Display only — stored takeoffs never change." : "Imperial display (SF / LF) — click for metric (m² / m, calibrate in meters, 1:50-style scales). Display only — stored takeoffs never change."}
               style={{ padding: "6px 10px", border: `1px solid ${units === "metric" ? "var(--cobalt)" : "var(--ink-faint)"}`, background: units === "metric" ? "var(--cobalt)" : "transparent", color: units === "metric" ? "var(--paper-bright)" : "var(--ink)", cursor: "pointer", fontWeight: 700, fontFamily: "var(--f-mono)", fontSize: 11, lineHeight: 1 }}>
               {units === "metric" ? "m" : "ft"}
-            </button>
+            </button>)}
             <ToolMenu
               title={scaleTitle}
               onOpenChange={onScaleMenuDepth}
@@ -8131,8 +8132,8 @@ export default function TakeoffCanvas() {
             ] : []),
           ]}
         />
-        <PresenceChip bridge={store.syncBridge} />
-        <AccountChip note={cloudMode ? "Synced to Google Drive" : "Local workspace"} onOpenChange={onMenuDepth} />
+        {!m0DemoEnabled() && <PresenceChip bridge={store.syncBridge} />}
+        {!m0DemoEnabled() && <AccountChip note={cloudMode ? "Synced to Google Drive" : "Local workspace"} onOpenChange={onMenuDepth} />}
         </span>
       </div>
       )}
@@ -9899,7 +9900,7 @@ export default function TakeoffCanvas() {
           {panelBtn(() => setLeftTab((t) => (t === "stamp" ? null : "stamp")), "stamp", "Stamps — reusable annotations dropped click-to-place", leftTab === "stamp", stampLib.stamps.length)}
           {panelBtn(() => setLeftTab((t) => (t === "rfi" ? null : "rfi")), "rfi", "RFI register — raise, track, and export Requests For Information", leftTab === "rfi", rfis.length)}
           {panelBtn(toggleTakeoffs, "takeoffs", "Takeoffs — conditions + running totals", takeoffsOpen, visibleShapes.length)}
-          {panelBtn(() => setAgentOpen((o) => !o), "target", "Agent — describe a takeoff; it stages dashed proposals you accept or reject (bring your own AI key)", agentOpen, agentProposals.length)}
+          {!m0DemoEnabled() && panelBtn(() => setAgentOpen((o) => !o), "target", "Agent — describe a takeoff; it stages dashed proposals you accept or reject (bring your own AI key)", agentOpen, agentProposals.length)}
           {rollByCond.size > 0 && panelBtn(() => setRollPanelOpen((o) => !o), "roll", "Roll goods — the cut diagram, cutting order, and figured order footage", rollPanelOpen, rollByCond.size)}
           {layerEntries.length > 0 && panelBtn(() => setLayersOpen((o) => !o), "layers", "PDF layers — what this drawing's own layer table states each ink is; set what One-Click treats as wall and what it ignores", layersOpen, layerEntries.reduce((n, e) => n + e.layers.length, 0))}
           {panelBtn(() => setShowRevisions(true), "revisions", "Revisions — save the takeoff at each bid revision, compare what moved", showRevisions)}
@@ -9911,7 +9912,7 @@ export default function TakeoffCanvas() {
             Takeoffs panel). Honest empty state until the BYO-AI seam is
             configured; otherwise the goal box, the streaming run log, and the
             per-proposal accept/reject desk. */}
-        {agentOpen && (
+        {!m0DemoEnabled() && agentOpen && (
           <AgentPanel
             configured={isAiConfigured()}
             running={agentRunning}
@@ -10197,7 +10198,7 @@ export default function TakeoffCanvas() {
       {/* BYO-key AI settings — the single config surface for the ai.js seam
           (the Agent panel links here; closing re-renders, so `configured`
           re-reads immediately). */}
-      {showAiSettings && <AiSettings onClose={() => setShowAiSettings(false)} />}
+      {!m0DemoEnabled() && showAiSettings && <AiSettings onClose={() => setShowAiSettings(false)} />}
       {/* live counter (mock) — floating running totals, drag to park anywhere */}
       {!focusMode && <LiveCounter rows={liveCounterRows} onActivate={(id) => activateCondition(id, { reassign: false })} />}
       {/* the manual, last in the tree so it sits above every panel and dock */}
