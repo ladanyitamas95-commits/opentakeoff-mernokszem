@@ -6,16 +6,12 @@ const DB_NAME = "opentakeoff";
 
 export async function clearM0LocalProjectData() {
   if (!m0DemoEnabled()) return;
-  try {
-    await new Promise((resolve, reject) => {
-      const req = indexedDB.deleteDatabase(DB_NAME);
-      req.onsuccess = () => resolve();
-      req.onerror = () => reject(req.error || new Error("IndexedDB törlés sikertelen."));
-      req.onblocked = () => reject(new Error("A helyi adatbázist egy másik OpenTakeoff lap még használja. Zárd be a többi M0 lapot, majd próbáld újra."));
-    });
-  } catch (e) {
-    throw e;
-  }
+  await new Promise((resolve, reject) => {
+    const req = indexedDB.deleteDatabase(DB_NAME);
+    req.onsuccess = () => resolve();
+    req.onerror = () => reject(req.error || new Error("IndexedDB törlés sikertelen."));
+    req.onblocked = () => reject(new Error("A helyi adatbázist egy másik OpenTakeoff lap még használja. Zárd be a többi M0 lapot, majd próbáld újra."));
+  });
   try {
     const keys = [];
     for (let i = 0; i < localStorage.length; i++) {
