@@ -84,6 +84,19 @@ const EXACT = new Map([
   ["Trace the wall run", "Jelöld ki a fal nyomvonalát"],
   ["Click inside a room — it selects itself", "Kattints a helyiség belsejébe az automatikus kijelöléshez"],
   ["this wall", "ez a fal"],
+  ["TOTAL", "ÖSSZESEN"],
+  ["total", "összesen"],
+  ["shapes on", "mérés ·"],
+  ["shape on", "mérés ·"],
+  ["measure_line", "Hosszmérés"],
+  ["measure_polygon", "Területmérés"],
+  ["measure_surface", "Falfelület-mérés"],
+  ["place_count", "Darabszámlálás"],
+  ["set_scale", "Méretarány beállítása"],
+  ["check_dimension", "Méretellenőrzés"],
+  ["one_click", "Automatikus területmérés"],
+  ["zone_check", "Zónaellenőrzés"],
+  ["cut_out", "Kivonás"],
   ["Local workspace", "Helyi munkaterület"],
   ["local", "helyi"],
   ["saved", "mentve"],
@@ -138,10 +151,23 @@ function translateText(value) {
   let next = raw;
   for (const [from, to] of PHRASES) next = next.replaceAll(from, to);
 
-  // Dynamic status strings used by the measurement footer/panel.
+  // Dynamic status strings used by the measurement footer/panel. Some React
+  // fragments render the count, phrase and sheet name as separate text nodes,
+  // so translate both full sentences and the partial fragments.
   next = next
+    .replace(/\bTOTAL\b/gi, "ÖSSZESEN")
     .replace(/\b(\d+) measurements? on tervlap\b/gi, "$1 mérés a tervlapon")
     .replace(/\b(\d+) shapes? on tervlap\b/gi, "$1 mérés a tervlapon")
+    .replace(/\bshapes? on\b/gi, "mérés ·")
+    .replace(/\bmeasure_line\b/g, "Hosszmérés")
+    .replace(/\bmeasure_polygon\b/g, "Területmérés")
+    .replace(/\bmeasure_surface\b/g, "Falfelület-mérés")
+    .replace(/\bplace_count\b/g, "Darabszámlálás")
+    .replace(/\bset_scale\b/g, "Méretarány beállítása")
+    .replace(/\bcheck_dimension\b/g, "Méretellenőrzés")
+    .replace(/\bone_click\b/g, "Automatikus területmérés")
+    .replace(/\bzone_check\b/g, "Zónaellenőrzés")
+    .replace(/\bcut_out\b/g, "Kivonás")
     .replace(/\bWaste set to\b/gi, "Ráhagyás beállítva:")
     .replace(/\bon (\d+) conditions?\b/gi, "$1 mérési tételen")
     .replace(/\bSet scale…/g, "Méretarány beállítása…")
