@@ -31,6 +31,12 @@ const m0DemoCspPlugin = process.env.VITE_M0_DEMO === "1" ? {
 } : null;
 
 export default defineConfig({
+  preview: {
+    host: "0.0.0.0",
+    port: 4173,
+    strictPort: true,
+    allowedHosts: [".up.railway.app", ".railway.internal", "localhost"],
+  },
   plugins: [react(), ...(m0DemoCspPlugin ? [m0DemoCspPlugin] : [])],
   define: { __APP_VERSION__: JSON.stringify(pkg.version) },
   // The STT worker (stt.worker.ts, RFC #59) lazy-imports its engine adapter,
