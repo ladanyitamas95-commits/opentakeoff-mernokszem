@@ -1,3 +1,4 @@
+import { m0DemoEnabled } from "./m0Demo.js";
 // Bring-your-own-AI — strictly opt-in, dormant until configured.
 //
 // OpenTakeoff can ask a vision model YOU provide to read things off the plan —
@@ -33,6 +34,7 @@ function readKey(k, envName) {
 /** Current config. provider: "openai" (OpenAI-style — the default; local
  *  runtimes speak it) | "anthropic" (Anthropic-style). */
 export function aiConfig() {
+  if (m0DemoEnabled()) return { endpoint: "", apiKey: "", model: "", provider: "openai" };
   return {
     endpoint: readKey("endpoint", "VITE_AI_ENDPOINT"),
     apiKey: readKey("apiKey", "VITE_AI_KEY"),
@@ -43,11 +45,13 @@ export function aiConfig() {
 
 /** Configured = endpoint + model. A key is optional — local runtimes need none. */
 export function isAiConfigured() {
+  if (m0DemoEnabled()) return false;
   const c = aiConfig();
   return !!(c.endpoint && c.model);
 }
 
 export function saveAiConfig({ endpoint, apiKey, model, provider }) {
+  if (m0DemoEnabled()) return;
   try {
     for (const [k, v] of [["endpoint", endpoint], ["apiKey", apiKey], ["model", model], ["provider", provider]]) {
       if (v) localStorage.setItem(KEYS[k], v);
@@ -163,6 +167,7 @@ export function buildChatRequest(cfg, { system, messages, tools, maxTokens = 409
 /** Send one vision query to the user's configured endpoint. Throws with a
  *  plain-language message on any failure. */
 export async function visionQuery({ imageDataUrl, prompt, maxTokens = 100 }) {
+  if (m0DemoEnabled()) throw new Error("Az AI funkciók az M0 belső demóban adatvédelmi okból ki vannak kapcsolva.");
   const cfg = aiConfig();
   if (!isAiConfigured()) throw new Error("AI isn't configured — open AI settings first.");
   const { url, headers, body } = buildVisionRequest(cfg, { imageDataUrl, prompt, maxTokens });
@@ -191,6 +196,7 @@ export async function visionQuery({ imageDataUrl, prompt, maxTokens = 100 }) {
  *  re-thrown untouched so the loop can tell "stopped" from "broken".
  *  `cfg`/`fetchFn` are injectable for tests (default: live config + fetch). */
 export async function chatWithTools({ cfg, system, messages, tools, maxTokens = 4096, signal, fetchFn }) {
+  if (m0DemoEnabled()) throw new Error("Az AI funkciók az M0 belső demóban adatvédelmi okból ki vannak kapcsolva.");
   const c = cfg || aiConfig();
   if (!(c.endpoint && c.model)) throw new Error("AI isn't configured — open AI settings first.");
   const { url, headers, body } = buildChatRequest(c, { system, messages, tools, maxTokens });
