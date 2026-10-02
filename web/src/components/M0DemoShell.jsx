@@ -2,77 +2,222 @@ import React, { useEffect } from "react";
 import TakeoffCanvas from "../pages/TakeoffCanvas.jsx";
 import { clearM0LocalProjectData } from "../lib/m0Demo.js";
 
+// M0 is an internal Hungarian evaluation surface. Keep the canonical OpenTakeoff
+// engine untouched; localize only rendered UI strings in demo mode.
 const EXACT = new Map([
   ["Open PDF", "PDF terv megnyitása"],
+  ["Add PDF", "PDF terv hozzáadása"],
+  ["Choose PDF", "PDF terv kiválasztása"],
   ["Takeoffs", "Mérések"],
   ["Report", "Kimutatás"],
   ["Sheets", "Tervlapok"],
+  ["Sheet", "Tervlap"],
   ["Gallery", "Tervlapok"],
   ["Select", "Kijelölés"],
+  ["SEL", "KIJ."],
+  ["MEAS", "MÉRÉS"],
+  ["CUT", "KIVONÁS"],
+  ["MARK", "JELÖLÉS"],
+  ["Measure", "Mérés"],
   ["Area", "Terület"],
+  ["Surface", "Falfelület"],
   ["Linear", "Hossz"],
+  ["Length", "Hossz"],
   ["Count", "Darab"],
+  ["Zone", "Zóna"],
+  ["Pan", "Mozgatás"],
   ["Calibrate", "Kalibrálás"],
   ["Check", "Ellenőrzés"],
   ["Scale", "Méretarány"],
+  ["Set scale", "Méretarány beállítása"],
+  ["Check scale", "Méretarány ellenőrzése"],
   ["Action", "Műveletek"],
   ["Aids", "Segédletek"],
+  ["Waste", "Ráhagyás"],
+  ["Line", "Kontúr"],
+  ["Fill", "Kitöltés"],
+  ["Style", "Vonalstílus"],
+  ["Solid", "Folytonos"],
+  ["Dashed", "Szaggatott"],
+  ["Dotted", "Pontozott"],
+  ["Dash dot", "Pont-vonal"],
+  ["Dash-dot", "Pont-vonal"],
+  ["Color", "Szín"],
+  ["Opacity", "Átlátszóság"],
+  ["Pattern", "Mintázat"],
+  ["Terrazzo / speckle", "Terrazzo / szemcsés"],
+  ["Crosshatch", "Keresztsraff"],
+  ["Grid", "Rács"],
+  ["Dots", "Pontozott minta"],
+  ["Materials", "Anyagok"],
+  ["Material", "Anyag"],
+  ["Quantity", "Mennyiség"],
+  ["Unit", "Mértékegység"],
+  ["Condition", "Mérési tétel"],
+  ["Conditions", "Mérési tételek"],
+  ["Height", "Magasság"],
+  ["Thickness", "Vastagság"],
+  ["Perimeter", "Kerület"],
+  ["Room", "Helyiség"],
+  ["Rooms", "Helyiségek"],
+  ["Search", "Keresés"],
+  ["Filter", "Szűrés"],
+  ["Close", "Bezárás"],
+  ["Cancel", "Mégse"],
+  ["Save", "Mentés"],
+  ["Apply", "Alkalmaz"],
+  ["Reset", "Visszaállítás"],
+  ["Delete", "Törlés"],
+  ["Duplicate", "Másolat"],
+  ["Rename", "Átnevezés"],
+  ["Export", "Exportálás"],
+  ["Import", "Importálás"],
+  ["Undo", "Visszavonás"],
+  ["Redo", "Ismét"],
   ["Undo last point", "Utolsó pont visszavonása"],
   ["Undo last shape", "Utolsó mérés visszavonása"],
-  ["Redo", "Ismét"],
   ["Delete selected", "Kijelölt törlése"],
   ["Finish shape", "Mérés befejezése"],
+  ["Set scale first", "Előbb állítsd be a méretarányt"],
+  ["Pick a condition", "Válassz mérési tételt"],
+  ["Click to trace an area", "Kattints a terület körberajzolásához"],
+  ["Trace the wall run", "Jelöld ki a fal nyomvonalát"],
+  ["Click inside a room — it selects itself", "Kattints a helyiség belsejébe az automatikus kijelöléshez"],
+  ["this wall", "ez a fal"],
   ["Local workspace", "Helyi munkaterület"],
   ["local", "helyi"],
   ["saved", "mentve"],
   ["saving…", "mentés…"],
 ]);
 
+const PHRASES = [
+  ["Trace a region (an apartment, a wing) — ⏎ closes it and lists every condition inside", "Rajzolj körbe egy területet (pl. lakás vagy épületszárny) — az Enter lezárja és kilistázza a benne lévő mérési tételeket"],
+  ["shapes on sheet", "mérés a tervlapon"],
+  ["shape on sheet", "mérés a tervlapon"],
+  ["Set scale first", "Előbb állítsd be a méretarányt"],
+  ["Pick a condition", "Válassz mérési tételt"],
+  ["Click to trace an area", "Kattints a terület körberajzolásához"],
+  ["Trace the wall run", "Jelöld ki a fal nyomvonalát"],
+  ["Click inside a room — it selects itself", "Kattints a helyiség belsejébe az automatikus kijelöléshez"],
+  ["TOTAL", "ÖSSZESEN"],
+  ["zoom", "nagyítás"],
+  ["Opened", "Megnyitva:"],
+  ["sheets", "tervlap"],
+  ["sheet", "tervlap"],
+];
+
+const ATTR_REPLACEMENTS = [
+  ["Line style", "Vonalstílus"],
+  ["Takeoffs", "Mérések"],
+  ["Scale", "Méretarány"],
+  ["Open PDF", "PDF terv megnyitása"],
+  ["Add PDF", "PDF terv hozzáadása"],
+  ["Delete", "Törlés"],
+  ["Undo", "Visszavonás"],
+  ["Redo", "Ismét"],
+  ["Height", "Magasság"],
+  ["Thickness", "Vastagság"],
+  ["Area", "Terület"],
+  ["Linear", "Hossz"],
+  ["Count", "Darab"],
+  ["Select", "Kijelölés"],
+  ["Calibrate", "Kalibrálás"],
+  ["Report", "Kimutatás"],
+  ["Search", "Keresés"],
+  ["Filter", "Szűrés"],
+  ["Close", "Bezárás"],
+  ["Save", "Mentés"],
+];
+
 function translateText(value) {
   const raw = String(value ?? "");
   const t = raw.trim();
+  if (!t) return raw;
   if (EXACT.has(t)) return raw.replace(t, EXACT.get(t));
-  if (t.startsWith("Scale — ")) return raw.replace(t, "Méretarány — " + t.slice(8));
-  if (t.startsWith("Opened ") && t.includes(" sheet")) return raw.replace(t, t.replace(/^Opened /, "Megnyitva: ").replace(/ sheets?/, " tervlap"));
-  return raw;
+
+  let next = raw;
+  for (const [from, to] of PHRASES) next = next.replaceAll(from, to);
+
+  // Dynamic status strings used by the measurement footer/panel.
+  next = next
+    .replace(/\b(\d+) measurements? on tervlap\b/gi, "$1 mérés a tervlapon")
+    .replace(/\b(\d+) shapes? on tervlap\b/gi, "$1 mérés a tervlapon")
+    .replace(/\bWaste set to\b/gi, "Ráhagyás beállítva:")
+    .replace(/\bon (\d+) conditions?\b/gi, "$1 mérési tételen")
+    .replace(/\bSet scale…/g, "Méretarány beállítása…")
+    .replace(/\bSet scale\.\.\./g, "Méretarány beállítása…");
+
+  return next;
+}
+
+function translateAttribute(value) {
+  let next = translateText(value);
+  for (const [from, to] of ATTR_REPLACEMENTS) next = next.replaceAll(from, to);
+  return next;
+}
+
+function localizeElement(el) {
+  if (!el?.getAttribute) return;
+  for (const attr of ["title", "aria-label", "placeholder"]) {
+    const value = el.getAttribute(attr);
+    if (!value) continue;
+    const next = translateAttribute(value);
+    if (next !== value) el.setAttribute(attr, next);
+  }
 }
 
 function localizeNode(root) {
   if (!root) return;
-  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+
+  if (root.nodeType === Node.TEXT_NODE) {
+    const next = translateText(root.nodeValue);
+    if (next !== root.nodeValue) root.nodeValue = next;
+    return;
+  }
+
+  localizeElement(root);
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT);
   const nodes = [];
   while (walker.nextNode()) nodes.push(walker.currentNode);
   for (const n of nodes) {
-    const next = translateText(n.nodeValue);
-    if (next !== n.nodeValue) n.nodeValue = next;
-  }
-  if (root.querySelectorAll) {
-    root.querySelectorAll("[title]").forEach((el) => {
-      const title = el.getAttribute("title") || "";
-      const replacements = [
-        ["Agent —", "AI asszisztens —"],
-        ["Takeoffs —", "Mérések —"],
-        ["Scale", "Méretarány"],
-        ["Open PDF", "PDF terv megnyitása"],
-        ["Delete", "Törlés"],
-      ];
-      let next = title;
-      for (const [a,b] of replacements) next = next.replaceAll(a,b);
-      if (next !== title) el.setAttribute("title", next);
-    });
+    if (n.nodeType === Node.TEXT_NODE) {
+      const next = translateText(n.nodeValue);
+      if (next !== n.nodeValue) n.nodeValue = next;
+    } else {
+      localizeElement(n);
+    }
   }
 }
 
 export default function M0DemoShell() {
   useEffect(() => {
+    document.documentElement.lang = "hu";
     document.title = "MérnökSzem M0 – Tervmérés";
     localizeNode(document.body);
+
+    // React frequently updates existing text nodes (sheet load, scale, totals,
+    // zoom, selection). Observe characterData too, otherwise those updates
+    // revert to the upstream English labels after the initial translation.
     const obs = new MutationObserver((mutations) => {
       for (const m of mutations) {
-        for (const n of m.addedNodes) if (n.nodeType === Node.ELEMENT_NODE || n.nodeType === Node.TEXT_NODE) localizeNode(n.nodeType === Node.TEXT_NODE ? n.parentNode : n);
+        if (m.type === "characterData") {
+          localizeNode(m.target);
+          continue;
+        }
+        if (m.type === "attributes") {
+          localizeElement(m.target);
+          continue;
+        }
+        for (const n of m.addedNodes) localizeNode(n);
       }
     });
-    obs.observe(document.body, { subtree: true, childList: true });
+    obs.observe(document.body, {
+      subtree: true,
+      childList: true,
+      characterData: true,
+      attributes: true,
+      attributeFilter: ["title", "aria-label", "placeholder"],
+    });
     return () => obs.disconnect();
   }, []);
 
@@ -90,11 +235,67 @@ export default function M0DemoShell() {
 
   return (
     <>
-      <div style={{ position:"fixed", top:8, left:"50%", transform:"translateX(-50%)", zIndex:99999, display:"flex", alignItems:"center", gap:10, padding:"7px 10px", background:"rgba(255,255,255,.96)", color:"#172033", border:"1px solid rgba(23,32,51,.18)", boxShadow:"0 2px 12px rgba(0,0,0,.12)", fontSize:12, borderRadius:6 }}>
-        <strong>MérnökSzem M0 – belső demo</strong>
-        <span style={{ opacity:.72 }}>A terv helyben, ebben a böngészőben marad. AI és felhőszinkron kikapcsolva.</span>
-        {back ? <a href={back} style={{ color:"inherit", fontWeight:600 }}>Vissza a MérnökSzemhez</a> : null}
-        <button type="button" onClick={reset} style={{ border:"1px solid rgba(23,32,51,.24)", background:"#fff", color:"#172033", padding:"4px 7px", borderRadius:4, cursor:"pointer", fontSize:11 }}>Helyi projektadatok törlése</button>
+      <style>{`
+        .m0-demo-bar {
+          position: fixed;
+          top: 6px;
+          left: 50%;
+          transform: translateX(-50%);
+          z-index: 99999;
+          display: flex;
+          align-items: center;
+          gap: 9px;
+          max-width: calc(100vw - 16px);
+          padding: 6px 9px;
+          background: rgba(255,255,255,.96);
+          color: #172033;
+          border: 1px solid rgba(23,32,51,.18);
+          box-shadow: 0 2px 12px rgba(0,0,0,.12);
+          font-size: 11.5px;
+          line-height: 1.25;
+          border-radius: 6px;
+          white-space: nowrap;
+        }
+        .m0-demo-bar a { color: inherit; font-weight: 600; text-decoration: none; }
+        .m0-demo-reset {
+          border: 1px solid rgba(23,32,51,.24);
+          background: #fff;
+          color: #172033;
+          padding: 4px 7px;
+          border-radius: 4px;
+          cursor: pointer;
+          font-size: 11px;
+          white-space: nowrap;
+        }
+        .m0-mobile-only { display: none; }
+        @media (max-width: 720px) {
+          .m0-demo-bar {
+            top: 4px;
+            left: 4px;
+            right: 4px;
+            transform: none;
+            width: auto;
+            max-width: none;
+            gap: 6px;
+            padding: 5px 7px;
+            font-size: 10.5px;
+            overflow: hidden;
+          }
+          .m0-demo-note { display: none; }
+          .m0-demo-back { margin-left: auto; }
+          .m0-demo-reset { padding: 3px 5px; font-size: 10px; }
+          .m0-desktop-only { display: none; }
+          .m0-mobile-only { display: inline; }
+        }
+      `}</style>
+      <div className="m0-demo-bar">
+        <strong>M0 – Tervmérés</strong>
+        <span className="m0-demo-note" style={{ opacity:.72 }}>Helyi mód: a terv ebben a böngészőben marad; AI és felhőszinkron kikapcsolva.</span>
+        {back ? <a className="m0-demo-back" href={back}><span className="m0-desktop-only">Vissza a MérnökSzemhez</span><span className="m0-mobile-only">MérnökSzem</span></a> : null}
+        <button type="button" className="m0-demo-reset" onClick={reset}>
+          <span className="m0-desktop-only">Helyi projektadatok törlése</span>
+          <span className="m0-mobile-only">Adatok törlése</span>
+        </button>
       </div>
       <TakeoffCanvas />
     </>
