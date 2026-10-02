@@ -5,6 +5,8 @@ import "./styles/tokens.css";
 import "./styles/app.css";
 import "./styles/print.css";   // OT-only print block — kept out of app.css so tokens/app stay byte-synced with Spline
 import TakeoffCanvas from "./pages/TakeoffCanvas.jsx";
+import M0DemoShell from "./components/M0DemoShell.jsx";
+import { m0DemoEnabled } from "./lib/m0Demo.js";
 import ProjectHome from "./components/ProjectHome.jsx";
 import { GoogleAuthProvider, useGoogleAuth } from "./lib/google/AuthContext.jsx";
 import { projectIdFromUrl, setActiveStore, metaGet, metaDelete } from "./lib/store.js";
@@ -476,6 +478,7 @@ function App() {
   // URL helpers read window.location, which history has already updated by the
   // time this re-render runs — useLocation() is purely the re-render trigger.
   useLocation();
+  if (m0DemoEnabled()) return <M0DemoShell />;
   const projectId = projectIdFromUrl();
   // ?project= deep link → the cloud project.
   if (projectId && isGoogleConfigured()) return <ProjectGate projectId={projectId} />;

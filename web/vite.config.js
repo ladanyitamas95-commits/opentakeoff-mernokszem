@@ -16,8 +16,22 @@ const pkg = JSON.parse(readFileSync(new URL("./package.json", import.meta.url), 
 // The `/ai` proxy is OPTIONAL — it only matters if you run the bring-your-own-
 // model AI sandbox in `../server` (see server/README.md). Without it, the app
 // works fully; the AI hooks just stay dormant.
+const m0DemoCspPlugin = process.env.VITE_M0_DEMO === "1" ? {
+  name: "m0-demo-csp",
+  transformIndexHtml() {
+    return [{
+      tag: "meta",
+      injectTo: "head-prepend",
+      attrs: {
+        "http-equiv": "Content-Security-Policy",
+        content: "default-src 'self'; connect-src 'self'; img-src 'self' data: blob:; media-src 'self' blob:; worker-src 'self' blob:; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'self'"
+      }
+    }];
+  },
+} : null;
+
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), ...(m0DemoCspPlugin ? [m0DemoCspPlugin] : [])],
   define: { __APP_VERSION__: JSON.stringify(pkg.version) },
   // The STT worker (stt.worker.ts, RFC #59) lazy-imports its engine adapter,
   // which needs code-splitting inside the worker bundle — only the ES format
