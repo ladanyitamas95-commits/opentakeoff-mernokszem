@@ -1,5 +1,4 @@
 (() => {
-  const MOBILE_QUERY = "(max-width: 720px)";
   const STYLE_ID = "m0-mobile-safe-top-style";
 
   function isM0() {
@@ -12,19 +11,27 @@
     style.id = STYLE_ID;
     style.textContent = `
       @media (max-width: 720px) {
-        /* Reserve real viewport space for the fixed M0 bar. This deliberately
-           avoids changing the OpenTakeoff canvas/rail positioning rules. */
-        .m0-demo-bar + * {
-          margin-top: 42px !important;
+        /* On phones the M0 shell must take real layout space. Sticky keeps it
+           visible but, unlike fixed, it cannot cover the OpenTakeoff toolbar. */
+        .m0-demo-bar {
+          position: sticky !important;
+          top: 0 !important;
+          left: auto !important;
+          right: auto !important;
+          transform: none !important;
+          width: calc(100% - 8px) !important;
+          max-width: none !important;
+          margin: 4px 4px 0 !important;
+          box-sizing: border-box !important;
+          z-index: 99999 !important;
         }
 
-        /* Keep the original upper OpenTakeoff toolbar interactive and above
-           normal canvas content, but below the M0 shell bar. */
+        /* The upstream top controls remain normal interactive UI. */
         .m0-demo-bar + * button,
         .m0-demo-bar + * input,
         .m0-demo-bar + * select,
         .m0-demo-bar + * [role="button"] {
-          pointer-events: auto;
+          pointer-events: auto !important;
         }
       }
     `;
@@ -37,9 +44,14 @@
     next = next
       .replace(/drag conditions here\s*\(or pin a row\)\s*for 1[–-]9 one-click access/gi,
         "Húzd ide a mérési tételeket (vagy rögzíts egy sort) az 1–9 gyorseléréshez")
+      .replace(/drag conditions here/gi, "Húzd ide a mérési tételeket")
+      .replace(/\(or pin a row\)/gi, "(vagy rögzíts egy sort)")
+      .replace(/for 1[–-]9 one-click access/gi, "az 1–9 gyorseléréshez")
       .replace(/\+\s*condition\b/gi, "+ mérési tétel")
       .replace(/^condition$/i, "Mérési tétel")
-      .replace(/^conditions$/i, "Mérési tételek");
+      .replace(/^conditions$/i, "Mérési tételek")
+      .replace(/\bcondition\b/gi, "mérési tétel")
+      .replace(/\bconditions\b/gi, "mérési tételek");
     return next;
   }
 
@@ -79,8 +91,6 @@
   }
 
   function start() {
-    // React mounts after this deferred script. Poll briefly until the M0 shell
-    // exists, then MutationObserver keeps dynamic condition text translated.
     let attempts = 0;
     const timer = window.setInterval(() => {
       attempts += 1;
