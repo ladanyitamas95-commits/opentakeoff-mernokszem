@@ -13,12 +13,16 @@ import {
   signIn as authSignIn,
   signOut as authSignOut,
 } from "./auth.js";
+import { m0DemoEnabled } from "../m0Demo.js";
 
 const GoogleAuthContext = createContext(null);
 
 export function GoogleAuthProvider({ children }) {
-  const configured = isGoogleConfigured();
-  const [user, setUser] = useState(getUser());
+  // M0 is deliberately local-only even if a deployment accidentally carries a
+  // Google client id. This prevents the GIS preload from making an external
+  // request merely because an unrelated environment variable exists.
+  const configured = !m0DemoEnabled() && isGoogleConfigured();
+  const [user, setUser] = useState(configured ? getUser() : null);
   // Not configured -> nothing to load, we're ready at once.
   const [ready, setReady] = useState(!configured);
 
