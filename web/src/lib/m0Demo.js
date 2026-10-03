@@ -37,4 +37,14 @@ export async function clearM0LocalProjectData() {
         .map((name) => caches.delete(name)));
     }
   } catch { /* CacheStorage unavailable */ }
+
+  // This Railway hostname is dedicated to M0; no service worker is required.
+  // Removing registrations prevents an older worker from retaining stale plan
+  // responses or initiating network work before the current app boots.
+  try {
+    if ("serviceWorker" in navigator) {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map((reg) => reg.unregister()));
+    }
+  } catch { /* ServiceWorker unavailable */ }
 }
