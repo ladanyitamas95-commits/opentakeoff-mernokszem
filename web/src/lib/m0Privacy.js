@@ -7,7 +7,7 @@ const PRIVACY_SCHEMA_KEY = "m0_privacy_schema";
 const PRIVACY_SCHEMA = "2";
 
 function asUrl(value) {
-  if (value instanceof Request) return new URL(value.url, window.location.href);
+  if (typeof Request !== "undefined" && value instanceof Request) return new URL(value.url, window.location.href);
   return new URL(String(value), window.location.href);
 }
 
@@ -33,10 +33,10 @@ export function neutralPdfName() {
 }
 
 /**
- * Removes standard identifying PDF metadata, annotations/form fields and embedded
- * file references before M0 persists a plan locally. This is metadata/privacy
- * hardening, NOT semantic anonymisation: visible/hidden drawing text can still
- * contain identifying information and must be anonymised before import.
+ * Removes standard/custom PDF metadata and common hidden active-content carriers
+ * before M0 persists a plan locally. This is metadata/privacy hardening, NOT
+ * semantic anonymisation: drawing text/layers can still contain identities and
+ * must be anonymised before import.
  */
 export async function sanitizePdfForM0(inputBytes) {
   if (!m0DemoEnabled()) return inputBytes instanceof ArrayBuffer ? inputBytes : inputBytes.buffer;
@@ -49,22 +49,25 @@ export async function sanitizePdfForM0(inputBytes) {
     throw new Error(`A PDF adatvédelmi tisztítása nem sikerült, ezért a fájl nem került betöltésre. ${String(e?.message || e)}`);
   }
 
-  pdf.setTitle("");
-  pdf.setAuthor("");
-  pdf.setSubject("");
-  pdf.setKeywords([]);
-  pdf.setCreator("");
-  pdf.setProducer("");
-  const neutralDate = new Date("2000-01-01T00:00:00.000Z");
-  pdf.setCreationDate(neutralDate);
-  pdf.setModificationDate(neutralDate);
+  // Remove the complete Info dictionary contents, not only standard fields:
+  // custom producer/project/user keys are a common metadata leak.
+  try {
+    const infoRef = pdf.context.trailerInfo.Info;
+    const info = infoRef ? pdf.context.lookup(infoRef, PDFDict) : undefined;
+    if (info) for (const key of [...info.keys()]) info.delete(key);
+  } catch { /* malformed optional Info dictionary */ }
 
-  // XMP metadata, forms/field values, annotations/comments and embedded files
-  // can carry names, e-mail addresses or document provenance.
+  // XMP metadata, forms/field values, annotations/comments, embedded files and
+  // document-level actions can carry names, e-mail addresses or provenance.
   pdf.catalog.delete(PDFName.of("Metadata"));
   pdf.catalog.delete(PDFName.of("AcroForm"));
+  pdf.catalog.delete(PDFName.of("OpenAction"));
+  pdf.catalog.delete(PDFName.of("AA"));
   const names = pdf.catalog.lookupMaybe(PDFName.of("Names"), PDFDict);
-  if (names) names.delete(PDFName.of("EmbeddedFiles"));
+  if (names) {
+    names.delete(PDFName.of("EmbeddedFiles"));
+    names.delete(PDFName.of("JavaScript"));
+  }
   for (const page of pdf.getPages()) page.node.delete(PDFName.of("Annots"));
 
   const saved = await pdf.save({ useObjectStreams: false, addDefaultPage: false });
@@ -110,6 +113,7 @@ function hardenLocalStore() {
       await migration;
       const raw = await file.arrayBuffer();
       const sanitized = await sanitizePdfForM0(raw);
+      // Never persist the original upload filename or browser lastModified value.
       const safeFile = new File([sanitized], neutralPdfName(), {
         type: "application/pdf",
         lastModified: 0,
@@ -142,11 +146,13 @@ export function installM0PrivacyGuards() {
   }
 
   if (navigator.sendBeacon) {
-    const nativeBeacon = navigator.sendBeacon.bind(navigator);
-    navigator.sendBeacon = (url, data) => {
-      if (!isM0AllowedNetworkTarget(url)) return false;
-      return nativeBeacon(url, data);
-    };
+    try {
+      const nativeBeacon = navigator.sendBeacon.bind(navigator);
+      navigator.sendBeacon = (url, data) => {
+        if (!isM0AllowedNetworkTarget(url)) return false;
+        return nativeBeacon(url, data);
+      };
+    } catch { /* read-only browser implementation; CSP still blocks egress */ }
   }
 
   // Collaboration/remote-presence transports are intentionally unavailable in
