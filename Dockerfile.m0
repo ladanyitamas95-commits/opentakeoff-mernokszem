@@ -10,7 +10,8 @@ COPY web/ ./
 ENV VITE_M0_DEMO=1
 ENV VITE_MERNOKSZEM_URL=https://mernokszem-tender-cloud-demo-production.up.railway.app/
 
-RUN npm run build
+# Privacy/security changes are release-gated by the full web validation suite.
+RUN npm run typecheck && npm run lint && npm test && npm run bench && npm run build
 
 EXPOSE 4173
 
