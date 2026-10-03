@@ -53,6 +53,9 @@
          CSP with script-src 'self' — see public/theme-init.js and public/_headers.
          Must stay render-blocking (no async/defer) to run before first paint. -->
     <script src="/theme-init.js"></script>
+    <!-- M0 demo compatibility patch. It is same-origin and self-disables unless
+         the M0 shell is present, so the strict demo CSP remains intact. -->
+    <script defer src="/m0-mobile-fix.js"></script>
     <!-- Cloudflare Web Analytics: privacy-first page-view beacon (no cookies, no
          fingerprinting, no PII). The token is public by design. Its origin is
          allowed in public/_headers script-src; connect-src is already open. -->
