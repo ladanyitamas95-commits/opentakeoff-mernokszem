@@ -10,25 +10,42 @@ const pkg = JSON.parse(readFileSync(new URL("./package.json", import.meta.url), 
 
 // OpenTakeoff is a client-only static app: the takeoff canvas runs entirely in
 // the browser (pdf.js + canvas + the geometry libs), persists to IndexedDB /
-// localStorage, and builds to a static `dist/` you can host anywhere (GitHub
-// Pages, Vercel, Netlify, an S3 bucket).
-//
-// The `/ai` proxy is OPTIONAL — it only matters if you run the bring-your-own-
-// model AI sandbox in `../server` (see server/README.md). Without it, the app
-// works fully; the AI hooks just stay dormant.
-const m0DemoCspPlugin = process.env.VITE_M0_DEMO === "1" ? {
-  name: "m0-demo-csp",
+// localStorage, and builds to a static `dist/` you can host anywhere.
+const m0Mode = process.env.VITE_M0_DEMO === "1";
+const m0Csp = "default-src 'self'; connect-src 'self'; img-src 'self' data: blob:; media-src 'self' blob:; worker-src 'self' blob:; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; manifest-src 'self'";
+
+const m0DemoPrivacyPlugin = m0Mode ? {
+  name: "m0-demo-privacy",
   transformIndexHtml() {
     return [{
       tag: "meta",
       injectTo: "head-prepend",
       attrs: {
         "http-equiv": "Content-Security-Policy",
-        content: "default-src 'self'; connect-src 'self'; img-src 'self' data: blob:; media-src 'self' blob:; worker-src 'self' blob:; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'self'"
-      }
+        content: m0Csp,
+      },
     }];
   },
+  transform(code, id) {
+    const normalized = id.replaceAll("\\", "/");
+    if (!normalized.endsWith("/src/styles/tokens.css")) return null;
+    // The upstream font import contacts Google before any plan is opened. M0
+    // uses the existing system-font fallbacks instead, so no font provider sees
+    // the visitor's IP/User-Agent.
+    return code.replace(/^@import\s+url\(['"]?https:\/\/fonts\.googleapis\.com\/[^\n]+\n?/m, "");
+  },
 } : null;
+
+const m0Headers = m0Mode ? {
+  "Content-Security-Policy": m0Csp,
+  "Referrer-Policy": "no-referrer",
+  "Permissions-Policy": "geolocation=(), camera=(), microphone=(), payment=(), usb=(), bluetooth=(), clipboard-read=()",
+  "X-Content-Type-Options": "nosniff",
+  "X-Frame-Options": "DENY",
+  "Cross-Origin-Opener-Policy": "same-origin",
+  "Cross-Origin-Resource-Policy": "same-origin",
+  "Cache-Control": "no-store",
+} : undefined;
 
 export default defineConfig({
   preview: {
@@ -36,8 +53,9 @@ export default defineConfig({
     port: 4173,
     strictPort: true,
     allowedHosts: [".up.railway.app", ".railway.internal", "localhost"],
+    headers: m0Headers,
   },
-  plugins: [react(), ...(m0DemoCspPlugin ? [m0DemoCspPlugin] : [])],
+  plugins: [react(), ...(m0DemoPrivacyPlugin ? [m0DemoPrivacyPlugin] : [])],
   define: { __APP_VERSION__: JSON.stringify(pkg.version) },
   // The STT worker (stt.worker.ts, RFC #59) lazy-imports its engine adapter,
   // which needs code-splitting inside the worker bundle — only the ES format
