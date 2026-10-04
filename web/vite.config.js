@@ -6,9 +6,6 @@ import react from "@vitejs/plugin-react";
 const pkg = JSON.parse(readFileSync(new URL("./package.json", import.meta.url), "utf8"));
 const m0Mode = process.env.VITE_M0_DEMO === "1";
 
-// M0 has no legitimate HTTP/XHR/WebSocket API traffic. App modules/assets use
-// their own CSP directives; local plans are File/Blob bytes. Deny connect
-// entirely so a missed JS guard cannot exfiltrate even to the same Railway host.
 export const m0Csp = "default-src 'self'; connect-src 'none'; img-src 'self' data: blob:; media-src 'self' blob:; worker-src 'self' blob:; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src 'none'; frame-ancestors 'none'; manifest-src 'self'";
 
 const stub = (name) => fileURLToPath(new URL(`./src/lib/m0Stubs/${name}`, import.meta.url));
@@ -25,10 +22,11 @@ const m0DemoPrivacyPlugin = m0Mode ? {
     if (s.endsWith("/lib/google/AuthContext.jsx")) return stub("googleAuthContext.jsx");
     if (s.endsWith("/lib/msgraph/config.js")) return stub("msgraphConfig.js");
     if (s.endsWith("/lib/fs/fsAccess.js")) return stub("fsAccess.js");
+    if (s.endsWith("/lib/ingest.js")) return stub("ingestPdfOnly.js");
 
-    // AI/agent/voice are outside the validated M0 scope. Replace them at module
-    // resolution time so their provider endpoints, microphone path, model loader
-    // and heavy STT runtime are physically absent from the emitted demo bundle.
+    // AI/agent/voice/remote scan are outside the validated M0 scope. Resolve
+    // them to fail-closed stubs so their transports and heavy model runtime are
+    // physically absent from the emitted privacy-demo bundle.
     if (s.endsWith("/lib/ai.js")) return stub("aiDisabled.js");
     if (s.endsWith("/lib/agentTools.js") || s.endsWith("/lib/agentLoop.js")) return AGENT_STUB;
     if (
@@ -108,8 +106,5 @@ export default defineConfig({
       },
     },
   },
-  build: {
-    outDir: "dist",
-    emptyOutDir: true,
-  },
+  build: { outDir: "dist", emptyOutDir: true },
 });
