@@ -10,9 +10,13 @@ COPY web/ ./
 ENV VITE_M0_DEMO=1
 ENV VITE_MERNOKSZEM_URL=https://mernokszem-tender-cloud-demo-production.up.railway.app/
 
-# Privacy/security changes are release-gated by the full web validation suite.
-RUN npm run typecheck && npm run lint && npm test && npm run bench && npm run build
+# Release only when validation inputs exist, the full test/benchmark suite passes,
+# the dedicated M0 build succeeds, and the emitted bundle contains no forbidden
+# cloud/AI/analytics endpoint strings.
+RUN npm run check:m0
 
 EXPOSE 4173
 
-CMD ["npm","run","preview","--","--host","0.0.0.0","--port","4173"]
+# Vite preview is a development server. The M0 runtime uses a tiny no-log static
+# server that rejects non-GET methods and emits enforceable security headers.
+CMD ["npm","run","serve:m0"]
