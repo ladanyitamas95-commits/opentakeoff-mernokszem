@@ -1,14 +1,8 @@
 # Docker build context — keep it to what the build actually needs.
 #
 # Both Dockerfiles COPY the repo root, because mcp/ bundles the takeoff engine
-# out of web/src/lib at build time. Without this file that COPY also ships the
-# git history and every local artifact: ~109 MB of .git and, on a developer's
-# machine, ~1.1 GB of node_modules, dist output and the fetched voice model —
-# none of which the build reads. Tracked sources are ~22 MB.
-#
-# This is not only a speed fix. A remote builder (Glama's, among others) pays
-# for that context on every build, and a build that fails for being too big or
-# too slow looks exactly like a build that fails for being broken.
+# out of web/src/lib at build time. The M0 Dockerfile also executes the web test
+# and benchmark suites, so web/test and web/bench MUST remain in the context.
 
 .git
 .github
@@ -22,19 +16,21 @@
 mcp/*.mcpb
 
 # Fetched at deploy time by web/scripts/fetch-voice-model.mjs (~44 MB), never
-# read by the MCP server.
+# required by the M0 privacy gate.
 web/public/models
 
-# Docs, media and fixtures: nothing in the bundle imports them.
+# Docs/media and non-web fixtures: nothing in the M0 bundle imports them.
 docs
 demo
 web/public/demo
-web/test
-web/bench
 capture
 server
 *.md
 !mcp/README.md
+
+# IMPORTANT: do not ignore web/test or web/bench. Dockerfile.m0 release-gates
+# production on both. Excluding them previously caused `npm test` to run 0 tests
+# and `npm run bench` to fail with ERR_MODULE_NOT_FOUND.
 
 # Local noise.
 .DS_Store
