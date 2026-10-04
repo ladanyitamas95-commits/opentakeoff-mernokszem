@@ -1,4 +1,4 @@
-FROM node:24-bookworm-slim
+FROM node:24-bookworm-slim AS build
 
 WORKDIR /app
 
@@ -15,8 +15,16 @@ ENV VITE_MERNOKSZEM_URL=https://mernokszem-tender-cloud-demo-production.up.railw
 # cloud/AI/analytics endpoint strings.
 RUN npm run check:m0
 
-EXPOSE 4173
+# Runtime contains no npm dependency tree and no Vite/dev server. Only the built
+# static app plus the tiny Node-core-only security-header server are copied in.
+FROM node:24-bookworm-slim AS runtime
+WORKDIR /app
+ENV NODE_ENV=production
+ENV PORT=4173
 
-# Vite preview is a development server. The M0 runtime uses a tiny no-log static
-# server that rejects non-GET methods and emits enforceable security headers.
-CMD ["npm","run","serve:m0"]
+COPY --from=build --chown=node:node /app/dist ./dist
+COPY --from=build --chown=node:node /app/scripts/serve-m0.mjs ./scripts/serve-m0.mjs
+
+USER node
+EXPOSE 4173
+CMD ["node","scripts/serve-m0.mjs"]
