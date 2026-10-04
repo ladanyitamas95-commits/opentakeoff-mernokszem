@@ -16,7 +16,15 @@ const forbidden = [
   "sentry.io",
   "supabase.co",
 ];
-const forbiddenFileNames = [/graphDrive/i, /cloudStore/i];
+const forbiddenFileNames = [
+  /graphDrive/i,
+  /cloudStore/i,
+  /stt\.worker/i,
+  /whisper/i,
+  /transformers/i,
+  /ort-wasm/i,
+  /\.map$/i,
+];
 const failures = [];
 let filesScanned = 0;
 
@@ -25,7 +33,7 @@ async function walk(dir) {
     const p = join(dir, ent.name);
     if (ent.isDirectory()) { await walk(p); continue; }
     const rel = relative(root, p);
-    for (const rx of forbiddenFileNames) if (rx.test(rel)) failures.push(`${rel}: forbidden cloud chunk name (${rx})`);
+    for (const rx of forbiddenFileNames) if (rx.test(rel)) failures.push(`${rel}: forbidden privacy-surface artifact (${rx})`);
     if (!textExt.has(extname(ent.name))) continue;
     filesScanned++;
     const text = await readFile(p, "utf8");
@@ -48,4 +56,4 @@ if (failures.length) {
   for (const f of failures) console.error(` - ${f}`);
   process.exit(1);
 }
-console.log(`M0 privacy bundle audit PASS (${filesScanned} text assets scanned; no forbidden external endpoints/cloud chunks).`);
+console.log(`M0 privacy bundle audit PASS (${filesScanned} text assets scanned; no external endpoints, cloud/AI/voice chunks or source maps).`);
