@@ -3,7 +3,8 @@ import assert from "node:assert/strict";
 import { PDFDocument, PDFDict, PDFName, PDFString } from "pdf-lib";
 import {
   isAllowedM0Request,
-  neutralPdfName,
+  M0_MAX_PDF_PAGES,
+  pseudonymousPdfName,
   sanitizePdfBytes,
 } from "../src/lib/m0Privacy.js";
 
@@ -29,13 +30,18 @@ test("M0 network policy denies all HTTP(S) egress, including same-origin", () =>
   assert.equal(isAllowedM0Request("blob:https://mernokszem-m0.example/123", { method: "POST" }, origin), false);
 });
 
-test("M0 neutral filename never persists the source filename", () => {
-  const a = neutralPdfName();
-  const b = neutralPdfName();
-  assert.match(a, /^Tervlap-[a-zA-Z0-9-]{8,12}\.pdf$/);
-  assert.match(b, /^Tervlap-[a-zA-Z0-9-]{8,12}\.pdf$/);
-  assert.notEqual(a, b);
-  assert.equal(a.includes("Tender_Project_Client_Name"), false);
+test("M0 filename pseudonym is stable per secret without persisting source name", async () => {
+  const secretA = new Uint8Array(32).fill(0x2a);
+  const secretB = new Uint8Array(32).fill(0x7b);
+  const source = "Ügyfél_Neve_Titkos_Projekt_PM90.pdf";
+  const a1 = await pseudonymousPdfName(source, secretA);
+  const a2 = await pseudonymousPdfName(source, secretA);
+  const b = await pseudonymousPdfName(source, secretB);
+  assert.match(a1, /^Tervlap-[0-9a-f]{16}\.pdf$/);
+  assert.equal(a1, a2, "same browser-secret + same source name must preserve revision grouping");
+  assert.notEqual(a1, b, "different browser secrets must not produce a global cross-user identifier");
+  assert.equal(a1.includes("Ügyfél"), false);
+  assert.equal(a1.includes("PM90"), false);
 });
 
 test("PDF sanitizer rebuilds pages and removes recoverable metadata/action canaries", async () => {
@@ -86,4 +92,11 @@ test("PDF sanitizer rebuilds pages and removes recoverable metadata/action canar
   assert.equal(out.getPage(0).node.has(PDFName.of("Annots")), false);
   assert.equal(bytesContain(cleaned, CANARY), false, "deleted objects must not survive as orphan bytes");
   assert.equal(bytesContain(cleaned, EMAIL), false, "identity metadata must not survive raw-byte inspection");
+});
+
+test("PDF sanitizer refuses pathological page counts before persistence", async () => {
+  const src = await PDFDocument.create({ updateMetadata: false });
+  for (let i = 0; i < M0_MAX_PDF_PAGES + 1; i++) src.addPage([10, 10]);
+  const bytes = await src.save({ useObjectStreams: true });
+  await assert.rejects(() => sanitizePdfBytes(bytes), /maximum|maximum|oldal/i);
 });
