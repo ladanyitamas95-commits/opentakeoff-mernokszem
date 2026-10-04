@@ -1,11 +1,15 @@
 FROM node:24-bookworm-slim AS build
 
-WORKDIR /app
+# Preserve the repository-relative layout expected by the web test suite:
+# /app/web/test -> ../../docs and ../../demo.
+WORKDIR /app/web
 
 COPY web/package.json web/package-lock.json ./
 RUN npm ci
 
 COPY web/ ./
+COPY docs/USER_GUIDE.md /app/docs/USER_GUIDE.md
+COPY demo/sample-plan.pdf /app/demo/sample-plan.pdf
 
 ENV VITE_M0_DEMO=1
 ENV VITE_MERNOKSZEM_URL=https://mernokszem-tender-cloud-demo-production.up.railway.app/
@@ -15,15 +19,16 @@ ENV VITE_MERNOKSZEM_URL=https://mernokszem-tender-cloud-demo-production.up.railw
 # cloud/AI/analytics endpoint strings.
 RUN npm run check:m0
 
-# Runtime contains no npm dependency tree and no Vite/dev server. Only the built
-# static app plus the tiny Node-core-only security-header server are copied in.
+# Runtime contains no test fixtures, docs, npm dependency tree or Vite/dev server.
+# Only the built static app plus the tiny Node-core-only security-header server
+# are copied from the build stage.
 FROM node:24-bookworm-slim AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=4173
 
-COPY --from=build --chown=node:node /app/dist ./dist
-COPY --from=build --chown=node:node /app/scripts/serve-m0.mjs ./scripts/serve-m0.mjs
+COPY --from=build --chown=node:node /app/web/dist ./dist
+COPY --from=build --chown=node:node /app/web/scripts/serve-m0.mjs ./scripts/serve-m0.mjs
 
 USER node
 EXPOSE 4173
