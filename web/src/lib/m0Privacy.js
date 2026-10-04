@@ -56,16 +56,16 @@ export function neutralPdfName() {
 }
 
 const RISKY_DICT_KEYS = [
-  "Metadata",       // XMP / object-level metadata
-  "PieceInfo",      // private application metadata
-  "LastModified",   // provenance timestamp
-  "Annots",         // comments, links, form widgets
-  "AA",             // additional actions
-  "OpenAction",     // document/page automatic action
-  "AcroForm",       // form fields and values
-  "EmbeddedFiles",  // attachment name tree
-  "JavaScript",     // JavaScript name tree
-  "AF",             // associated files
+  "Metadata",
+  "PieceInfo",
+  "LastModified",
+  "Annots",
+  "AA",
+  "OpenAction",
+  "AcroForm",
+  "EmbeddedFiles",
+  "JavaScript",
+  "AF",
 ];
 
 function stripRiskyKeysFromContext(pdf) {
@@ -101,8 +101,6 @@ export async function sanitizePdfBytes(inputBytes) {
     throw new Error(`A PDF adatvédelmi tisztítása nem sikerült, ezért a fájl nem került betöltésre. ${String(e?.message || e)}`);
   }
 
-  // Strip page-level carriers before copyPages follows references into the new
-  // document. This prevents annotations/attachments/action graphs being copied.
   for (const page of source.getPages()) {
     for (const key of RISKY_DICT_KEYS) page.node.delete(PDFName.of(key));
   }
@@ -111,19 +109,17 @@ export async function sanitizePdfBytes(inputBytes) {
   const clean = await PDFDocument.create({ updateMetadata: false });
   const copied = await clean.copyPages(source, source.getPageIndices());
   for (const page of copied) clean.addPage(page);
-
-  // Defense in depth after copy: remove metadata/action keys from every copied
-  // indirect dictionary and clear the newly-created Info dictionary too.
   stripRiskyKeysFromContext(clean);
 
   const saved = await clean.save({ useObjectStreams: false, addDefaultPage: false });
-  return saved.buffer.slice(saved.byteOffset, saved.byteOffset + saved.byteLength);
+  // Return a typed byte view rather than slicing ArrayBufferLike. This keeps the
+  // API stable across Node/browser typings where .buffer may be SharedArrayBuffer.
+  return new Uint8Array(saved);
 }
 
 export async function sanitizePdfForM0(inputBytes) {
   if (!m0DemoEnabled()) {
-    if (inputBytes instanceof ArrayBuffer) return inputBytes;
-    return inputBytes.buffer.slice(inputBytes.byteOffset, inputBytes.byteOffset + inputBytes.byteLength);
+    return inputBytes instanceof Uint8Array ? new Uint8Array(inputBytes) : new Uint8Array(inputBytes);
   }
   return sanitizePdfBytes(inputBytes);
 }
@@ -137,9 +133,6 @@ function startPrivacyMigration() {
     try {
       if (localStorage.getItem(PRIVACY_SCHEMA_KEY) === PRIVACY_SCHEMA) return;
     } catch { /* disabled storage: still purge IndexedDB best-effort */ }
-
-    // Previous M0 builds may contain original filenames or v2 PDF bytes. Purge
-    // once BEFORE any local-store read/write; users re-import through v3 sanitizer.
     await clearM0LocalProjectData();
     try { localStorage.setItem(PRIVACY_SCHEMA_KEY, PRIVACY_SCHEMA); } catch { /* private mode */ }
   })();
@@ -167,7 +160,6 @@ function hardenLocalStore() {
       await migration;
       const raw = await file.arrayBuffer();
       const sanitized = await sanitizePdfBytes(raw);
-      // Never persist the source filename or browser-provided lastModified value.
       const safeFile = new File([sanitized], neutralPdfName(), {
         type: "application/pdf",
         lastModified: 0,
@@ -193,7 +185,6 @@ function blockConstructor(name) {
 export function installM0PrivacyGuards() {
   if (!m0DemoEnabled() || guardsInstalled || typeof window === "undefined") return;
   guardsInstalled = true;
-
   hardenLocalStore();
 
   const nativeFetch = window.fetch?.bind(window);
@@ -212,15 +203,10 @@ export function installM0PrivacyGuards() {
     };
   }
 
-  // Beacons are telemetry by design. M0 never needs them, including same-origin.
   if (navigator.sendBeacon) {
     try { navigator.sendBeacon = () => false; } catch { /* read-only implementation */ }
   }
 
-  // No collaboration, server push, peer-to-peer or cross-tab communication in
-  // the private internal demo. Worker remains available because pdf.js/netroom
-  // require dedicated workers; external connections from workers are blocked by
-  // the document/server CSP and the bundle audit rejects known remote endpoints.
   for (const key of [
     "WebSocket",
     "EventSource",
