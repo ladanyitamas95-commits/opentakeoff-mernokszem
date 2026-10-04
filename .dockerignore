@@ -20,8 +20,10 @@ mcp/*.mcpb
 web/public/models
 
 # Docs/media and non-web fixtures: nothing in the M0 bundle imports them.
-docs
-demo
+docs/*
+!docs/USER_GUIDE.md
+demo/*
+!demo/sample-plan.pdf
 web/public/demo
 capture
 server
