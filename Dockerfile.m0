@@ -4,7 +4,8 @@ FROM node:24-bookworm-slim AS build
 # /app/web/test -> ../../docs and ../../demo.
 WORKDIR /app/web
 
-COPY web/package.json web/package-lock.json ./
+# Install under the same strict dependency-script policy used by CI/local web builds.
+COPY web/package.json web/package-lock.json web/.npmrc ./
 RUN npm ci
 
 COPY web/ ./

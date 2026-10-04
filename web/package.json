@@ -58,5 +58,10 @@
     "adm-zip": "0.6.1",
     "brace-expansion": "1.1.21",
     "postcss": "^8.5.18"
+  },
+  "allowScripts": {
+    "esbuild": false,
+    "onnxruntime-node": false,
+    "protobufjs": false
   }
 }
