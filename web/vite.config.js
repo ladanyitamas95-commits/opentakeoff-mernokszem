@@ -13,6 +13,8 @@ export const m0Csp = "default-src 'self'; connect-src 'none'; img-src 'self' dat
 
 const stub = (name) => fileURLToPath(new URL(`./src/lib/m0Stubs/${name}`, import.meta.url));
 const CLOUD_STUB = stub("cloudDisabled.js");
+const AGENT_STUB = stub("agentDisabled.js");
+const VOICE_STUB = stub("voiceDisabled.js");
 
 const m0DemoPrivacyPlugin = m0Mode ? {
   name: "m0-demo-privacy",
@@ -23,6 +25,20 @@ const m0DemoPrivacyPlugin = m0Mode ? {
     if (s.endsWith("/lib/google/AuthContext.jsx")) return stub("googleAuthContext.jsx");
     if (s.endsWith("/lib/msgraph/config.js")) return stub("msgraphConfig.js");
     if (s.endsWith("/lib/fs/fsAccess.js")) return stub("fsAccess.js");
+
+    // AI/agent/voice are outside the validated M0 scope. Replace them at module
+    // resolution time so their provider endpoints, microphone path, model loader
+    // and heavy STT runtime are physically absent from the emitted demo bundle.
+    if (s.endsWith("/lib/ai.js")) return stub("aiDisabled.js");
+    if (s.endsWith("/lib/agentTools.js") || s.endsWith("/lib/agentLoop.js")) return AGENT_STUB;
+    if (
+      s.endsWith("/lib/voiceActions") || s.endsWith("/lib/voiceActions.ts") ||
+      s.endsWith("/lib/voiceRecognizerClient") || s.endsWith("/lib/voiceRecognizerClient.ts") ||
+      s.endsWith("/lib/voiceCapture") || s.endsWith("/lib/voiceCapture.ts")
+    ) return VOICE_STUB;
+    if (s.endsWith("/components/AgentPanel.jsx") || s.endsWith("/components/AiSettings.jsx")) return stub("DisabledPanel.jsx");
+    if (s.endsWith("/lib/scheduleScan.js")) return stub("scheduleScanDisabled.js");
+
     if (
       s.endsWith("/lib/google/drive.js") ||
       s.endsWith("/lib/cloudStore.js") ||
@@ -55,7 +71,6 @@ const m0DemoPrivacyPlugin = m0Mode ? {
   transform(code, id) {
     const normalized = id.replaceAll("\\", "/");
     if (!normalized.endsWith("/src/styles/tokens.css")) return null;
-    // Do not contact Google Fonts in M0. Use existing local/system fallbacks.
     return code.replace(/^@import\s+url\(['"]?https:\/\/fonts\.googleapis\.com\/[^\n]+\n?/m, "");
   },
 } : null;
