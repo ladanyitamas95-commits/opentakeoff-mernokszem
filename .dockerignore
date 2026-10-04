@@ -24,6 +24,7 @@ docs/*
 !docs/USER_GUIDE.md
 demo/*
 !demo/sample-plan.pdf
+!demo/sample-finish-plan.pdf
 web/public/demo
 capture
 server
