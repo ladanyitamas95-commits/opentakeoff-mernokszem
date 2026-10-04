@@ -10,8 +10,10 @@ export const SECURITY_HEADERS = Object.freeze({
   "Permissions-Policy": "geolocation=(), camera=(), microphone=(), payment=(), usb=(), serial=(), bluetooth=(), clipboard-read=()",
   "X-Content-Type-Options": "nosniff",
   "X-Frame-Options": "DENY",
+  "X-DNS-Prefetch-Control": "off",
   "Cross-Origin-Opener-Policy": "same-origin",
   "Cross-Origin-Resource-Policy": "same-origin",
+  "Strict-Transport-Security": "max-age=31536000",
   "Cache-Control": "no-store",
 });
 
@@ -65,7 +67,7 @@ export const server = createServer(async (req, res) => {
   if (!(await existingFile(target))) {
     const acceptsHtml = String(req.headers.accept || "").includes("text/html");
     if (!acceptsHtml) { res.writeHead(404, headers()); res.end(); return; }
-    target = resolve(ROOT, "index.html"); // SPA fallback, never a user file path
+    target = resolve(ROOT, "index.html");
   }
 
   try {
