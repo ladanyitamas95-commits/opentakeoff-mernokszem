@@ -10,7 +10,7 @@ import {
 const CANARY = "CONFIDENTIAL_CANARY_7F8B91";
 const EMAIL = "person.private@example.invalid";
 
-function bytesContain(bytes: ArrayBuffer | Uint8Array, text: string) {
+function bytesContain(bytes: ArrayBufferLike | Uint8Array<ArrayBufferLike>, text: string) {
   const u8 = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
   return Buffer.from(u8).includes(Buffer.from(text, "utf8"));
 }
