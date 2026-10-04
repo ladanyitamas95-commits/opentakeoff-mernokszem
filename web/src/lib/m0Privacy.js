@@ -5,9 +5,12 @@ import { localStore } from "./store.js";
 const SAFE_PROTOCOLS = new Set(["blob:", "data:"]);
 const SAFE_METHODS = new Set(["GET", "HEAD"]);
 const PRIVACY_SCHEMA_KEY = "m0_privacy_schema";
-// v3 invalidates v2 PDFs because v3 rebuilds the document graph instead of only
-// deleting references, eliminating orphaned metadata/action objects as well.
-const PRIVACY_SCHEMA = "3";
+const NAME_SECRET_KEY = "opentakeoff_m0_name_secret_v1";
+// v4 adds stable HMAC-pseudonymous filenames + stricter stream-dictionary
+// cleanup and input bounds. Purge older local records once before re-import.
+const PRIVACY_SCHEMA = "4";
+export const M0_MAX_PDF_BYTES = 150 * 1024 * 1024;
+export const M0_MAX_PDF_PAGES = 500;
 
 function baseUrl(origin) {
   return origin || (typeof window !== "undefined" ? window.location.href : "https://m0.invalid/");
@@ -25,10 +28,6 @@ function requestMethod(value, init = {}) {
   return "GET";
 }
 
-/** Pure policy used by runtime guards and Node regression tests. M0 has no
- * legitimate HTTP API traffic: plans are local Files and app assets are loaded
- * by the browser's subresource/module loader. Only blob:/data: reads are allowed.
- */
 export function isAllowedM0Request(value, init = {}, origin) {
   try {
     const u = asUrl(value, origin);
@@ -50,28 +49,62 @@ function privacyError(target) {
   return new Error(`Az M0 adatvédelmi mód blokkolta a hálózati kapcsolatot: ${shown}`);
 }
 
+function bytesToHex(bytes) {
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+}
+function hexToBytes(hex) {
+  if (!/^[0-9a-f]{64}$/i.test(hex || "")) return null;
+  return new Uint8Array(hex.match(/../g).map((x) => Number.parseInt(x, 16)));
+}
+
 export function neutralPdfName() {
   const id = globalThis.crypto?.randomUUID?.() || Math.random().toString(36).slice(2) + Date.now().toString(36);
   return `Tervlap-${id.slice(0, 12)}.pdf`;
 }
 
+/** Stable per-browser pseudonym for an original filename. HMAC prevents the
+ * original name from being stored while preserving upstream same-name revision
+ * grouping. Different browsers intentionally derive different pseudonyms. */
+export async function pseudonymousPdfName(sourceName, secretBytes) {
+  const subtle = globalThis.crypto?.subtle;
+  if (!subtle) return neutralPdfName();
+  const key = await subtle.importKey("raw", secretBytes, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const normalized = String(sourceName || "PDF").normalize("NFC");
+  const sig = new Uint8Array(await subtle.sign("HMAC", key, new TextEncoder().encode(normalized)));
+  return `Tervlap-${bytesToHex(sig).slice(0, 16)}.pdf`;
+}
+
+let memoryNameSecret = null;
+function nameSecret() {
+  if (memoryNameSecret) return memoryNameSecret;
+  try {
+    const stored = hexToBytes(localStorage.getItem(NAME_SECRET_KEY));
+    if (stored) return (memoryNameSecret = stored);
+  } catch { /* storage unavailable */ }
+  const next = new Uint8Array(32);
+  globalThis.crypto?.getRandomValues?.(next);
+  if (!next.some(Boolean)) for (let i = 0; i < next.length; i++) next[i] = Math.floor(Math.random() * 256);
+  memoryNameSecret = next;
+  try { localStorage.setItem(NAME_SECRET_KEY, bytesToHex(next)); } catch { /* session-only fallback */ }
+  return next;
+}
+
+async function stableNeutralPdfName(sourceName) {
+  return pseudonymousPdfName(sourceName, nameSecret());
+}
+
 const RISKY_DICT_KEYS = [
-  "Metadata",
-  "PieceInfo",
-  "LastModified",
-  "Annots",
-  "AA",
-  "OpenAction",
-  "AcroForm",
-  "EmbeddedFiles",
-  "JavaScript",
-  "AF",
+  "Metadata", "PieceInfo", "LastModified", "Annots", "AA", "OpenAction",
+  "AcroForm", "EmbeddedFiles", "JavaScript", "AF",
 ];
 
 function stripRiskyKeysFromContext(pdf) {
   for (const [, obj] of pdf.context.enumerateIndirectObjects()) {
-    if (!(obj instanceof PDFDict)) continue;
-    for (const key of RISKY_DICT_KEYS) obj.delete(PDFName.of(key));
+    // Streams carry their own dictionary; object-level XMP/PieceInfo attached to
+    // image/form streams must be scrubbed too, not only plain PDFDict objects.
+    const dict = obj instanceof PDFDict ? obj : (obj?.dict instanceof PDFDict ? obj.dict : null);
+    if (!dict) continue;
+    for (const key of RISKY_DICT_KEYS) dict.delete(PDFName.of(key));
   }
   for (const key of RISKY_DICT_KEYS) pdf.catalog.delete(PDFName.of(key));
   try {
@@ -81,24 +114,21 @@ function stripRiskyKeysFromContext(pdf) {
   } catch { /* malformed optional Info dictionary */ }
 }
 
-/**
- * Pure PDF sanitizer. It rebuilds a new document from sanitized page graphs
- * rather than merely deleting catalog references. This matters because pdf-lib
- * can otherwise preserve now-unreachable indirect objects in the serialized
- * file, leaving old XMP/annotation/JavaScript strings recoverable by raw-byte
- * inspection even though a PDF viewer no longer exposes them.
- *
- * This is metadata/active-content hardening, NOT semantic anonymisation: visible
- * or hidden drawing text/content streams can still contain identities and must
- * be anonymised before import.
- */
+/** Technical metadata/active-content sanitizer, NOT semantic anonymisation. */
 export async function sanitizePdfBytes(inputBytes) {
   const src = inputBytes instanceof Uint8Array ? inputBytes : new Uint8Array(inputBytes);
+  if (src.byteLength <= 0 || src.byteLength > M0_MAX_PDF_BYTES) {
+    throw new Error(`A PDF mérete meghaladja az M0 adatvédelmi korlátját (${Math.round(M0_MAX_PDF_BYTES / 1024 / 1024)} MB).`);
+  }
   let source;
   try {
     source = await PDFDocument.load(src, { updateMetadata: false });
   } catch (e) {
     throw new Error(`A PDF adatvédelmi tisztítása nem sikerült, ezért a fájl nem került betöltésre. ${String(e?.message || e)}`);
+  }
+  const pageCount = source.getPageCount();
+  if (pageCount < 1 || pageCount > M0_MAX_PDF_PAGES) {
+    throw new Error(`A PDF oldalszáma nem engedélyezett az M0 demóban (maximum ${M0_MAX_PDF_PAGES} oldal).`);
   }
 
   for (const page of source.getPages()) {
@@ -106,21 +136,19 @@ export async function sanitizePdfBytes(inputBytes) {
   }
   stripRiskyKeysFromContext(source);
 
+  // Rebuild a fresh object graph. Merely deleting catalog references can leave
+  // orphaned sensitive strings in serialized bytes; copyPages excludes them.
   const clean = await PDFDocument.create({ updateMetadata: false });
   const copied = await clean.copyPages(source, source.getPageIndices());
   for (const page of copied) clean.addPage(page);
   stripRiskyKeysFromContext(clean);
 
   const saved = await clean.save({ useObjectStreams: false, addDefaultPage: false });
-  // Return a typed byte view rather than slicing ArrayBufferLike. This keeps the
-  // API stable across Node/browser typings where .buffer may be SharedArrayBuffer.
   return new Uint8Array(saved);
 }
 
 export async function sanitizePdfForM0(inputBytes) {
-  if (!m0DemoEnabled()) {
-    return inputBytes instanceof Uint8Array ? new Uint8Array(inputBytes) : new Uint8Array(inputBytes);
-  }
+  if (!m0DemoEnabled()) return inputBytes instanceof Uint8Array ? new Uint8Array(inputBytes) : new Uint8Array(inputBytes);
   return sanitizePdfBytes(inputBytes);
 }
 
@@ -158,12 +186,13 @@ function hardenLocalStore() {
   if (originals.addPdf) {
     localStore.addPdf = async (file) => {
       await migration;
+      if (!file || !Number.isFinite(file.size) || file.size <= 0 || file.size > M0_MAX_PDF_BYTES) {
+        throw new Error("A PDF mérete nem engedélyezett az M0 adatvédelmi módban.");
+      }
       const raw = await file.arrayBuffer();
       const sanitized = await sanitizePdfBytes(raw);
-      const safeFile = new File([sanitized], neutralPdfName(), {
-        type: "application/pdf",
-        lastModified: 0,
-      });
+      const safeName = await stableNeutralPdfName(file.name);
+      const safeFile = new File([sanitized], safeName, { type: "application/pdf", lastModified: 0 });
       return originals.addPdf(safeFile);
     };
   }
@@ -194,7 +223,6 @@ export function installM0PrivacyGuards() {
       return nativeFetch(input, init);
     };
   }
-
   const xhrOpen = window.XMLHttpRequest?.prototype?.open;
   if (xhrOpen) {
     window.XMLHttpRequest.prototype.open = function(method, url, ...rest) {
@@ -202,18 +230,11 @@ export function installM0PrivacyGuards() {
       return xhrOpen.call(this, method, url, ...rest);
     };
   }
-
   if (navigator.sendBeacon) {
     try { navigator.sendBeacon = () => false; } catch { /* read-only implementation */ }
   }
-
   for (const key of [
-    "WebSocket",
-    "EventSource",
-    "WebTransport",
-    "RTCPeerConnection",
-    "webkitRTCPeerConnection",
-    "SharedWorker",
-    "BroadcastChannel",
+    "WebSocket", "EventSource", "WebTransport", "RTCPeerConnection",
+    "webkitRTCPeerConnection", "SharedWorker", "BroadcastChannel",
   ]) blockConstructor(key);
 }
