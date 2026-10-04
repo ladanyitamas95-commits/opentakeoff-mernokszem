@@ -36,7 +36,7 @@ jobs:
       - name: Assert validation inputs exist
         run: node scripts/assert-test-presence.mjs
       - name: Targeted M0 privacy regression tests
-        run: node --import tsx --test test/m0Privacy.test.ts
+        run: node --import tsx --test test/m0Privacy.test.ts test/m0Server.test.ts
       - name: Build isolated M0 privacy bundle
         run: VITE_M0_DEMO=1 npm run build
       - name: Audit emitted bundle for egress/cloud code
