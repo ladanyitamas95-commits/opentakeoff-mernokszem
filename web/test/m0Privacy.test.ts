@@ -7,6 +7,7 @@ import {
   pseudonymousPdfName,
   sanitizePdfBytes,
 } from "../src/lib/m0Privacy.js";
+import { ingestFiles } from "../src/lib/m0Stubs/ingestPdfOnly.js";
 
 const CANARY = "CONFIDENTIAL_CANARY_7F8B91";
 const EMAIL = "person.private@example.invalid";
@@ -42,6 +43,17 @@ test("M0 filename pseudonym is stable per secret without persisting source name"
   assert.notEqual(a1, b, "different browser secrets must not produce a global cross-user identifier");
   assert.equal(a1.includes("Ügyfél"), false);
   assert.equal(a1.includes("PM90"), false);
+});
+
+test("M0 ingest accepts real PDFs only and rejects disguised/non-PDF files", async () => {
+  const real = new File(["%PDF-1.7\n%%EOF"], "private-project.pdf", { type: "application/pdf" });
+  const fake = new File(["not a pdf"], "looks-like.pdf", { type: "application/pdf" });
+  const image = new File([new Uint8Array([0xff, 0xd8, 0xff])], "photo-with-exif.jpg", { type: "image/jpeg" });
+  const { pdfs, skipped } = await ingestFiles([real, fake, image]);
+  assert.equal(pdfs.length, 1);
+  assert.equal(pdfs[0], real);
+  assert.equal(skipped.length, 2);
+  assert.equal(skipped.some((x) => String(x.name).includes("private-project")), false, "skipped metadata must not echo source filename");
 });
 
 test("PDF sanitizer rebuilds pages and removes recoverable metadata/action canaries", async () => {
@@ -98,5 +110,5 @@ test("PDF sanitizer refuses pathological page counts before persistence", async 
   const src = await PDFDocument.create({ updateMetadata: false });
   for (let i = 0; i < M0_MAX_PDF_PAGES + 1; i++) src.addPage([10, 10]);
   const bytes = await src.save({ useObjectStreams: true });
-  await assert.rejects(() => sanitizePdfBytes(bytes), /maximum|maximum|oldal/i);
+  await assert.rejects(() => sanitizePdfBytes(bytes), /maximum|oldal/i);
 });
