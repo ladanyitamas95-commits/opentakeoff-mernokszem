@@ -10,6 +10,7 @@ RUN npm ci
 COPY web/ ./
 COPY docs/USER_GUIDE.md /app/docs/USER_GUIDE.md
 COPY demo/sample-plan.pdf /app/demo/sample-plan.pdf
+COPY demo/sample-finish-plan.pdf /app/demo/sample-finish-plan.pdf
 
 ENV VITE_M0_DEMO=1
 ENV VITE_MERNOKSZEM_URL=https://mernokszem-tender-cloud-demo-production.up.railway.app/
