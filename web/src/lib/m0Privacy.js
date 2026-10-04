@@ -3,28 +3,51 @@ import { m0DemoEnabled, clearM0LocalProjectData } from "./m0Demo.js";
 import { localStore } from "./store.js";
 
 const SAFE_PROTOCOLS = new Set(["blob:", "data:"]);
+const SAFE_METHODS = new Set(["GET", "HEAD"]);
 const PRIVACY_SCHEMA_KEY = "m0_privacy_schema";
-const PRIVACY_SCHEMA = "2";
+// v3 invalidates v2 PDFs because v3 rebuilds the document graph instead of only
+// deleting references, eliminating orphaned metadata/action objects as well.
+const PRIVACY_SCHEMA = "3";
 
-function asUrl(value) {
-  if (typeof Request !== "undefined" && value instanceof Request) return new URL(value.url, window.location.href);
-  return new URL(String(value), window.location.href);
+function baseUrl(origin) {
+  return origin || (typeof window !== "undefined" ? window.location.href : "https://m0.invalid/");
 }
 
-export function isM0AllowedNetworkTarget(value) {
-  if (!m0DemoEnabled()) return true;
+function asUrl(value, origin) {
+  if (typeof Request !== "undefined" && value instanceof Request) return new URL(value.url, baseUrl(origin));
+  return new URL(String(value), baseUrl(origin));
+}
+
+function requestMethod(value, init = {}) {
+  const fromInit = init?.method;
+  if (fromInit) return String(fromInit).toUpperCase();
+  if (typeof Request !== "undefined" && value instanceof Request) return String(value.method || "GET").toUpperCase();
+  return "GET";
+}
+
+/** Pure policy used by runtime guards and Node regression tests. M0 has no
+ * legitimate HTTP API traffic: plans are local Files and app assets are loaded
+ * by the browser's subresource/module loader. Only blob:/data: reads are allowed.
+ */
+export function isAllowedM0Request(value, init = {}, origin) {
   try {
-    const u = asUrl(value);
-    return SAFE_PROTOCOLS.has(u.protocol) || u.origin === window.location.origin;
+    const u = asUrl(value, origin);
+    const method = requestMethod(value, init);
+    return SAFE_METHODS.has(method) && SAFE_PROTOCOLS.has(u.protocol);
   } catch {
     return false;
   }
 }
 
+export function isM0AllowedNetworkTarget(value, init = {}) {
+  if (!m0DemoEnabled()) return true;
+  return isAllowedM0Request(value, init);
+}
+
 function privacyError(target) {
   let shown = "ismeretlen cél";
   try { shown = asUrl(target).origin; } catch { /* ignore */ }
-  return new Error(`Az M0 adatvédelmi mód blokkolta a külső hálózati kapcsolatot: ${shown}`);
+  return new Error(`Az M0 adatvédelmi mód blokkolta a hálózati kapcsolatot: ${shown}`);
 }
 
 export function neutralPdfName() {
@@ -32,46 +55,77 @@ export function neutralPdfName() {
   return `Tervlap-${id.slice(0, 12)}.pdf`;
 }
 
-/**
- * Removes standard/custom PDF metadata and common hidden active-content carriers
- * before M0 persists a plan locally. This is metadata/privacy hardening, NOT
- * semantic anonymisation: drawing text/layers can still contain identities and
- * must be anonymised before import.
- */
-export async function sanitizePdfForM0(inputBytes) {
-  if (!m0DemoEnabled()) return inputBytes instanceof ArrayBuffer ? inputBytes : inputBytes.buffer;
+const RISKY_DICT_KEYS = [
+  "Metadata",       // XMP / object-level metadata
+  "PieceInfo",      // private application metadata
+  "LastModified",   // provenance timestamp
+  "Annots",         // comments, links, form widgets
+  "AA",             // additional actions
+  "OpenAction",     // document/page automatic action
+  "AcroForm",       // form fields and values
+  "EmbeddedFiles",  // attachment name tree
+  "JavaScript",     // JavaScript name tree
+  "AF",             // associated files
+];
 
-  const src = inputBytes instanceof Uint8Array ? inputBytes : new Uint8Array(inputBytes);
-  let pdf;
-  try {
-    pdf = await PDFDocument.load(src, { updateMetadata: false });
-  } catch (e) {
-    throw new Error(`A PDF adatvédelmi tisztítása nem sikerült, ezért a fájl nem került betöltésre. ${String(e?.message || e)}`);
+function stripRiskyKeysFromContext(pdf) {
+  for (const [, obj] of pdf.context.enumerateIndirectObjects()) {
+    if (!(obj instanceof PDFDict)) continue;
+    for (const key of RISKY_DICT_KEYS) obj.delete(PDFName.of(key));
   }
-
-  // Remove the complete Info dictionary contents, not only standard fields:
-  // custom producer/project/user keys are a common metadata leak.
+  for (const key of RISKY_DICT_KEYS) pdf.catalog.delete(PDFName.of(key));
   try {
     const infoRef = pdf.context.trailerInfo.Info;
     const info = infoRef ? pdf.context.lookup(infoRef, PDFDict) : undefined;
     if (info) for (const key of [...info.keys()]) info.delete(key);
   } catch { /* malformed optional Info dictionary */ }
+}
 
-  // XMP metadata, forms/field values, annotations/comments, embedded files and
-  // document-level actions can carry names, e-mail addresses or provenance.
-  pdf.catalog.delete(PDFName.of("Metadata"));
-  pdf.catalog.delete(PDFName.of("AcroForm"));
-  pdf.catalog.delete(PDFName.of("OpenAction"));
-  pdf.catalog.delete(PDFName.of("AA"));
-  const names = pdf.catalog.lookupMaybe(PDFName.of("Names"), PDFDict);
-  if (names) {
-    names.delete(PDFName.of("EmbeddedFiles"));
-    names.delete(PDFName.of("JavaScript"));
+/**
+ * Pure PDF sanitizer. It rebuilds a new document from sanitized page graphs
+ * rather than merely deleting catalog references. This matters because pdf-lib
+ * can otherwise preserve now-unreachable indirect objects in the serialized
+ * file, leaving old XMP/annotation/JavaScript strings recoverable by raw-byte
+ * inspection even though a PDF viewer no longer exposes them.
+ *
+ * This is metadata/active-content hardening, NOT semantic anonymisation: visible
+ * or hidden drawing text/content streams can still contain identities and must
+ * be anonymised before import.
+ */
+export async function sanitizePdfBytes(inputBytes) {
+  const src = inputBytes instanceof Uint8Array ? inputBytes : new Uint8Array(inputBytes);
+  let source;
+  try {
+    source = await PDFDocument.load(src, { updateMetadata: false });
+  } catch (e) {
+    throw new Error(`A PDF adatvédelmi tisztítása nem sikerült, ezért a fájl nem került betöltésre. ${String(e?.message || e)}`);
   }
-  for (const page of pdf.getPages()) page.node.delete(PDFName.of("Annots"));
 
-  const saved = await pdf.save({ useObjectStreams: false, addDefaultPage: false });
+  // Strip page-level carriers before copyPages follows references into the new
+  // document. This prevents annotations/attachments/action graphs being copied.
+  for (const page of source.getPages()) {
+    for (const key of RISKY_DICT_KEYS) page.node.delete(PDFName.of(key));
+  }
+  stripRiskyKeysFromContext(source);
+
+  const clean = await PDFDocument.create({ updateMetadata: false });
+  const copied = await clean.copyPages(source, source.getPageIndices());
+  for (const page of copied) clean.addPage(page);
+
+  // Defense in depth after copy: remove metadata/action keys from every copied
+  // indirect dictionary and clear the newly-created Info dictionary too.
+  stripRiskyKeysFromContext(clean);
+
+  const saved = await clean.save({ useObjectStreams: false, addDefaultPage: false });
   return saved.buffer.slice(saved.byteOffset, saved.byteOffset + saved.byteLength);
+}
+
+export async function sanitizePdfForM0(inputBytes) {
+  if (!m0DemoEnabled()) {
+    if (inputBytes instanceof ArrayBuffer) return inputBytes;
+    return inputBytes.buffer.slice(inputBytes.byteOffset, inputBytes.byteOffset + inputBytes.byteLength);
+  }
+  return sanitizePdfBytes(inputBytes);
 }
 
 let guardsInstalled = false;
@@ -84,8 +138,8 @@ function startPrivacyMigration() {
       if (localStorage.getItem(PRIVACY_SCHEMA_KEY) === PRIVACY_SCHEMA) return;
     } catch { /* disabled storage: still purge IndexedDB best-effort */ }
 
-    // Previous M0 builds persisted original filenames and unsanitised PDF bytes.
-    // Purge once before any local-store read/write so legacy data cannot linger.
+    // Previous M0 builds may contain original filenames or v2 PDF bytes. Purge
+    // once BEFORE any local-store read/write; users re-import through v3 sanitizer.
     await clearM0LocalProjectData();
     try { localStorage.setItem(PRIVACY_SCHEMA_KEY, PRIVACY_SCHEMA); } catch { /* private mode */ }
   })();
@@ -112,8 +166,8 @@ function hardenLocalStore() {
     localStore.addPdf = async (file) => {
       await migration;
       const raw = await file.arrayBuffer();
-      const sanitized = await sanitizePdfForM0(raw);
-      // Never persist the original upload filename or browser lastModified value.
+      const sanitized = await sanitizePdfBytes(raw);
+      // Never persist the source filename or browser-provided lastModified value.
       const safeFile = new File([sanitized], neutralPdfName(), {
         type: "application/pdf",
         lastModified: 0,
@@ -121,6 +175,19 @@ function hardenLocalStore() {
       return originals.addPdf(safeFile);
     };
   }
+}
+
+function blockConstructor(name) {
+  if (!(name in window)) return;
+  try {
+    Object.defineProperty(window, name, {
+      configurable: true,
+      writable: false,
+      value: class M0BlockedTransport {
+        constructor() { throw new Error(`${name} az M0 adatvédelmi módban ki van kapcsolva.`); }
+      },
+    });
+  } catch { /* CSP/server headers remain authoritative fallbacks */ }
 }
 
 export function installM0PrivacyGuards() {
@@ -132,7 +199,7 @@ export function installM0PrivacyGuards() {
   const nativeFetch = window.fetch?.bind(window);
   if (nativeFetch) {
     window.fetch = (input, init) => {
-      if (!isM0AllowedNetworkTarget(input)) return Promise.reject(privacyError(input));
+      if (!isAllowedM0Request(input, init)) return Promise.reject(privacyError(input));
       return nativeFetch(input, init);
     };
   }
@@ -140,34 +207,27 @@ export function installM0PrivacyGuards() {
   const xhrOpen = window.XMLHttpRequest?.prototype?.open;
   if (xhrOpen) {
     window.XMLHttpRequest.prototype.open = function(method, url, ...rest) {
-      if (!isM0AllowedNetworkTarget(url)) throw privacyError(url);
+      if (!isAllowedM0Request(url, { method })) throw privacyError(url);
       return xhrOpen.call(this, method, url, ...rest);
     };
   }
 
+  // Beacons are telemetry by design. M0 never needs them, including same-origin.
   if (navigator.sendBeacon) {
-    try {
-      const nativeBeacon = navigator.sendBeacon.bind(navigator);
-      navigator.sendBeacon = (url, data) => {
-        if (!isM0AllowedNetworkTarget(url)) return false;
-        return nativeBeacon(url, data);
-      };
-    } catch { /* read-only browser implementation; CSP still blocks egress */ }
+    try { navigator.sendBeacon = () => false; } catch { /* read-only implementation */ }
   }
 
-  // Collaboration/remote-presence transports are intentionally unavailable in
-  // the private internal demo. Disabling them also prevents ICE/STUN based IP
-  // discovery from browser code.
-  for (const key of ["WebSocket", "EventSource", "RTCPeerConnection", "webkitRTCPeerConnection"]) {
-    if (!(key in window)) continue;
-    try {
-      Object.defineProperty(window, key, {
-        configurable: true,
-        writable: false,
-        value: class M0BlockedTransport {
-          constructor() { throw new Error(`${key} az M0 adatvédelmi módban ki van kapcsolva.`); }
-        },
-      });
-    } catch { /* CSP remains the authoritative fallback */ }
-  }
+  // No collaboration, server push, peer-to-peer or cross-tab communication in
+  // the private internal demo. Worker remains available because pdf.js/netroom
+  // require dedicated workers; external connections from workers are blocked by
+  // the document/server CSP and the bundle audit rejects known remote endpoints.
+  for (const key of [
+    "WebSocket",
+    "EventSource",
+    "WebTransport",
+    "RTCPeerConnection",
+    "webkitRTCPeerConnection",
+    "SharedWorker",
+    "BroadcastChannel",
+  ]) blockConstructor(key);
 }
