@@ -9,14 +9,18 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
+    "serve:m0": "node scripts/serve-m0.mjs",
     "typecheck": "tsc --noEmit",
     "test": "node --import tsx --test test/*.test.ts",
+    "test:gate": "node scripts/assert-test-presence.mjs && npm test",
     "bench": "node --import tsx bench/run.mts",
     "bench:callouts": "node --import tsx bench/callouts.mts",
     "bench:batch": "node --import tsx bench/batch.mts",
+    "privacy:bundle": "node scripts/m0-privacy-bundle-audit.mjs",
     "check": "npm run typecheck && npm run lint && npm test && npm run bench && npm run build",
+    "check:m0": "npm run typecheck && npm run lint && npm run test:gate && npm run bench && npm run build && npm run privacy:bundle",
     "styles:sync": "diff src/styles/tokens.css ${SPLINE_DIR:-../../spline-app/frontend}/src/styles/tokens.css && diff src/styles/app.css ${SPLINE_DIR:-../../spline-app/frontend}/src/styles/app.css && echo styles-in-sync || echo \"sibling missing or drifted (non-fatal)\"",
-    "lint": "eslint src netlify/functions"
+    "lint": "eslint src netlify/functions scripts/m0-privacy-bundle-audit.mjs scripts/assert-test-presence.mjs scripts/serve-m0.mjs"
   },
   "engines": {
     "node": ">=24"
@@ -50,9 +54,14 @@
     "vite": "^6.0.7"
   },
   "overrides": {
-    "sharp": "^0.35.0",
-    "adm-zip": "^0.6.0",
-    "brace-expansion": "^1.1.16",
+    "sharp": "0.35.5",
+    "adm-zip": "0.6.1",
+    "brace-expansion": "1.1.21",
     "postcss": "^8.5.18"
+  },
+  "allowScripts": {
+    "esbuild": false,
+    "onnxruntime-node": false,
+    "protobufjs": false
   }
 }

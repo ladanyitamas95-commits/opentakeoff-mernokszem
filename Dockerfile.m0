@@ -1,18 +1,37 @@
-FROM node:24-bookworm-slim
+FROM node:24-bookworm-slim AS build
 
-WORKDIR /app
+# Preserve the repository-relative layout expected by the web test suite:
+# /app/web/test -> ../../docs and ../../demo.
+WORKDIR /app/web
 
-COPY web/package.json web/package-lock.json ./
+# Install under the same strict dependency-script policy used by CI/local web builds.
+COPY web/package.json web/package-lock.json web/.npmrc ./
 RUN npm ci
 
 COPY web/ ./
+COPY docs/USER_GUIDE.md /app/docs/USER_GUIDE.md
+COPY demo/sample-plan.pdf /app/demo/sample-plan.pdf
+COPY demo/sample-finish-plan.pdf /app/demo/sample-finish-plan.pdf
 
 ENV VITE_M0_DEMO=1
 ENV VITE_MERNOKSZEM_URL=https://mernokszem-tender-cloud-demo-production.up.railway.app/
 
-# Privacy/security changes are release-gated by the full web validation suite.
-RUN npm run typecheck && npm run lint && npm test && npm run bench && npm run build
+# Release only when validation inputs exist, the full test/benchmark suite passes,
+# the dedicated M0 build succeeds, and the emitted bundle contains no forbidden
+# cloud/AI/analytics endpoint strings.
+RUN npm run check:m0
 
+# Runtime contains no test fixtures, docs, npm dependency tree or Vite/dev server.
+# Only the built static app plus the tiny Node-core-only security-header server
+# are copied from the build stage.
+FROM node:24-bookworm-slim AS runtime
+WORKDIR /app
+ENV NODE_ENV=production
+ENV PORT=4173
+
+COPY --from=build --chown=node:node /app/web/dist ./dist
+COPY --from=build --chown=node:node /app/web/scripts/serve-m0.mjs ./scripts/serve-m0.mjs
+
+USER node
 EXPOSE 4173
-
-CMD ["npm","run","preview","--","--host","0.0.0.0","--port","4173"]
+CMD ["node","scripts/serve-m0.mjs"]

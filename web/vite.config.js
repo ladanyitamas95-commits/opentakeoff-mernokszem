@@ -1,37 +1,74 @@
 import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
-// The one source of truth for the app version — package.json — inlined as
-// __APP_VERSION__ so contributions can carry generator_version without a
-// runtime fetch. Guarded with `typeof` at the use site so the Node test
-// runner (no Vite, no define) sees plain undefined instead of a crash.
 const pkg = JSON.parse(readFileSync(new URL("./package.json", import.meta.url), "utf8"));
-
-// OpenTakeoff is a client-only static app: the takeoff canvas runs entirely in
-// the browser (pdf.js + canvas + the geometry libs), persists to IndexedDB /
-// localStorage, and builds to a static `dist/` you can host anywhere.
 const m0Mode = process.env.VITE_M0_DEMO === "1";
-const m0Csp = "default-src 'self'; connect-src 'self'; img-src 'self' data: blob:; media-src 'self' blob:; worker-src 'self' blob:; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; manifest-src 'self'";
+
+export const m0Csp = "default-src 'self'; connect-src 'none'; img-src 'self' data: blob:; media-src 'self' blob:; worker-src 'self' blob:; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src 'none'; frame-ancestors 'none'; manifest-src 'self'";
+
+const stub = (name) => fileURLToPath(new URL(`./src/lib/m0Stubs/${name}`, import.meta.url));
+const CLOUD_STUB = stub("cloudDisabled.js");
+const AGENT_STUB = stub("agentDisabled.js");
+const VOICE_STUB = stub("voiceDisabled.js");
 
 const m0DemoPrivacyPlugin = m0Mode ? {
   name: "m0-demo-privacy",
-  transformIndexHtml() {
-    return [{
-      tag: "meta",
-      injectTo: "head-prepend",
-      attrs: {
-        "http-equiv": "Content-Security-Policy",
-        content: m0Csp,
-      },
-    }];
+  enforce: "pre",
+  resolveId(source) {
+    const s = source.replaceAll("\\", "/");
+    if (s.endsWith("/lib/google/auth.js")) return stub("googleAuth.js");
+    if (s.endsWith("/lib/google/AuthContext.jsx")) return stub("googleAuthContext.jsx");
+    if (s.endsWith("/lib/msgraph/config.js")) return stub("msgraphConfig.js");
+    if (s.endsWith("/lib/fs/fsAccess.js")) return stub("fsAccess.js");
+    if (s.endsWith("/lib/ingest.js")) return stub("ingestPdfOnly.js");
+
+    // AI/agent/voice/remote scan are outside the validated M0 scope. Resolve
+    // them to fail-closed stubs so their transports and heavy model runtime are
+    // physically absent from the emitted privacy-demo bundle.
+    if (s.endsWith("/lib/ai.js")) return stub("aiDisabled.js");
+    if (s.endsWith("/lib/agentTools.js") || s.endsWith("/lib/agentLoop.js")) return AGENT_STUB;
+    if (
+      s.endsWith("/lib/voiceActions") || s.endsWith("/lib/voiceActions.ts") ||
+      s.endsWith("/lib/voiceRecognizerClient") || s.endsWith("/lib/voiceRecognizerClient.ts") ||
+      s.endsWith("/lib/voiceCapture") || s.endsWith("/lib/voiceCapture.ts")
+    ) return VOICE_STUB;
+    if (s.endsWith("/components/AgentPanel.jsx") || s.endsWith("/components/AiSettings.jsx")) return stub("DisabledPanel.jsx");
+    if (s.endsWith("/lib/scheduleScan.js")) return stub("scheduleScanDisabled.js");
+
+    if (
+      s.endsWith("/lib/google/drive.js") ||
+      s.endsWith("/lib/cloudStore.js") ||
+      s.endsWith("/lib/sync/composite.js") ||
+      s.endsWith("/lib/msgraph/auth.js") ||
+      s.endsWith("/lib/msgraph/graphDrive.js") ||
+      s.endsWith("/lib/msgraph/composite.js")
+    ) return CLOUD_STUB;
+    return null;
+  },
+  transformIndexHtml(html) {
+    let out = html
+      .replace('<html lang="en">', '<html lang="hu">')
+      .replace('/src/main.jsx', '/src/main.m0.jsx')
+      .replace(/\s*<link rel="canonical"[^>]*>\s*/g, "\n")
+      .replace(/\s*<meta property="og:[^>]*>\s*/g, "\n")
+      .replace(/\s*<meta name="twitter:[^>]*>\s*/g, "\n")
+      .replace(/\s*<script type="application\/ld\+json">[\s\S]*?<\/script>\s*/g, "\n")
+      .replace(/\s*<script[^>]+static\.cloudflareinsights\.com[^>]*><\/script>\s*/g, "\n")
+      .replace(/<title>[\s\S]*?<\/title>/, "<title>MérnökSzem M0 – Tervmérés</title>")
+      .replace(/<meta name="description"[^>]*>/, '<meta name="description" content="MérnökSzem M0 – helyi, adatvédelmi Tervmérés demo." />');
+
+    const privacyMeta = [
+      `<meta http-equiv="Content-Security-Policy" content="${m0Csp}" />`,
+      '<meta name="referrer" content="no-referrer" />',
+    ].join("\n    ");
+    out = out.replace("</head>", `    ${privacyMeta}\n  </head>`);
+    return out;
   },
   transform(code, id) {
     const normalized = id.replaceAll("\\", "/");
     if (!normalized.endsWith("/src/styles/tokens.css")) return null;
-    // The upstream font import contacts Google before any plan is opened. M0
-    // uses the existing system-font fallbacks instead, so no font provider sees
-    // the visitor's IP/User-Agent.
     return code.replace(/^@import\s+url\(['"]?https:\/\/fonts\.googleapis\.com\/[^\n]+\n?/m, "");
   },
 } : null;
@@ -39,7 +76,7 @@ const m0DemoPrivacyPlugin = m0Mode ? {
 const m0Headers = m0Mode ? {
   "Content-Security-Policy": m0Csp,
   "Referrer-Policy": "no-referrer",
-  "Permissions-Policy": "geolocation=(), camera=(), microphone=(), payment=(), usb=(), bluetooth=(), clipboard-read=()",
+  "Permissions-Policy": "geolocation=(), camera=(), microphone=(), payment=(), usb=(), serial=(), bluetooth=(), clipboard-read=()",
   "X-Content-Type-Options": "nosniff",
   "X-Frame-Options": "DENY",
   "Cross-Origin-Opener-Policy": "same-origin",
@@ -57,16 +94,10 @@ export default defineConfig({
   },
   plugins: [react(), ...(m0DemoPrivacyPlugin ? [m0DemoPrivacyPlugin] : [])],
   define: { __APP_VERSION__: JSON.stringify(pkg.version) },
-  // The STT worker (stt.worker.ts, RFC #59) lazy-imports its engine adapter,
-  // which needs code-splitting inside the worker bundle — only the ES format
-  // supports that (Vite's default iife errors on split worker builds).
   worker: { format: "es" },
   server: {
     port: 5173,
-    proxy: {
-      // The sandbox's /ai routes are key-locked (server/README.md). Export the
-      // same OT_SANDBOX_API_KEY in the shell running `npm run dev` and the
-      // proxy stamps the header on — the browser never handles the secret.
+    proxy: m0Mode ? {} : {
       "/ai": {
         target: "http://localhost:8000",
         headers: process.env.OT_SANDBOX_API_KEY
@@ -75,8 +106,5 @@ export default defineConfig({
       },
     },
   },
-  build: {
-    outDir: "dist",
-    emptyOutDir: true,
-  },
+  build: { outDir: "dist", emptyOutDir: true },
 });

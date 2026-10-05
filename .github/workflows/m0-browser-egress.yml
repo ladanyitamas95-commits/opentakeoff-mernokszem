@@ -1,0 +1,94 @@
+name: M0 Browser Egress Gate
+
+on:
+  pull_request:
+    paths:
+      - "web/**"
+      - "Dockerfile.m0"
+      - ".dockerignore"
+      - ".github/workflows/m0-browser-egress.yml"
+  push:
+    branches: [main]
+    paths:
+      - "web/**"
+      - "Dockerfile.m0"
+      - ".dockerignore"
+      - ".github/workflows/m0-browser-egress.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  browser-egress:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      - name: Build production M0 image
+        run: docker build --pull=false -f Dockerfile.m0 -t m0-browser-egress .
+
+      - name: Start production M0 container
+        run: |
+          docker run -d --rm --name m0-browser-egress -p 4173:4173 m0-browser-egress
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:4173/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          docker logs m0-browser-egress || true
+          exit 1
+
+      - name: Verify production CSP before browser test
+        run: |
+          set -euo pipefail
+          HEADERS=$(curl -fsSI http://127.0.0.1:4173/)
+          printf '%s\n' "$HEADERS"
+          printf '%s\n' "$HEADERS" | grep -Eqi "content-security-policy:.*connect-src 'none'"
+
+      - name: Install isolated pinned Playwright harness
+        run: |
+          set -euo pipefail
+          PW_DIR="$RUNNER_TEMP/m0-playwright"
+          mkdir -p "$PW_DIR"
+          cd "$PW_DIR"
+          npm init -y >/dev/null
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 npm install --ignore-scripts --save-exact playwright@1.63.0
+          npm audit --audit-level=high
+          ./node_modules/.bin/playwright install --with-deps chromium
+          cp "$GITHUB_WORKSPACE/web/test/m0BrowserEgress.mjs" ./m0BrowserEgress.mjs
+          cp "$GITHUB_WORKSPACE/web/test/m0PrivacyCanary.mjs" ./m0PrivacyCanary.mjs
+
+      - name: Run real-browser M0 egress probe
+        env:
+          M0_URL: http://127.0.0.1:4173/
+          M0_PDF: ${{ github.workspace }}/demo/sample-plan.pdf
+        run: node "$RUNNER_TEMP/m0-playwright/m0BrowserEgress.mjs"
+
+      - name: Run end-to-end M0 privacy canary
+        env:
+          M0_URL: http://127.0.0.1:4173/
+        run: node "$RUNNER_TEMP/m0-playwright/m0PrivacyCanary.mjs"
+
+      - name: Verify production server log contains no privacy canary
+        run: |
+          set -euo pipefail
+          LOG_FILE="$RUNNER_TEMP/m0-server.log"
+          CANARY="CONFIDENTIAL_""CANARY_7F8B91"
+          docker logs m0-browser-egress >"$LOG_FILE" 2>&1
+          cat "$LOG_FILE"
+          if grep -Fq "$CANARY" "$LOG_FILE"; then
+            echo "M0 SERVER LOG PRIVACY CANARY: FAIL"
+            exit 1
+          fi
+          echo "M0 SERVER LOG PRIVACY CANARY: PASS"
+
+      - name: Container diagnostics
+        if: always()
+        run: docker logs m0-browser-egress || true
+
+      - name: Stop production M0 container
+        if: always()
+        run: docker stop m0-browser-egress || true

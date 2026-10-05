@@ -1,0 +1,11 @@
+const disabled = () => { throw new Error("Az AI funkciók az M0 adatvédelmi módban ki vannak kapcsolva."); };
+export const aiConfig = () => ({ endpoint: "", apiKey: "", model: "", provider: "openai" });
+export const isAiConfigured = () => false;
+export const saveAiConfig = () => {};
+export const aiRequestUrl = () => "";
+export const buildVisionRequest = disabled;
+export const buildChatRequest = disabled;
+export const parseVisionResponse = () => null;
+export const scaleReadPrompt = () => "";
+export const visionQuery = async () => disabled();
+export const chatWithTools = async () => disabled();

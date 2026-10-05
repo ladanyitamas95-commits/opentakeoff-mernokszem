@@ -3,28 +3,58 @@ import { m0DemoEnabled, clearM0LocalProjectData } from "./m0Demo.js";
 import { localStore } from "./store.js";
 
 const SAFE_PROTOCOLS = new Set(["blob:", "data:"]);
+const SAFE_METHODS = new Set(["GET", "HEAD"]);
 const PRIVACY_SCHEMA_KEY = "m0_privacy_schema";
-const PRIVACY_SCHEMA = "2";
+const NAME_SECRET_KEY = "opentakeoff_m0_name_secret_v1";
+// v4 adds stable HMAC-pseudonymous filenames + stricter stream-dictionary
+// cleanup and input bounds. Purge older local records once before re-import.
+const PRIVACY_SCHEMA = "4";
+export const M0_MAX_PDF_BYTES = 150 * 1024 * 1024;
+export const M0_MAX_PDF_PAGES = 500;
 
-function asUrl(value) {
-  if (typeof Request !== "undefined" && value instanceof Request) return new URL(value.url, window.location.href);
-  return new URL(String(value), window.location.href);
+function baseUrl(origin) {
+  return origin || (typeof window !== "undefined" ? window.location.href : "https://m0.invalid/");
 }
 
-export function isM0AllowedNetworkTarget(value) {
-  if (!m0DemoEnabled()) return true;
+function asUrl(value, origin) {
+  if (typeof Request !== "undefined" && value instanceof Request) return new URL(value.url, baseUrl(origin));
+  return new URL(String(value), baseUrl(origin));
+}
+
+function requestMethod(value, init = {}) {
+  const fromInit = init?.method;
+  if (fromInit) return String(fromInit).toUpperCase();
+  if (typeof Request !== "undefined" && value instanceof Request) return String(value.method || "GET").toUpperCase();
+  return "GET";
+}
+
+export function isAllowedM0Request(value, init = {}, origin) {
   try {
-    const u = asUrl(value);
-    return SAFE_PROTOCOLS.has(u.protocol) || u.origin === window.location.origin;
+    const u = asUrl(value, origin);
+    const method = requestMethod(value, init);
+    return SAFE_METHODS.has(method) && SAFE_PROTOCOLS.has(u.protocol);
   } catch {
     return false;
   }
 }
 
+export function isM0AllowedNetworkTarget(value, init = {}) {
+  if (!m0DemoEnabled()) return true;
+  return isAllowedM0Request(value, init);
+}
+
 function privacyError(target) {
   let shown = "ismeretlen cél";
   try { shown = asUrl(target).origin; } catch { /* ignore */ }
-  return new Error(`Az M0 adatvédelmi mód blokkolta a külső hálózati kapcsolatot: ${shown}`);
+  return new Error(`Az M0 adatvédelmi mód blokkolta a hálózati kapcsolatot: ${shown}`);
+}
+
+function bytesToHex(bytes) {
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+}
+function hexToBytes(hex) {
+  if (!/^[0-9a-f]{64}$/i.test(hex || "")) return null;
+  return new Uint8Array(hex.match(/../g).map((x) => Number.parseInt(x, 16)));
 }
 
 export function neutralPdfName() {
@@ -32,46 +62,94 @@ export function neutralPdfName() {
   return `Tervlap-${id.slice(0, 12)}.pdf`;
 }
 
-/**
- * Removes standard/custom PDF metadata and common hidden active-content carriers
- * before M0 persists a plan locally. This is metadata/privacy hardening, NOT
- * semantic anonymisation: drawing text/layers can still contain identities and
- * must be anonymised before import.
- */
-export async function sanitizePdfForM0(inputBytes) {
-  if (!m0DemoEnabled()) return inputBytes instanceof ArrayBuffer ? inputBytes : inputBytes.buffer;
+/** Stable per-browser pseudonym for an original filename. HMAC prevents the
+ * original name from being stored while preserving upstream same-name revision
+ * grouping. Different browsers intentionally derive different pseudonyms. */
+export async function pseudonymousPdfName(sourceName, secretBytes) {
+  const subtle = globalThis.crypto?.subtle;
+  if (!subtle) return neutralPdfName();
+  const key = await subtle.importKey("raw", secretBytes, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const normalized = String(sourceName || "PDF").normalize("NFC");
+  const sig = new Uint8Array(await subtle.sign("HMAC", key, new TextEncoder().encode(normalized)));
+  return `Tervlap-${bytesToHex(sig).slice(0, 16)}.pdf`;
+}
 
-  const src = inputBytes instanceof Uint8Array ? inputBytes : new Uint8Array(inputBytes);
-  let pdf;
+let memoryNameSecret = null;
+function nameSecret() {
+  if (memoryNameSecret) return memoryNameSecret;
   try {
-    pdf = await PDFDocument.load(src, { updateMetadata: false });
-  } catch (e) {
-    throw new Error(`A PDF adatvédelmi tisztítása nem sikerült, ezért a fájl nem került betöltésre. ${String(e?.message || e)}`);
-  }
+    const stored = hexToBytes(localStorage.getItem(NAME_SECRET_KEY));
+    if (stored) return (memoryNameSecret = stored);
+  } catch { /* storage unavailable */ }
+  const next = new Uint8Array(32);
+  globalThis.crypto?.getRandomValues?.(next);
+  if (!next.some(Boolean)) for (let i = 0; i < next.length; i++) next[i] = Math.floor(Math.random() * 256);
+  memoryNameSecret = next;
+  try { localStorage.setItem(NAME_SECRET_KEY, bytesToHex(next)); } catch { /* session-only fallback */ }
+  return next;
+}
 
-  // Remove the complete Info dictionary contents, not only standard fields:
-  // custom producer/project/user keys are a common metadata leak.
+async function stableNeutralPdfName(sourceName) {
+  return pseudonymousPdfName(sourceName, nameSecret());
+}
+
+const RISKY_DICT_KEYS = [
+  "Metadata", "PieceInfo", "LastModified", "Annots", "AA", "OpenAction",
+  "AcroForm", "EmbeddedFiles", "JavaScript", "AF",
+];
+
+function stripRiskyKeysFromContext(pdf) {
+  for (const [, obj] of pdf.context.enumerateIndirectObjects()) {
+    // Streams carry their own dictionary; object-level XMP/PieceInfo attached to
+    // image/form streams must be scrubbed too, not only plain PDFDict objects.
+    const dict = obj instanceof PDFDict ? obj : (obj?.dict instanceof PDFDict ? obj.dict : null);
+    if (!dict) continue;
+    for (const key of RISKY_DICT_KEYS) dict.delete(PDFName.of(key));
+  }
+  for (const key of RISKY_DICT_KEYS) pdf.catalog.delete(PDFName.of(key));
   try {
     const infoRef = pdf.context.trailerInfo.Info;
     const info = infoRef ? pdf.context.lookup(infoRef, PDFDict) : undefined;
     if (info) for (const key of [...info.keys()]) info.delete(key);
   } catch { /* malformed optional Info dictionary */ }
+}
 
-  // XMP metadata, forms/field values, annotations/comments, embedded files and
-  // document-level actions can carry names, e-mail addresses or provenance.
-  pdf.catalog.delete(PDFName.of("Metadata"));
-  pdf.catalog.delete(PDFName.of("AcroForm"));
-  pdf.catalog.delete(PDFName.of("OpenAction"));
-  pdf.catalog.delete(PDFName.of("AA"));
-  const names = pdf.catalog.lookupMaybe(PDFName.of("Names"), PDFDict);
-  if (names) {
-    names.delete(PDFName.of("EmbeddedFiles"));
-    names.delete(PDFName.of("JavaScript"));
+/** Technical metadata/active-content sanitizer, NOT semantic anonymisation. */
+export async function sanitizePdfBytes(inputBytes) {
+  const src = inputBytes instanceof Uint8Array ? inputBytes : new Uint8Array(inputBytes);
+  if (src.byteLength <= 0 || src.byteLength > M0_MAX_PDF_BYTES) {
+    throw new Error(`A PDF mérete meghaladja az M0 adatvédelmi korlátját (${Math.round(M0_MAX_PDF_BYTES / 1024 / 1024)} MB).`);
   }
-  for (const page of pdf.getPages()) page.node.delete(PDFName.of("Annots"));
+  let source;
+  try {
+    source = await PDFDocument.load(src, { updateMetadata: false });
+  } catch (e) {
+    throw new Error(`A PDF adatvédelmi tisztítása nem sikerült, ezért a fájl nem került betöltésre. ${String(e?.message || e)}`);
+  }
+  const pageCount = source.getPageCount();
+  if (pageCount < 1 || pageCount > M0_MAX_PDF_PAGES) {
+    throw new Error(`A PDF oldalszáma nem engedélyezett az M0 demóban (maximum ${M0_MAX_PDF_PAGES} oldal).`);
+  }
 
-  const saved = await pdf.save({ useObjectStreams: false, addDefaultPage: false });
-  return saved.buffer.slice(saved.byteOffset, saved.byteOffset + saved.byteLength);
+  for (const page of source.getPages()) {
+    for (const key of RISKY_DICT_KEYS) page.node.delete(PDFName.of(key));
+  }
+  stripRiskyKeysFromContext(source);
+
+  // Rebuild a fresh object graph. Merely deleting catalog references can leave
+  // orphaned sensitive strings in serialized bytes; copyPages excludes them.
+  const clean = await PDFDocument.create({ updateMetadata: false });
+  const copied = await clean.copyPages(source, source.getPageIndices());
+  for (const page of copied) clean.addPage(page);
+  stripRiskyKeysFromContext(clean);
+
+  const saved = await clean.save({ useObjectStreams: false, addDefaultPage: false });
+  return new Uint8Array(saved);
+}
+
+export async function sanitizePdfForM0(inputBytes) {
+  if (!m0DemoEnabled()) return inputBytes instanceof Uint8Array ? new Uint8Array(inputBytes) : new Uint8Array(inputBytes);
+  return sanitizePdfBytes(inputBytes);
 }
 
 let guardsInstalled = false;
@@ -83,9 +161,6 @@ function startPrivacyMigration() {
     try {
       if (localStorage.getItem(PRIVACY_SCHEMA_KEY) === PRIVACY_SCHEMA) return;
     } catch { /* disabled storage: still purge IndexedDB best-effort */ }
-
-    // Previous M0 builds persisted original filenames and unsanitised PDF bytes.
-    // Purge once before any local-store read/write so legacy data cannot linger.
     await clearM0LocalProjectData();
     try { localStorage.setItem(PRIVACY_SCHEMA_KEY, PRIVACY_SCHEMA); } catch { /* private mode */ }
   })();
@@ -111,63 +186,64 @@ function hardenLocalStore() {
   if (originals.addPdf) {
     localStore.addPdf = async (file) => {
       await migration;
+      if (!file || !Number.isFinite(file.size) || file.size <= 0 || file.size > M0_MAX_PDF_BYTES) {
+        throw new Error("A PDF mérete nem engedélyezett az M0 adatvédelmi módban.");
+      }
       const raw = await file.arrayBuffer();
-      const sanitized = await sanitizePdfForM0(raw);
-      // Never persist the original upload filename or browser lastModified value.
-      const safeFile = new File([sanitized], neutralPdfName(), {
-        type: "application/pdf",
-        lastModified: 0,
-      });
+      const sanitized = await sanitizePdfBytes(raw);
+      const safeName = await stableNeutralPdfName(file.name);
+      // The canvas keeps the same File object in memory after addPdf() and
+      // otherwise renders its original name into tabs/status text. Shadow the
+      // inherited read-only File.name accessor on this instance so the live UI
+      // sees the exact same pseudonym that is persisted in IndexedDB. If a
+      // browser ever rejects the shadow, persistence remains safe and the E2E
+      // privacy canary will fail rather than silently accepting a UI leak.
+      try {
+        Object.defineProperty(file, "name", { configurable: true, enumerable: true, value: safeName });
+      } catch { /* fail closed at the canary gate; persisted copy is still safe */ }
+      const safeFile = new File([sanitized], safeName, { type: "application/pdf", lastModified: 0 });
       return originals.addPdf(safeFile);
     };
   }
 }
 
+function blockConstructor(name) {
+  if (!(name in window)) return;
+  try {
+    Object.defineProperty(window, name, {
+      configurable: true,
+      writable: false,
+      value: class M0BlockedTransport {
+        constructor() { throw new Error(`${name} az M0 adatvédelmi módban ki van kapcsolva.`); }
+      },
+    });
+  } catch { /* CSP/server headers remain authoritative fallbacks */ }
+}
+
 export function installM0PrivacyGuards() {
   if (!m0DemoEnabled() || guardsInstalled || typeof window === "undefined") return;
   guardsInstalled = true;
-
   hardenLocalStore();
 
   const nativeFetch = window.fetch?.bind(window);
   if (nativeFetch) {
     window.fetch = (input, init) => {
-      if (!isM0AllowedNetworkTarget(input)) return Promise.reject(privacyError(input));
+      if (!isAllowedM0Request(input, init)) return Promise.reject(privacyError(input));
       return nativeFetch(input, init);
     };
   }
-
   const xhrOpen = window.XMLHttpRequest?.prototype?.open;
   if (xhrOpen) {
     window.XMLHttpRequest.prototype.open = function(method, url, ...rest) {
-      if (!isM0AllowedNetworkTarget(url)) throw privacyError(url);
+      if (!isAllowedM0Request(url, { method })) throw privacyError(url);
       return xhrOpen.call(this, method, url, ...rest);
     };
   }
-
   if (navigator.sendBeacon) {
-    try {
-      const nativeBeacon = navigator.sendBeacon.bind(navigator);
-      navigator.sendBeacon = (url, data) => {
-        if (!isM0AllowedNetworkTarget(url)) return false;
-        return nativeBeacon(url, data);
-      };
-    } catch { /* read-only browser implementation; CSP still blocks egress */ }
+    try { navigator.sendBeacon = () => false; } catch { /* read-only implementation */ }
   }
-
-  // Collaboration/remote-presence transports are intentionally unavailable in
-  // the private internal demo. Disabling them also prevents ICE/STUN based IP
-  // discovery from browser code.
-  for (const key of ["WebSocket", "EventSource", "RTCPeerConnection", "webkitRTCPeerConnection"]) {
-    if (!(key in window)) continue;
-    try {
-      Object.defineProperty(window, key, {
-        configurable: true,
-        writable: false,
-        value: class M0BlockedTransport {
-          constructor() { throw new Error(`${key} az M0 adatvédelmi módban ki van kapcsolva.`); }
-        },
-      });
-    } catch { /* CSP remains the authoritative fallback */ }
-  }
+  for (const key of [
+    "WebSocket", "EventSource", "WebTransport", "RTCPeerConnection",
+    "webkitRTCPeerConnection", "SharedWorker", "BroadcastChannel",
+  ]) blockConstructor(key);
 }
