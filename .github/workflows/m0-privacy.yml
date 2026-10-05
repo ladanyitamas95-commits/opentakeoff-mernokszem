@@ -44,3 +44,31 @@ jobs:
       - name: Reproduce production Docker validation gate
         working-directory: .
         run: docker build --pull=false -f Dockerfile.m0 -t m0-privacy-gate .
+      - name: Assert final M0 runtime image is minimal
+        working-directory: .
+        run: |
+          docker run --rm --entrypoint sh m0-privacy-gate -ceu '
+            test "$(id -u)" -ne 0
+            test -d /app/dist
+            test -f /app/scripts/serve-m0.mjs
+
+            for path in \
+              /app/docs \
+              /app/demo \
+              /app/web \
+              /app/test \
+              /app/bench \
+              /app/node_modules \
+              /app/package.json \
+              /app/package-lock.json \
+              /app/.npmrc; do
+              test ! -e "$path"
+            done
+
+            test -z "$(find /app -type f -name "*.map" -print -quit)"
+
+            top_level="$(find /app -mindepth 1 -maxdepth 1 -printf "%f\n" | sort | tr "\n" " ")"
+            test "$top_level" = "dist scripts "
+
+            echo "M0 FINAL RUNTIME IMAGE CONTENTS: PASS"
+          '
