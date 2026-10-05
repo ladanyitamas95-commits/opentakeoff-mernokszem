@@ -105,6 +105,16 @@ async function dumpBootDiagnostics(reason) {
     rootHtml: document.getElementById("root")?.innerHTML?.slice(0, 4000) || "",
     bodyText: document.body?.innerText?.slice(0, 2000) || "",
     scripts: [...document.scripts].map((s) => s.src || "[inline]"),
+    sheetInputs: [...document.querySelectorAll('input[name="sheet-file"]')].map((el, index) => ({
+      index,
+      connected: el.isConnected,
+      files: el.files?.length || 0,
+      parentClass: el.parentElement?.className || "",
+    })),
+    canvases: [...document.querySelectorAll("canvas")].map((c, index) => {
+      const r = c.getBoundingClientRect();
+      return { index, width: c.width, height: c.height, cssWidth: r.width, cssHeight: r.height };
+    }),
   })).catch((err) => ({ diagnosticError: err?.message || String(err) }));
   console.error("M0_BROWSER_BOOT_DIAGNOSTICS=" + JSON.stringify({ reason, snapshot, pageErrors, consoleErrors, failedRequests }));
 }
@@ -118,11 +128,10 @@ try {
     throw new Error(`Production response is missing connect-src 'none' CSP: ${csp}`);
   }
 
-  // The app can mount more than one hidden sheet-file input (for example the
-  // primary canvas input plus a secondary plan-set surface). The first one is
-  // the primary TakeoffCanvas input; target it explicitly so Playwright strict
-  // mode does not reject the real production DOM solely because a second input
-  // exists elsewhere in the UI.
+  // Two sheet-file inputs are expected while the empty-project PlanNavigator is
+  // mounted: the first belongs to TakeoffCanvas, the second to PlanNavigator.
+  // Both call the same ingest path, but targeting the primary input keeps the
+  // probe stable under Playwright strict mode.
   const inputs = page.locator('input[name="sheet-file"]');
   const input = inputs.first();
   try {
@@ -137,13 +146,24 @@ try {
   }
   await input.setInputFiles(pdfPath);
 
-  await page.waitForFunction(() => {
-    const body = document.body?.innerText || "";
-    const hasLoadText = /Megnyitva|Opened|tervlap|sheet/i.test(body);
-    const hasRenderedCanvas = [...document.querySelectorAll("canvas")]
-      .some((c) => c.width >= 300 && c.height >= 300);
-    return hasLoadText && hasRenderedCanvas;
-  }, null, { timeout: 30_000 });
+  try {
+    await page.waitForFunction(() => {
+      const body = document.body?.innerText || "";
+      // Successful ingest moves the app out of the empty-project landing view.
+      // Use the rendered CSS box here, not canvas.width/height: M0's tile
+      // compositor is free to choose its backing-store density independently.
+      const leftEmptyProjectView = !/No PDFs yet/i.test(body);
+      const hasRenderedPlanCanvas = [...document.querySelectorAll("canvas")]
+        .some((c) => {
+          const r = c.getBoundingClientRect();
+          return r.width >= 150 && r.height >= 150;
+        });
+      return leftEmptyProjectView && hasRenderedPlanCanvas;
+    }, null, { timeout: 30_000 });
+  } catch (err) {
+    await dumpBootDiagnostics("PDF import did not reach a rendered plan surface");
+    throw err;
+  }
 
   // Exercise the real canvas without requiring a calibrated scale: pan + zoom.
   const canvases = page.locator("canvas");
