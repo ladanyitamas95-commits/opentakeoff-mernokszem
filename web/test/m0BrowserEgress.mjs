@@ -8,6 +8,8 @@ const allowedOrigin = new URL(targetUrl).origin;
 const network = [];
 const websockets = [];
 const failedRequests = [];
+const pageErrors = [];
+const consoleErrors = [];
 
 function asUrl(raw) {
   try { return new URL(raw, targetUrl); } catch { return null; }
@@ -90,6 +92,22 @@ await context.addInitScript(() => {
 
 const page = await context.newPage();
 page.on("websocket", (ws) => websockets.push(ws.url()));
+page.on("pageerror", (err) => pageErrors.push(err?.stack || err?.message || String(err)));
+page.on("console", (msg) => {
+  if (msg.type() === "error") consoleErrors.push(msg.text());
+});
+
+async function dumpBootDiagnostics(reason) {
+  const snapshot = await page.evaluate(() => ({
+    url: location.href,
+    title: document.title,
+    readyState: document.readyState,
+    rootHtml: document.getElementById("root")?.innerHTML?.slice(0, 4000) || "",
+    bodyText: document.body?.innerText?.slice(0, 2000) || "",
+    scripts: [...document.scripts].map((s) => s.src || "[inline]"),
+  })).catch((err) => ({ diagnosticError: err?.message || String(err) }));
+  console.error("M0_BROWSER_BOOT_DIAGNOSTICS=" + JSON.stringify({ reason, snapshot, pageErrors, consoleErrors, failedRequests }));
+}
 
 try {
   const response = await page.goto(targetUrl, { waitUntil: "networkidle", timeout: 30_000 });
@@ -100,8 +118,19 @@ try {
     throw new Error(`Production response is missing connect-src 'none' CSP: ${csp}`);
   }
 
+  // This input is intentionally always mounted by TakeoffCanvas. Waiting for
+  // attachment distinguishes a slow React boot from a production boot failure.
   const input = page.locator('input[name="sheet-file"]');
-  if ((await input.count()) !== 1) throw new Error("M0 sheet-file input not found");
+  try {
+    await input.waitFor({ state: "attached", timeout: 15_000 });
+  } catch (err) {
+    await dumpBootDiagnostics("sheet-file input did not mount");
+    throw err;
+  }
+  if ((await input.count()) !== 1) {
+    await dumpBootDiagnostics(`expected one sheet-file input, found ${await input.count()}`);
+    throw new Error("M0 sheet-file input cardinality mismatch");
+  }
   await input.setInputFiles(pdfPath);
 
   await page.waitForFunction(() => {
@@ -168,6 +197,8 @@ try {
     sameOriginMutatingApiAttempts: mutatingSameOriginAttempts.length,
     externalPerformanceResources: externalPerfResources.length,
     requestFailures: failedRequests.length,
+    pageErrors: pageErrors.length,
+    consoleErrors: consoleErrors.length,
     interaction: "PDF import + rendered-plan pan + zoom",
   };
   console.log("M0_BROWSER_EGRESS_RESULT=" + JSON.stringify(result));
@@ -180,6 +211,7 @@ try {
   if (forbiddenTransportAttempts.length) failures.push(`WebSocket/EventSource/beacon attempts: ${JSON.stringify(forbiddenTransportAttempts)}`);
   if (mutatingSameOriginAttempts.length) failures.push(`same-origin mutating API attempts: ${JSON.stringify(mutatingSameOriginAttempts)}`);
   if (externalPerfResources.length) failures.push(`external performance resources: ${JSON.stringify(externalPerfResources)}`);
+  if (pageErrors.length) failures.push(`page runtime errors: ${JSON.stringify(pageErrors)}`);
 
   if (failures.length) {
     console.error("M0 REAL-BROWSER EGRESS: FAIL");
