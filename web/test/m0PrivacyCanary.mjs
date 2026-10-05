@@ -106,7 +106,6 @@ try {
     return leftEmptyProjectView && hasRenderedPlanCanvas;
   }, null, { timeout: 30_000 });
 
-  // Exercise the normal local-use path before inspecting persistence.
   const canvases = page.locator("canvas");
   let best = null;
   for (let i = 0; i < await canvases.count(); i++) {
@@ -125,8 +124,6 @@ try {
   await page.mouse.wheel(0, -120);
   await page.waitForTimeout(1_500);
 
-  // Export the app's editable takeoff JSON. It names sheets, so it is a direct
-  // regression probe for accidental reintroduction of the original filename.
   const sheetMenu = page.locator('button[title^="Sheet —"]').first();
   await sheetMenu.waitFor({ state: "visible", timeout: 10_000 });
   await sheetMenu.click();
@@ -142,6 +139,7 @@ try {
 
   const persistence = await page.evaluate(async ({ privacyCanary }) => {
     const hits = [];
+    const domEvidence = [];
     const counters = {
       localStorageEntries: 0,
       sessionStorageEntries: 0,
@@ -255,14 +253,20 @@ try {
     }
 
     const html = document.documentElement?.outerHTML || "";
-    if (html.includes(privacyCanary)) hits.push("DOM.outerHTML");
+    const htmlAt = html.indexOf(privacyCanary);
+    if (htmlAt >= 0) {
+      hits.push("DOM.outerHTML");
+      const from = Math.max(0, htmlAt - 180);
+      const to = Math.min(html.length, htmlAt + privacyCanary.length + 180);
+      domEvidence.push(html.slice(from, to).replaceAll(privacyCanary, "[PRIVACY_CANARY]"));
+    }
     if ((document.title || "").includes(privacyCanary)) hits.push("DOM.documentTitle");
     for (const [i, el] of [...document.querySelectorAll("input")].entries()) {
       if ((el.value || "").includes(privacyCanary)) hits.push(`DOM.input[${i}].value`);
       for (const file of [...(el.files || [])]) if ((file.name || "").includes(privacyCanary)) hits.push(`DOM.input[${i}].files.name`);
     }
 
-    return { hits: [...new Set(hits)], counters };
+    return { hits: [...new Set(hits)], counters, domEvidence };
   }, { privacyCanary });
 
   const perfResources = await page.evaluate(() => performance.getEntriesByType("resource").map((e) => e.name));
@@ -299,6 +303,7 @@ try {
     interaction: "synthetic metadata+filename canary PDF import + render + pan + zoom + takeoff export",
   };
   console.log("M0_PRIVACY_CANARY_RESULT=" + JSON.stringify(result));
+  if (persistence.domEvidence.length) console.log("M0_PRIVACY_CANARY_DOM_EVIDENCE=" + JSON.stringify(persistence.domEvidence));
 
   const failures = [];
   if (externalNetwork.length) failures.push(`external network requests: ${JSON.stringify(externalNetwork)}`);
