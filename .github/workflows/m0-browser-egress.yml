@@ -55,7 +55,8 @@ jobs:
           mkdir -p "$PW_DIR"
           cd "$PW_DIR"
           npm init -y >/dev/null
-          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 npm install --ignore-scripts --package-lock=false --no-save playwright@1.55.0
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 npm install --ignore-scripts --package-lock=false --no-save playwright@1.63.0
+          npm audit --audit-level=high
           ./node_modules/.bin/playwright install --with-deps chromium
           cp "$GITHUB_WORKSPACE/web/test/m0BrowserEgress.mjs" ./m0BrowserEgress.mjs
 
