@@ -192,6 +192,15 @@ function hardenLocalStore() {
       const raw = await file.arrayBuffer();
       const sanitized = await sanitizePdfBytes(raw);
       const safeName = await stableNeutralPdfName(file.name);
+      // The canvas keeps the same File object in memory after addPdf() and
+      // otherwise renders its original name into tabs/status text. Shadow the
+      // inherited read-only File.name accessor on this instance so the live UI
+      // sees the exact same pseudonym that is persisted in IndexedDB. If a
+      // browser ever rejects the shadow, persistence remains safe and the E2E
+      // privacy canary will fail rather than silently accepting a UI leak.
+      try {
+        Object.defineProperty(file, "name", { configurable: true, enumerable: true, value: safeName });
+      } catch { /* fail closed at the canary gate; persisted copy is still safe */ }
       const safeFile = new File([sanitized], safeName, { type: "application/pdf", lastModified: 0 });
       return originals.addPdf(safeFile);
     };
