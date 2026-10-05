@@ -126,7 +126,8 @@ try {
 
   const sheetMenu = page.locator('button[title^="Sheet —"]').first();
   await sheetMenu.waitFor({ state: "visible", timeout: 10_000 });
-  await sheetMenu.click();
+  await sheetMenu.focus();
+  await page.keyboard.press("Enter");
   const exportButton = page.getByRole("button", { name: /Export takeoff/i }).first();
   await exportButton.waitFor({ state: "visible", timeout: 10_000 });
   const [download] = await Promise.all([
