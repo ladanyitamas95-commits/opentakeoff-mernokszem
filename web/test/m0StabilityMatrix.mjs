@@ -41,10 +41,18 @@ async function setMetricScale(page) {
   await page.waitForFunction(() => [...document.querySelectorAll("footer span")].some((s) => (s.textContent || "").includes("1:50")), null, { timeout: 5_000 });
 }
 
-async function activateFirstCondition(page) {
-  const c = page.locator('button[title^="CPT-1"]').first();
-  await c.waitFor({ state: "visible", timeout: 10_000 });
-  await c.click();
+async function createAndActivateTestCondition(page) {
+  // A clean M0 workspace is allowed to have zero conditions. The stability gate
+  // must create its own deterministic condition instead of depending on starter
+  // templates/palette state from a previous browser profile.
+  const add = page.getByRole("button", { name: "+ condition", exact: true }).first();
+  await add.waitFor({ state: "visible", timeout: 10_000 });
+  page.once("dialog", async (dialog) => {
+    if (dialog.type() !== "prompt") throw new Error("Expected condition-name prompt");
+    await dialog.accept("STAB-1");
+  });
+  await add.click();
+  await page.waitForFunction(() => [...document.querySelectorAll('input[name="condition-finish-tag"]')].some((el) => el.value === "STAB-1"), null, { timeout: 5_000 });
 }
 
 async function planBox(page) {
@@ -233,7 +241,7 @@ async function runScenario(scenario) {
 
     await importPdfByRealChooser(page);
     await setMetricScale(page);
-    await activateFirstCondition(page);
+    await createAndActivateTestCondition(page);
     await drawMeasurements(page, scenario);
     await exercisePanZoom(page);
 
