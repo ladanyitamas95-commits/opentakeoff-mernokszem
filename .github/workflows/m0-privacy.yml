@@ -72,3 +72,40 @@ jobs:
 
             echo "M0 FINAL RUNTIME IMAGE CONTENTS: PASS"
           '
+
+
+      - name: Start M0 container for stability gate
+        working-directory: .
+        run: |
+          docker run -d --rm --name m0-stability-gate -p 4173:4173 m0-privacy-gate
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:4173/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          docker logs m0-stability-gate || true
+          exit 1
+
+      - name: Install isolated pinned cross-browser harness
+        working-directory: .
+        run: |
+          set -euo pipefail
+          PW_DIR="$RUNNER_TEMP/m0-stability-playwright"
+          mkdir -p "$PW_DIR"
+          cd "$PW_DIR"
+          npm init -y >/dev/null
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 npm install --ignore-scripts --save-exact playwright@1.63.0
+          npm audit --audit-level=high
+          ./node_modules/.bin/playwright install --with-deps chromium firefox webkit
+          cp "$GITHUB_WORKSPACE/web/test/m0StabilityMatrix.mjs" ./m0StabilityMatrix.mjs
+
+      - name: Cross-browser M0 Stability Gate
+        working-directory: .
+        env:
+          M0_URL: http://127.0.0.1:4173/
+          M0_PDF: ${{ github.workspace }}/demo/sample-plan.pdf
+        run: node "$RUNNER_TEMP/m0-stability-playwright/m0StabilityMatrix.mjs"
+
+      - name: Stop M0 stability container
+        if: always()
+        working-directory: .
+        run: docker stop m0-stability-gate || true
