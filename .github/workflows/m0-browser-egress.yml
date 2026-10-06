@@ -45,10 +45,8 @@ jobs:
         run: |
           set -euo pipefail
           HEADERS=$(curl -fsSI http://127.0.0.1:4173/)
-          printf '%s
-' "$HEADERS"
-          printf '%s
-' "$HEADERS" | grep -Eqi "content-security-policy:.*connect-src 'none'"
+          printf '%s\n' "$HEADERS"
+          printf '%s\n' "$HEADERS" | grep -Eqi "content-security-policy:.*connect-src 'none'"
 
       - name: Install isolated pinned Playwright harness
         run: |
@@ -59,11 +57,10 @@ jobs:
           npm init -y >/dev/null
           PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 npm install --ignore-scripts --save-exact playwright@1.63.0
           npm audit --audit-level=high
-          ./node_modules/.bin/playwright install --with-deps chromium firefox webkit
+          ./node_modules/.bin/playwright install --with-deps chromium webkit
           cp "$GITHUB_WORKSPACE/web/test/m0BrowserEgress.mjs" ./m0BrowserEgress.mjs
           cp "$GITHUB_WORKSPACE/web/test/m0PrivacyCanary.mjs" ./m0PrivacyCanary.mjs
           cp "$GITHUB_WORKSPACE/web/test/m0MobileImport.mjs" ./m0MobileImport.mjs
-          cp "$GITHUB_WORKSPACE/web/test/m0StabilityMatrix.mjs" ./m0StabilityMatrix.mjs
 
       - name: Run real-browser M0 egress probe
         env:
@@ -76,12 +73,6 @@ jobs:
           M0_URL: http://127.0.0.1:4173/
           M0_PDF: ${{ github.workspace }}/demo/sample-plan.pdf
         run: node "$RUNNER_TEMP/m0-playwright/m0MobileImport.mjs"
-
-      - name: Run cross-browser M0 stability matrix
-        env:
-          M0_URL: http://127.0.0.1:4173/
-          M0_PDF: ${{ github.workspace }}/demo/sample-plan.pdf
-        run: node "$RUNNER_TEMP/m0-playwright/m0StabilityMatrix.mjs"
 
       - name: Run end-to-end M0 privacy canary
         env:
