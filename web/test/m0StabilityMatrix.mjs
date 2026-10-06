@@ -41,18 +41,30 @@ async function setMetricScale(page) {
   await page.waitForFunction(() => [...document.querySelectorAll("footer span")].some((s) => (s.textContent || "").includes("1:50")), null, { timeout: 5_000 });
 }
 
-async function createAndActivateTestCondition(page) {
-  // A clean M0 workspace is allowed to have zero conditions. The stability gate
-  // must create its own deterministic condition instead of depending on starter
-  // templates/palette state from a previous browser profile.
-  const add = page.getByRole("button", { name: "+ condition", exact: true }).first();
-  await add.waitFor({ state: "visible", timeout: 10_000 });
-  page.once("dialog", async (dialog) => {
-    if (dialog.type() !== "prompt") throw new Error("Expected condition-name prompt");
-    await dialog.accept("STAB-1");
-  });
-  await add.click();
-  await page.waitForFunction(() => [...document.querySelectorAll('input[name="condition-finish-tag"]')].some((el) => el.value === "STAB-1"), null, { timeout: 5_000 });
+async function activateFirstCondition(page) {
+  // Fresh workspaces seed deterministic starter conditions during hydrate, but
+  // they are not necessarily pinned into the top-bar palette and the Takeoffs
+  // panel may be collapsed/overlaid on narrow screens. The app's documented
+  // 1-9 shortcut falls back to condition-array order when the palette is empty,
+  // so "1" is the profile-independent activation path.
+  await page.waitForFunction(async () => {
+    const db = await new Promise((resolve, reject) => {
+      const req = indexedDB.open("opentakeoff");
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+    try {
+      if (!db.objectStoreNames.contains("meta")) return false;
+      const tx = db.transaction("meta", "readonly");
+      const value = await new Promise((resolve, reject) => {
+        const req = tx.objectStore("meta").get("annotations");
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+      });
+      return Array.isArray(value?.conditions) && value.conditions.length > 0;
+    } finally { db.close(); }
+  }, null, { timeout: 10_000 });
+  await page.keyboard.press("1");
 }
 
 async function planBox(page) {
@@ -241,7 +253,7 @@ async function runScenario(scenario) {
 
     await importPdfByRealChooser(page);
     await setMetricScale(page);
-    await createAndActivateTestCondition(page);
+    await activateFirstCondition(page);
     await drawMeasurements(page, scenario);
     await exercisePanZoom(page);
 
