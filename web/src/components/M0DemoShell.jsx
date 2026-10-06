@@ -263,11 +263,15 @@ export default function M0DemoShell() {
     <>
       <style>{`
         .m0-demo-bar {
-          position: fixed;
-          top: 6px;
-          left: 50%;
-          transform: translateX(-50%);
+          position: sticky;
+          top: 0;
+          left: auto;
+          transform: none;
           z-index: 99999;
+          width: fit-content;
+          min-height: 34px;
+          box-sizing: border-box;
+          margin: 0 auto;
           display: flex;
           align-items: center;
           gap: 9px;
@@ -293,15 +297,20 @@ export default function M0DemoShell() {
           font-size: 11px;
           white-space: nowrap;
         }
+        .m0-demo-bar + .app-shell {
+          height: calc(100vh - 34px) !important;
+          min-height: 0;
+        }
         .m0-mobile-only { display: none; }
         @media (max-width: 720px) {
           .m0-demo-bar {
-            top: 4px;
-            left: 4px;
-            right: 4px;
+            top: 0;
+            left: auto;
+            right: auto;
             transform: none;
-            width: auto;
-            max-width: none;
+            width: 100%;
+            max-width: 100%;
+            margin: 0;
             gap: 6px;
             padding: 5px 7px;
             font-size: 10.5px;
